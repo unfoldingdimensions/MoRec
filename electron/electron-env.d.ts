@@ -641,6 +641,12 @@ interface Window {
 			error?: string;
 			canceled?: boolean;
 		}>;
+		openImageFilePicker: () => Promise<{
+			success: boolean;
+			path?: string;
+			canceled?: boolean;
+			error?: string;
+		}>;
 		openVideoFilePicker: (options?: { includeProjects?: boolean }) => Promise<{
 			success: boolean;
 			kind?: "media" | "project";

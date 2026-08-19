@@ -258,6 +258,60 @@ function WallpaperVideoPreview({ src }: { src: string }) {
 	);
 }
 
+function WallpaperImagePreview({
+	src,
+	title,
+	ariaLabel,
+}: {
+	src: string;
+	title?: string;
+	ariaLabel?: string;
+}) {
+	const [resolvedSrc, setResolvedSrc] = useState(src);
+
+	useEffect(() => {
+		let cancelled = false;
+		setResolvedSrc(src);
+
+		if (
+			src.startsWith("data:") ||
+			src.startsWith("http") ||
+			src.startsWith("/") ||
+			src.startsWith("#") ||
+			src.startsWith("linear-gradient") ||
+			src.startsWith("radial-gradient")
+		) {
+			return;
+		}
+
+		void (async () => {
+			try {
+				const nextSrc = await getRenderableAssetUrl(src);
+				if (!cancelled) {
+					setResolvedSrc(nextSrc);
+				}
+			} catch {
+				if (!cancelled) {
+					setResolvedSrc(src);
+				}
+			}
+		})();
+
+		return () => {
+			cancelled = true;
+		};
+	}, [src]);
+
+	return (
+		<img
+			src={resolvedSrc}
+			alt={title ?? ariaLabel ?? "Wallpaper preview"}
+			className="h-full w-full select-none object-cover [transform:translateZ(0)]"
+			draggable={false}
+		/>
+	);
+}
+
 /**
  * Renders extension-contributed settings fields (toggle, slider, select, color, text).
  */
@@ -1566,9 +1620,11 @@ export function SettingsPanel({
 		const isKnownWallpaper =
 			builtInWallpaperPaths.includes(selected) ||
 			wallpaperPreviewPaths.includes(selected) ||
-			extensionWallpaperPaths.includes(selected);
+			extensionWallpaperPaths.includes(selected) ||
+			GRADIENTS.includes(selected) ||
+			isHexWallpaper(selected);
 
-		if (!isKnownWallpaper && isVideoWallpaperSource(selected)) {
+		if (!isKnownWallpaper && selected) {
 			setCustomImages((prev) => (prev.includes(selected) ? prev : [selected, ...prev]));
 		}
 	}, [builtInWallpaperPaths, extensionWallpaperPaths, selected, wallpaperPreviewPaths]);
@@ -1756,15 +1812,10 @@ export function SettingsPanel({
 				{isVideoWallpaperSource(wallpaperUrl) ? (
 					<WallpaperVideoPreview src={wallpaperUrl} />
 				) : (
-					<img
+					<WallpaperImagePreview
 						src={wallpaperUrl}
-						alt={
-							props?.title ??
-							props?.ariaLabel ??
-							tSettings("background.wallpaperPreview", "Wallpaper preview")
-						}
-						className="h-full w-full select-none object-cover [transform:translateZ(0)]"
-						draggable={false}
+						title={props?.title}
+						ariaLabel={props?.ariaLabel}
 					/>
 				)}
 			</div>
@@ -1872,20 +1923,18 @@ export function SettingsPanel({
 	};
 
 	const activeMotionPresetId = useMemo(() => {
-		return (
-			getMatchingCursorMotionPresetId({
-				zoomInDurationMs,
-				zoomOutDurationMs,
-				cursorSize,
-				cursorSmoothing,
-				cursorSpringStiffnessMultiplier,
-				cursorSpringDampingMultiplier,
-				cursorSpringMassMultiplier,
-				cursorMotionBlur,
-				cursorClickBounce,
-				cursorClickBounceDuration,
-			}) ?? "focused"
-		);
+		return getMatchingCursorMotionPresetId({
+			zoomInDurationMs,
+			zoomOutDurationMs,
+			cursorSize,
+			cursorSmoothing,
+			cursorSpringStiffnessMultiplier,
+			cursorSpringDampingMultiplier,
+			cursorSpringMassMultiplier,
+			cursorMotionBlur,
+			cursorClickBounce,
+			cursorClickBounceDuration,
+		});
 	}, [
 		cursorClickBounce,
 		cursorClickBounceDuration,
@@ -1959,14 +2008,39 @@ export function SettingsPanel({
 		});
 	};
 
-	const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+	const handleImageUpload = async () => {
+		try {
+			if (typeof window !== "undefined" && window.electronAPI?.openImageFilePicker) {
+				const result = await window.electronAPI.openImageFilePicker();
+				if (!result?.success || !result.path) return;
+				const filePath = result.path;
+				setCustomImages((prev) => (prev.includes(filePath) ? prev : [filePath, ...prev]));
+				onWallpaperChange(filePath);
+				toast.success(tSettings("background.uploadSuccess"));
+				return;
+			}
+			fileInputRef.current?.click();
+		} catch {
+			toast.error(t("common.errors.failedToUploadImage"));
+		}
+	};
+
+	const handleFileInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
 		const files = event.target.files;
 		if (!files || files.length === 0) return;
 
 		const file = files[0];
 
-		// Validate file type - only allow JPG/JPEG
-		const validTypes = ["image/jpeg", "image/jpg"];
+		// Validate file type
+		const validTypes = [
+			"image/jpeg",
+			"image/jpg",
+			"image/png",
+			"image/webp",
+			"image/avif",
+			"image/gif",
+			"image/svg+xml",
+		];
 		if (!validTypes.includes(file.type)) {
 			toast.error(tSettings("background.uploadError"), {
 				description: tSettings("background.uploadErrorDescription"),
@@ -1980,7 +2054,7 @@ export function SettingsPanel({
 		reader.onload = (e) => {
 			const dataUrl = e.target?.result as string;
 			if (dataUrl) {
-				setCustomImages((prev) => [...prev, dataUrl]);
+				setCustomImages((prev) => (prev.includes(dataUrl) ? prev : [dataUrl, ...prev]));
 				onWallpaperChange(dataUrl);
 				toast.success(tSettings("background.uploadSuccess"));
 			}
@@ -2008,7 +2082,7 @@ export function SettingsPanel({
 				});
 				return;
 			}
-			setCustomImages((prev) => [filePath, ...prev]);
+			setCustomImages((prev) => (prev.includes(filePath) ? prev : [filePath, ...prev]));
 			onWallpaperChange(filePath);
 			toast.success("Video background added");
 		} catch {
@@ -2121,12 +2195,12 @@ export function SettingsPanel({
 									<input
 										type="file"
 										ref={fileInputRef}
-										onChange={handleImageUpload}
-										accept=".jpg,.jpeg,image/jpeg"
+										onChange={handleFileInputChange}
+										accept=".jpg,.jpeg,.png,.webp,.avif,.gif,image/*"
 										className="hidden"
 									/>
 									<Button
-										onClick={() => fileInputRef.current?.click()}
+										onClick={handleImageUpload}
 										variant="outline"
 										className="w-full gap-2 bg-foreground/5 text-foreground border-foreground/10 hover:bg-[#2563EB] hover:text-white hover:border-[#2563EB] transition-all h-7 text-[10px]"
 									>
@@ -2135,33 +2209,37 @@ export function SettingsPanel({
 									</Button>
 
 									<div className="grid grid-cols-8 gap-1.5">
-										{customImages.map((imageUrl, idx) => {
-											const isSelected = getWallpaperTileState(imageUrl);
-											return renderWallpaperImageTile(imageUrl, isSelected, {
-												key: `custom-${idx}`,
-												ariaLabel: isVideoWallpaperSource(imageUrl)
-													? (imageUrl.split(/[\\/]/).pop() ??
-														tSettings(
-															"background.video",
-															"Video background",
-														))
-													: undefined,
-												title: isVideoWallpaperSource(imageUrl)
-													? imageUrl.split(/[\\/]/).pop()
-													: undefined,
-												onClick: () => onWallpaperChange(imageUrl),
-												children: (
-													<button
-														onClick={(e) =>
-															handleRemoveCustomImage(imageUrl, e)
-														}
-														className="absolute top-0.5 right-0.5 w-3 h-3 bg-red-500/90 hover:bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
-													>
-														<X className="w-2 h-2 text-white" />
-													</button>
-												),
-											});
-										})}
+										{customImages
+											.filter((img) => !isVideoWallpaperSource(img))
+											.map((imageUrl, idx) => {
+												const isSelected = getWallpaperTileState(imageUrl);
+												return renderWallpaperImageTile(
+													imageUrl,
+													isSelected,
+													{
+														key: `custom-${idx}`,
+														ariaLabel:
+															imageUrl.split(/[\\/]/).pop() ??
+															undefined,
+														title: imageUrl.split(/[\\/]/).pop(),
+														onClick: () =>
+															onWallpaperChange(imageUrl),
+														children: (
+															<button
+																onClick={(e) =>
+																	handleRemoveCustomImage(
+																		imageUrl,
+																		e,
+																	)
+																}
+																className="absolute top-0.5 right-0.5 w-3 h-3 bg-red-500/90 hover:bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
+															>
+																<X className="w-2 h-2 text-white" />
+															</button>
+														),
+													},
+												);
+											})}
 
 										{imageWallpaperTiles.map((tile) => {
 											const isSelected = getWallpaperTileState(

@@ -2,12 +2,34 @@ import { existsSync } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { ipcMain } from "electron";
+import { dialog, ipcMain } from "electron";
 import { USER_DATA_PATH } from "../../appPaths";
 import { normalizePath } from "../utils";
 import { getAssetRootPath } from "../project/manager";
 
+const IMAGE_FILE_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "avif", "gif", "svg", "bmp"];
+
 export function registerAssetHandlers() {
+	ipcMain.handle("open-image-file-picker", async () => {
+		try {
+			const result = await dialog.showOpenDialog({
+				title: "Select Image File",
+				filters: [
+					{ name: "Image Files", extensions: IMAGE_FILE_EXTENSIONS },
+					{ name: "All Files", extensions: ["*"] },
+				],
+				properties: ["openFile"],
+			});
+
+			if (result.canceled || result.filePaths.length === 0) {
+				return { success: false, canceled: true };
+			}
+
+			return { success: true, path: result.filePaths[0] };
+		} catch (error) {
+			return { success: false, error: String(error) };
+		}
+	});
 	async function resolveReadableLocalFilePath(filePath: string) {
 		const normalizedPath = normalizePath(filePath);
 		const resolvedPath = await fs.realpath(normalizedPath).catch(() => normalizedPath);

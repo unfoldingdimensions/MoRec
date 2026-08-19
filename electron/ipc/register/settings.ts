@@ -42,6 +42,11 @@ function getBrowserMicrophoneProfileFromEnv() {
 	};
 }
 
+let appSettingsCache: Record<string, unknown> | null = null;
+let saveDebounceTimer: NodeJS.Timeout | null = null;
+let isSaving = false;
+let hasPendingSave = false;
+
 function readAppSettingsStore(): Record<string, unknown> {
 	try {
 		const content = readFileSync(APP_SETTINGS_FILE, "utf-8");
@@ -60,11 +65,71 @@ function writeAppSettingsStore(store: Record<string, unknown>) {
 	writeFileSync(APP_SETTINGS_FILE, JSON.stringify(store, null, 2), "utf-8");
 }
 
+function getAppSettingsStore(): Record<string, unknown> {
+	if (appSettingsCache === null) {
+		appSettingsCache = readAppSettingsStore();
+	}
+	return appSettingsCache;
+}
+
+function flushAppSettingsSync(): void {
+	if (saveDebounceTimer) {
+		clearTimeout(saveDebounceTimer);
+		saveDebounceTimer = null;
+	}
+	if (appSettingsCache !== null) {
+		try {
+			writeAppSettingsStore(appSettingsCache);
+		} catch (error) {
+			console.error("Failed to flush app settings synchronously:", error);
+		}
+	}
+}
+
+async function persistAppSettingsAsync(): Promise<void> {
+	if (isSaving) {
+		hasPendingSave = true;
+		return;
+	}
+	if (!appSettingsCache) {
+		return;
+	}
+
+	isSaving = true;
+	hasPendingSave = false;
+	const payload = JSON.stringify(appSettingsCache, null, 2);
+
+	try {
+		await fs.writeFile(APP_SETTINGS_FILE, payload, "utf-8");
+	} catch (error) {
+		console.error("Failed to write app settings asynchronously:", error);
+	} finally {
+		isSaving = false;
+		if (hasPendingSave) {
+			void persistAppSettingsAsync();
+		}
+	}
+}
+
+function scheduleSaveAppSettings(delayMs = 300): void {
+	if (saveDebounceTimer) {
+		clearTimeout(saveDebounceTimer);
+	}
+	saveDebounceTimer = setTimeout(() => {
+		saveDebounceTimer = null;
+		void persistAppSettingsAsync();
+	}, delayMs);
+}
+
 function hasAppSetting(store: Record<string, unknown>, key: string): boolean {
 	return Reflect.getOwnPropertyDescriptor(store, key) !== undefined;
 }
 
 export function registerSettingsHandlers() {
+	app.on("before-quit", () => {
+		flushAppSettingsSync();
+	});
+
 	ipcMain.handle("app:getVersion", () => {
 		return app.getVersion();
 	});
@@ -80,7 +145,7 @@ export function registerSettingsHandlers() {
 				return;
 			}
 
-			const store = readAppSettingsStore();
+			const store = getAppSettingsStore();
 			event.returnValue = {
 				success: true,
 				value: hasAppSetting(store, key) ? store[key] : null,
@@ -98,9 +163,9 @@ export function registerSettingsHandlers() {
 				return;
 			}
 
-			const store = readAppSettingsStore();
+			const store = getAppSettingsStore();
 			store[key] = value;
-			writeAppSettingsStore(store);
+			scheduleSaveAppSettings();
 			event.returnValue = { success: true };
 		} catch (error) {
 			console.error("Failed to save app setting:", error);

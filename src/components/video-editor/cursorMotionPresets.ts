@@ -63,22 +63,33 @@ export const CURSOR_MOTION_PRESETS: Record<CursorMotionPresetId, CursorMotionPre
 	},
 };
 
+function isCloseTo(a: number, b: number, epsilon = 0.001): boolean {
+	return Math.abs(a - b) <= epsilon;
+}
+
 export function getMatchingCursorMotionPresetId(
 	values: CursorMotionPresetSelectionInput,
 ): CursorMotionPresetId | null {
 	for (const presetId of Object.keys(CURSOR_MOTION_PRESETS) as CursorMotionPresetId[]) {
 		const preset = CURSOR_MOTION_PRESETS[presetId];
 		if (
-			preset.zoomInDurationMs === values.zoomInDurationMs &&
-			preset.zoomOutDurationMs === values.zoomOutDurationMs &&
-			preset.cursorSize === values.cursorSize &&
-			preset.cursorSmoothing === values.cursorSmoothing &&
-			preset.cursorSpringStiffnessMultiplier === values.cursorSpringStiffnessMultiplier &&
-			preset.cursorSpringDampingMultiplier === values.cursorSpringDampingMultiplier &&
-			preset.cursorSpringMassMultiplier === values.cursorSpringMassMultiplier &&
-			preset.cursorMotionBlur === values.cursorMotionBlur &&
-			preset.cursorClickBounce === values.cursorClickBounce &&
-			preset.cursorClickBounceDuration === values.cursorClickBounceDuration
+			Math.round(preset.zoomInDurationMs) === Math.round(values.zoomInDurationMs) &&
+			Math.round(preset.zoomOutDurationMs) === Math.round(values.zoomOutDurationMs) &&
+			isCloseTo(preset.cursorSize, values.cursorSize) &&
+			isCloseTo(preset.cursorSmoothing, values.cursorSmoothing) &&
+			isCloseTo(
+				preset.cursorSpringStiffnessMultiplier,
+				values.cursorSpringStiffnessMultiplier,
+			) &&
+			isCloseTo(
+				preset.cursorSpringDampingMultiplier,
+				values.cursorSpringDampingMultiplier,
+			) &&
+			isCloseTo(preset.cursorSpringMassMultiplier, values.cursorSpringMassMultiplier) &&
+			isCloseTo(preset.cursorMotionBlur, values.cursorMotionBlur) &&
+			isCloseTo(preset.cursorClickBounce, values.cursorClickBounce) &&
+			Math.round(preset.cursorClickBounceDuration) ===
+				Math.round(values.cursorClickBounceDuration)
 		) {
 			return presetId;
 		}
