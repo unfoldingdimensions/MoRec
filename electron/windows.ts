@@ -410,7 +410,6 @@ export function createHudOverlayWindow(): BrowserWindow {
 			preload: path.join(electronWindowsDir, "preload.mjs"),
 			nodeIntegration: false,
 			contextIsolation: true,
-			webSecurity: false,
 			backgroundThrottling: false,
 		},
 	});
@@ -823,7 +822,6 @@ export function createEditorWindow(): BrowserWindow {
 			preload: path.join(electronWindowsDir, "preload.mjs"),
 			nodeIntegration: false,
 			contextIsolation: true,
-			webSecurity: false,
 			backgroundThrottling: false,
 		},
 	});
