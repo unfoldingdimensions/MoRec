@@ -447,6 +447,8 @@ async function handleRecordingInterrupted({
 	setRecording,
 	setPaused,
 	setFinalizing,
+	isNativeWindows = false,
+	expectedDurationMs = 0,
 	fallbackStartDelayMs = null,
 	fallbackTrackSettings = null,
 }: {
@@ -458,11 +460,15 @@ async function handleRecordingInterrupted({
 		startDelayMs?: number | null,
 		webcamPathPromise?: Promise<string | null> | null,
 		mediaTrackSettings?: any,
+		isNativeWindows?: boolean,
+		expectedDurationMs?: number,
 	) => Promise<string | null>;
 	cleanupCapturedMedia: () => void;
 	setRecording?: (val: boolean) => void;
 	setPaused?: (val: boolean) => void;
 	setFinalizing?: (val: boolean) => void;
+	isNativeWindows?: boolean;
+	expectedDurationMs?: number;
 	fallbackStartDelayMs?: number | null;
 	fallbackTrackSettings?: any;
 }) {
@@ -479,6 +485,8 @@ async function handleRecordingInterrupted({
 				fallbackStartDelayMs,
 				webcamPathPromise,
 				fallbackTrackSettings,
+				isNativeWindows,
+				expectedDurationMs,
 			);
 			if (recoveredPath) {
 				return { recovered: true, path: recoveredPath };
@@ -1548,6 +1556,83 @@ describe("useScreenRecorder state machine", () => {
 					"set-finalizing:false",
 					"cleanup-captured-media",
 				]);
+			});
+
+			it("awaits Windows companion audio muxing before finalizeRecordingSession when isNativeWindows is true during interruption recovery", async () => {
+				const callOrder: string[] = [];
+
+				const stopMicFallbackRecorder = vi.fn(async () => {
+					callOrder.push("stop-mic-fallback");
+					return null;
+				});
+
+				const stopWebcamRecorder = vi.fn(async () => {
+					callOrder.push("stop-webcam");
+					return "/recordings/recovered-win-webcam.mp4";
+				});
+
+				const cleanupCapturedMedia = vi.fn(() => {
+					callOrder.push("cleanup-captured-media");
+				});
+
+				const setFinalizing = vi.fn((val: boolean) => {
+					callOrder.push(`set-finalizing:${val}`);
+				});
+
+				const muxNativeWindowsRecording = vi.fn(async (durationMs?: number) => {
+					callOrder.push(`mux-windows-audio:${durationMs}`);
+					return { success: true };
+				});
+
+				const finalizeRecordingSession = vi.fn(async (videoPath: string, webcamPath: string | null) => {
+					callOrder.push(`finalize-session:${videoPath}:${webcamPath}`);
+				});
+
+				const recoverNativeRecordingSession = vi.fn(
+					async (
+						_micPromise?: Promise<Blob | null> | null,
+						_startDelay?: number | null,
+						webcamPromise?: Promise<string | null> | null,
+						_trackSettings?: any,
+						isNativeWindows?: boolean,
+						expectedDurationMs?: number,
+					) => {
+						callOrder.push("recover-native-session");
+						const webcamPath = await webcamPromise;
+						if (isNativeWindows) {
+							await muxNativeWindowsRecording(expectedDurationMs);
+						}
+						await finalizeRecordingSession("/recordings/recovered-win.mp4", webcamPath);
+						return "/recordings/recovered-win.mp4";
+					},
+				);
+
+				const result = await handleRecordingInterrupted({
+					state: { reason: "target-process-exited", message: "Process exited" },
+					stopMicFallbackRecorder,
+					stopWebcamRecorder,
+					recoverNativeRecordingSession,
+					cleanupCapturedMedia,
+					setFinalizing,
+					isNativeWindows: true,
+					expectedDurationMs: 35000,
+				});
+
+				expect(result).toEqual({
+					recovered: true,
+					path: "/recordings/recovered-win.mp4",
+				});
+				expect(callOrder).toEqual([
+					"set-finalizing:true",
+					"stop-mic-fallback",
+					"stop-webcam",
+					"recover-native-session",
+					"mux-windows-audio:35000",
+					"finalize-session:/recordings/recovered-win.mp4:/recordings/recovered-win-webcam.mp4",
+					"set-finalizing:false",
+					"cleanup-captured-media",
+				]);
+				expect(muxNativeWindowsRecording).toHaveBeenCalledWith(35000);
 			});
 
 			it("cleans up media without calling recoverNativeRecordingSession when reason is window-unavailable", async () => {

@@ -917,6 +917,8 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 			startDelayMs?: number | null,
 			webcamPathPromise?: Promise<string | null> | null,
 			mediaTrackSettings?: MicrophoneTrackSettingsSnapshot | null,
+			isNativeWindows?: boolean,
+			expectedDurationMs?: number,
 		) => {
 			if (typeof window.electronAPI?.recoverNativeScreenRecording !== "function") {
 				return null;
@@ -936,6 +938,9 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 				startDelayMs,
 				mediaTrackSettings,
 			);
+			if (isNativeWindows && typeof window.electronAPI?.muxNativeWindowsRecording === "function") {
+				await window.electronAPI.muxNativeWindowsRecording(expectedDurationMs);
+			}
 			await finalizeRecordingSession(result.path, webcamPath);
 
 			if (typeof window.electronAPI?.hudOverlayClose === "function") {
@@ -1117,6 +1122,8 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 							fallbackStartDelayMs,
 							webcamPathPromise,
 							fallbackTrackSettings,
+							isNativeWindows,
+							expectedDurationMs,
 						);
 						if (recoveredPath) {
 							console.log(
@@ -1311,6 +1318,10 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 				void (async () => {
 					setRecording(false);
 					setPaused(false);
+					const isNativeWindows = nativeWindowsRecording.current;
+					const stoppedAtMs = Date.now();
+					markRecordingResumed(stoppedAtMs);
+					const expectedDurationMs = getRecordingDurationMs(stoppedAtMs);
 					nativeScreenRecording.current = false;
 					nativeWindowsRecording.current = false;
 					await window.electronAPI.setRecordingState(false);
@@ -1327,6 +1338,8 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 								fallbackStartDelayMs,
 								webcamPathPromise,
 								fallbackTrackSettings,
+								isNativeWindows,
+								expectedDurationMs,
 							);
 							if (recoveredPath) {
 								return;
@@ -1377,6 +1390,8 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 		};
 	}, [
 		cleanupCapturedMedia,
+		getRecordingDurationMs,
+		markRecordingResumed,
 		recoverNativeRecordingSession,
 		stopMicFallbackRecorder,
 		stopWebcamRecorder,
