@@ -79,7 +79,12 @@ export default defineConfig({
 							},
 						},
 					},
-					plugins: [electronMainCjsOutputPlugin(), electronMainCjsGuardPlugin()],
+					resolve: {
+						alias: {
+							"@": path.resolve(__dirname, "src"),
+						},
+					},
+					plugins: [electronMainCjsOutputPlugin()],
 				},
 			},
 			preload: {

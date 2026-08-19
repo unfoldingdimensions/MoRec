@@ -1,5 +1,5 @@
 import type { Graphics } from "pixi.js";
-import { clamp } from "@/lib/utils";
+import { clamp } from "../utils";
 
 interface SquircleRect {
 	x: number;
