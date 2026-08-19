@@ -916,6 +916,7 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 			micFallbackBlobPromise?: Promise<Blob | null> | null,
 			startDelayMs?: number | null,
 			webcamPathPromise?: Promise<string | null> | null,
+			mediaTrackSettings?: MicrophoneTrackSettingsSnapshot | null,
 		) => {
 			if (typeof window.electronAPI?.recoverNativeScreenRecording !== "function") {
 				return null;
@@ -929,7 +930,12 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 			const resolvedMicFallbackBlobPromise =
 				micFallbackBlobPromise ?? stopMicFallbackRecorder();
 			const webcamPath = await (webcamPathPromise ?? stopWebcamRecorder());
-			await storeMicrophoneSidecar(resolvedMicFallbackBlobPromise, result.path, startDelayMs);
+			await storeMicrophoneSidecar(
+				resolvedMicFallbackBlobPromise,
+				result.path,
+				startDelayMs,
+				mediaTrackSettings,
+			);
 			await finalizeRecordingSession(result.path, webcamPath);
 
 			if (typeof window.electronAPI?.hudOverlayClose === "function") {
@@ -1110,6 +1116,7 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 							micFallbackBlobPromise,
 							fallbackStartDelayMs,
 							webcamPathPromise,
+							fallbackTrackSettings,
 						);
 						if (recoveredPath) {
 							console.log(
@@ -1303,13 +1310,24 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 			(state) => {
 				void (async () => {
 					setRecording(false);
+					setPaused(false);
 					nativeScreenRecording.current = false;
-					cleanupCapturedMedia();
+					nativeWindowsRecording.current = false;
 					await window.electronAPI.setRecordingState(false);
 
 					if (state.reason !== "window-unavailable") {
+						setFinalizing(true);
+						const fallbackStartDelayMs = micFallbackStartDelayMs.current;
+						const fallbackTrackSettings = micFallbackTrackSettings.current;
+						const micFallbackBlobPromise = stopMicFallbackRecorder();
+						const webcamPathPromise = stopWebcamRecorder();
 						try {
-							const recoveredPath = await recoverNativeRecordingSession();
+							const recoveredPath = await recoverNativeRecordingSession(
+								micFallbackBlobPromise,
+								fallbackStartDelayMs,
+								webcamPathPromise,
+								fallbackTrackSettings,
+							);
 							if (recoveredPath) {
 								return;
 							}
@@ -1318,7 +1336,13 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 								"Failed to recover interrupted native screen recording:",
 								recoveryError,
 							);
+						} finally {
+							setFinalizing(false);
+							cleanupCapturedMedia();
 						}
+					} else {
+						cleanupCapturedMedia();
+						await stopWebcamRecorder();
 					}
 
 					if (state.reason === "window-unavailable" && !hasPromptedForReselect.current) {
@@ -1351,7 +1375,12 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 
 			cleanupCapturedMedia();
 		};
-	}, [cleanupCapturedMedia, recoverNativeRecordingSession]);
+	}, [
+		cleanupCapturedMedia,
+		recoverNativeRecordingSession,
+		stopMicFallbackRecorder,
+		stopWebcamRecorder,
+	]);
 
 	const startRecording = async () => {
 		if (startInFlight.current) {

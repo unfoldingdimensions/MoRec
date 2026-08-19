@@ -438,6 +438,63 @@ async function finalizeBrowserRecordingWithWebcam({
 	}
 }
 
+async function handleRecordingInterrupted({
+	state,
+	stopMicFallbackRecorder,
+	stopWebcamRecorder,
+	recoverNativeRecordingSession,
+	cleanupCapturedMedia,
+	setRecording,
+	setPaused,
+	setFinalizing,
+	fallbackStartDelayMs = null,
+	fallbackTrackSettings = null,
+}: {
+	state: { reason: string; message: string };
+	stopMicFallbackRecorder: () => Promise<Blob | null>;
+	stopWebcamRecorder: () => Promise<string | null>;
+	recoverNativeRecordingSession: (
+		micFallbackBlobPromise?: Promise<Blob | null> | null,
+		startDelayMs?: number | null,
+		webcamPathPromise?: Promise<string | null> | null,
+		mediaTrackSettings?: any,
+	) => Promise<string | null>;
+	cleanupCapturedMedia: () => void;
+	setRecording?: (val: boolean) => void;
+	setPaused?: (val: boolean) => void;
+	setFinalizing?: (val: boolean) => void;
+	fallbackStartDelayMs?: number | null;
+	fallbackTrackSettings?: any;
+}) {
+	setRecording?.(false);
+	setPaused?.(false);
+
+	if (state.reason !== "window-unavailable") {
+		setFinalizing?.(true);
+		const micFallbackBlobPromise = stopMicFallbackRecorder();
+		const webcamPathPromise = stopWebcamRecorder();
+		try {
+			const recoveredPath = await recoverNativeRecordingSession(
+				micFallbackBlobPromise,
+				fallbackStartDelayMs,
+				webcamPathPromise,
+				fallbackTrackSettings,
+			);
+			if (recoveredPath) {
+				return { recovered: true, path: recoveredPath };
+			}
+		} finally {
+			setFinalizing?.(false);
+			cleanupCapturedMedia();
+		}
+	} else {
+		cleanupCapturedMedia();
+		await stopWebcamRecorder();
+	}
+
+	return { recovered: false, path: null };
+}
+
 type MockMediaTrack = {
 	stop: ReturnType<typeof vi.fn>;
 	readyState: "live" | "ended";
@@ -1426,6 +1483,97 @@ describe("useScreenRecorder state machine", () => {
 			stopRecording(screenRecorder, false, webcam);
 			expect(screenRecorder.state).toBe("inactive");
 			expect(webcam.state).toBe("inactive");
+		});
+
+		describe("recording interruption handling and companion recovery", () => {
+			it("preserves fallback mic audio chunks and webcam stream during recovery from interruption", async () => {
+				const callOrder: string[] = [];
+				const micChunks = [new Blob(["mic-audio"], { type: "audio/webm" })];
+				const micFallback = createMockFallbackRecorder("recording");
+
+				const stopMicFallbackRecorder = vi.fn(async () => {
+					callOrder.push("stop-mic-fallback");
+					micFallback.stop();
+					return new Blob(micChunks, { type: "audio/webm" });
+				});
+
+				const stopWebcamRecorder = vi.fn(async () => {
+					callOrder.push("stop-webcam");
+					return "/recordings/recovered-webcam.mp4";
+				});
+
+				const cleanupCapturedMedia = vi.fn(() => {
+					callOrder.push("cleanup-captured-media");
+				});
+
+				const setFinalizing = vi.fn((val: boolean) => {
+					callOrder.push(`set-finalizing:${val}`);
+				});
+
+				const recoverNativeRecordingSession = vi.fn(
+					async (
+						micPromise?: Promise<Blob | null> | null,
+						_startDelay?: number | null,
+						webcamPromise?: Promise<string | null> | null,
+					) => {
+						callOrder.push("recover-native-session");
+						const micBlob = await micPromise;
+						const webcamPath = await webcamPromise;
+						expect(micBlob).not.toBeNull();
+						expect(webcamPath).toBe("/recordings/recovered-webcam.mp4");
+						return "/recordings/recovered-screen.mp4";
+					},
+				);
+
+				const result = await handleRecordingInterrupted({
+					state: { reason: "display-disconnected", message: "Display disconnected" },
+					stopMicFallbackRecorder,
+					stopWebcamRecorder,
+					recoverNativeRecordingSession,
+					cleanupCapturedMedia,
+					setFinalizing,
+					fallbackStartDelayMs: 150,
+					fallbackTrackSettings: { deviceId: "mic-1" } as any,
+				});
+
+				expect(result).toEqual({
+					recovered: true,
+					path: "/recordings/recovered-screen.mp4",
+				});
+				expect(callOrder).toEqual([
+					"set-finalizing:true",
+					"stop-mic-fallback",
+					"stop-webcam",
+					"recover-native-session",
+					"set-finalizing:false",
+					"cleanup-captured-media",
+				]);
+			});
+
+			it("cleans up media without calling recoverNativeRecordingSession when reason is window-unavailable", async () => {
+				const callOrder: string[] = [];
+				const stopMicFallbackRecorder = vi.fn(async () => null);
+				const stopWebcamRecorder = vi.fn(async () => {
+					callOrder.push("stop-webcam");
+					return null;
+				});
+				const recoverNativeRecordingSession = vi.fn();
+				const cleanupCapturedMedia = vi.fn(() => {
+					callOrder.push("cleanup-captured-media");
+				});
+
+				const result = await handleRecordingInterrupted({
+					state: { reason: "window-unavailable", message: "Target window closed" },
+					stopMicFallbackRecorder,
+					stopWebcamRecorder,
+					recoverNativeRecordingSession,
+					cleanupCapturedMedia,
+				});
+
+				expect(result).toEqual({ recovered: false, path: null });
+				expect(recoverNativeRecordingSession).not.toHaveBeenCalled();
+				expect(callOrder).toEqual(["cleanup-captured-media", "stop-webcam"]);
+			});
 		});
 	});
 });
