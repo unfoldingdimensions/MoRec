@@ -163,6 +163,20 @@ function settleNativeVideoExportPendingRequests(
 	}
 }
 
+const inMemorySettingsCache = new Map<string, unknown>();
+
+// Eagerly pre-populate in-memory settings cache on startup
+void ipcRenderer
+	.invoke("app-settings:get-all")
+	.then((allSettings: unknown) => {
+		if (allSettings && typeof allSettings === "object" && !Array.isArray(allSettings)) {
+			for (const [k, v] of Object.entries(allSettings as Record<string, unknown>)) {
+				inMemorySettingsCache.set(k, v);
+			}
+		}
+	})
+	.catch(() => undefined);
+
 contextBridge.exposeInMainWorld("electronAPI", {
 	hudOverlaySetIgnoreMouse: (ignore: boolean) => {
 		ipcRenderer.send("hud-overlay-set-ignore-mouse", ignore);
@@ -929,14 +943,53 @@ contextBridge.exposeInMainWorld("electronAPI", {
 		return ipcRenderer.invoke("save-shortcuts", shortcuts);
 	},
 	getAppSetting: (key: string) => {
-		const result = ipcRenderer.sendSync("app-settings:get", key) as {
+		if (inMemorySettingsCache.has(key)) {
+			return inMemorySettingsCache.get(key) ?? null;
+		}
+		try {
+			const raw = globalThis.localStorage?.getItem(key);
+			if (raw !== null && raw !== undefined) {
+				const parsed = JSON.parse(raw);
+				inMemorySettingsCache.set(key, parsed);
+				return parsed;
+			}
+		} catch {
+			// ignore
+		}
+		return null;
+	},
+	getAppSettingAsync: async (key: string) => {
+		if (inMemorySettingsCache.has(key)) {
+			return inMemorySettingsCache.get(key) ?? null;
+		}
+		const result = (await ipcRenderer.invoke("app-settings:get", key)) as {
 			success?: boolean;
 			value?: unknown;
 		};
-		return result?.success ? (result.value ?? null) : null;
+		if (result?.success) {
+			inMemorySettingsCache.set(key, result.value);
+			return result.value ?? null;
+		}
+		return null;
 	},
 	setAppSetting: (key: string, value: unknown) => {
-		const result = ipcRenderer.sendSync("app-settings:set", key, value) as {
+		inMemorySettingsCache.set(key, value);
+		try {
+			globalThis.localStorage?.setItem(key, JSON.stringify(value));
+		} catch {
+			// ignore
+		}
+		void ipcRenderer.invoke("app-settings:set", key, value);
+		return true;
+	},
+	setAppSettingAsync: async (key: string, value: unknown) => {
+		inMemorySettingsCache.set(key, value);
+		try {
+			globalThis.localStorage?.setItem(key, JSON.stringify(value));
+		} catch {
+			// ignore
+		}
+		const result = (await ipcRenderer.invoke("app-settings:set", key, value)) as {
 			success?: boolean;
 		};
 		return result?.success === true;

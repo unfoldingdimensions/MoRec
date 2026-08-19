@@ -1,0 +1,262 @@
+[
+  {
+    "file": "src\\components\\launch\\hudViewportBounds.ts",
+    "line": 18,
+    "text": "function clampOffsetAxis(offset: number, start: number, end: number, viewportSize: number) {"
+  },
+  {
+    "file": "src\\components\\launch\\hudViewportBounds.ts",
+    "line": 30,
+    "text": "export function clampHudOffsetToViewport("
+  },
+  {
+    "file": "src\\components\\launch\\RecordingControls.tsx",
+    "line": 25,
+    "text": "formatTime: (seconds: number) => string;"
+  },
+  {
+    "file": "src\\components\\video-editor\\AnnotationOverlay.tsx",
+    "line": 35,
+    "text": "function clampPercent(value: number) {"
+  },
+  {
+    "file": "src\\components\\video-editor\\captionLayout.ts",
+    "line": 68,
+    "text": "function clamp01(value: number) {"
+  },
+  {
+    "file": "src\\components\\video-editor\\CaptionListPanel.tsx",
+    "line": 20,
+    "text": "function clampNumber(value: number, min: number, max: number): number {"
+  },
+  {
+    "file": "src\\components\\video-editor\\CaptionListPanel.tsx",
+    "line": 24,
+    "text": "function formatTimecode(ms: number): string {"
+  },
+  {
+    "file": "src\\components\\video-editor\\PlaybackControls.tsx",
+    "line": 26,
+    "text": "function formatTime(seconds: number) {"
+  },
+  {
+    "file": "src\\components\\video-editor\\projectPersistence.ts",
+    "line": 264,
+    "text": "export function toFileUrl(filePath: string): string {"
+  },
+  {
+    "file": "src\\components\\video-editor\\projectPersistence.ts",
+    "line": 283,
+    "text": "export function fromFileUrl(fileUrl: string): string {"
+  },
+  {
+    "file": "src\\components\\video-editor\\timeline\\components\\axis\\TimelineAxis.tsx",
+    "line": 50,
+    "text": "markers: sorted.map((time) => ({ time, label: formatTimeLabel(time, intervalMs) })),"
+  },
+  {
+    "file": "src\\components\\video-editor\\timeline\\core\\time.ts",
+    "line": 87,
+    "text": "export function formatTimeLabel(milliseconds: number, intervalMs: number) {"
+  },
+  {
+    "file": "src\\components\\video-editor\\timeline\\dnd\\engine.ts",
+    "line": 13,
+    "text": "export function clampSpanToBounds("
+  },
+  {
+    "file": "src\\components\\video-editor\\timeline\\dnd\\engine.ts",
+    "line": 34,
+    "text": "export function clampRange("
+  },
+  {
+    "file": "src\\components\\video-editor\\timeline\\dnd\\engine.ts",
+    "line": 79,
+    "text": "export function clampResizedSpanToNeighbours("
+  },
+  {
+    "file": "src\\components\\video-editor\\timeline\\dnd\\engine.ts",
+    "line": 212,
+    "text": "export function clampDraggedSpanToNeighbours("
+  },
+  {
+    "file": "src\\components\\video-editor\\timeline\\hooks\\useTimelineRange.ts",
+    "line": 51,
+    "text": "const clampedRange = useMemo<Range>(() => {"
+  },
+  {
+    "file": "src\\components\\video-editor\\types.ts",
+    "line": 255,
+    "text": "function clampToNearestClipBoundary("
+  },
+  {
+    "file": "src\\components\\video-editor\\types.ts",
+    "line": 378,
+    "text": "export function trimsToClips(trims: TrimRegion[], totalDurationMs: number): ClipRegion[] {"
+  },
+  {
+    "file": "src\\components\\video-editor\\types.ts",
+    "line": 622,
+    "text": "export function clampFocusToDepth(focus: ZoomFocus, _depth: ZoomDepth): ZoomFocus {"
+  },
+  {
+    "file": "src\\components\\video-editor\\VideoEditor.tsx",
+    "line": 720,
+    "text": "function formatTime(seconds: number) {"
+  },
+  {
+    "file": "src\\components\\video-editor\\VideoEditor.tsx",
+    "line": 1762,
+    "text": "() => videoSourcePath ?? (videoPath ? fromFileUrl(videoPath) : null),"
+  },
+  {
+    "file": "src\\components\\video-editor\\videoPlayback\\cursorFollowCamera.ts",
+    "line": 72,
+    "text": "function clampSafeZoneRatio(ratio: number) {"
+  },
+  {
+    "file": "src\\components\\video-editor\\videoPlayback\\cursorLoopTelemetry.ts",
+    "line": 8,
+    "text": "function clamp(value: number, min: number, max: number) {"
+  },
+  {
+    "file": "src\\components\\video-editor\\videoPlayback\\cursorRenderer.ts",
+    "line": 342,
+    "text": "function clamp(value: number, min: number, max: number) {"
+  },
+  {
+    "file": "src\\components\\video-editor\\videoPlayback\\cursorSway.ts",
+    "line": 9,
+    "text": "function clamp(value: number, min: number, max: number) {"
+  },
+  {
+    "file": "src\\components\\video-editor\\videoPlayback\\focusUtils.ts",
+    "line": 8,
+    "text": "function clamp(value: number, min: number, max: number) {"
+  },
+  {
+    "file": "src\\components\\video-editor\\videoPlayback\\focusUtils.ts",
+    "line": 54,
+    "text": "export function clampFocusToStage("
+  },
+  {
+    "file": "src\\components\\video-editor\\videoPlayback\\focusUtils.ts",
+    "line": 68,
+    "text": "export function clampFocusToScale(focus: ZoomFocus, zoomScale: number): ZoomFocus {"
+  },
+  {
+    "file": "src\\components\\video-editor\\videoPlayback\\focusUtils.ts",
+    "line": 142,
+    "text": "function clampedInterpolate(value: number, inMin: number, inMax: number): number {"
+  },
+  {
+    "file": "src\\components\\video-editor\\videoPlayback\\layoutUtils.ts",
+    "line": 61,
+    "text": "const clampPercent = (v: number, max = 100) => Math.min(max, Math.max(0, v));"
+  },
+  {
+    "file": "src\\components\\video-editor\\videoPlayback\\mathUtils.ts",
+    "line": 1,
+    "text": "export function clamp01(value: number) {"
+  },
+  {
+    "file": "src\\components\\video-editor\\videoPlayback\\mathUtils.ts",
+    "line": 65,
+    "text": "export function smoothStep(t: number) {"
+  },
+  {
+    "file": "src\\components\\video-editor\\videoPlayback\\motionSmoothing.ts",
+    "line": 29,
+    "text": "function clampSpringMultiplier(value: number | undefined) {"
+  },
+  {
+    "file": "src\\components\\video-editor\\videoPlayback\\motionSmoothing.ts",
+    "line": 64,
+    "text": "export function clampDeltaMs(deltaMs: number, fallbackMs = 1000 / 60) {"
+  },
+  {
+    "file": "src\\components\\video-editor\\videoPlayback\\motionSmoothing.ts",
+    "line": 86,
+    "text": "function msToSec(ms: number) {"
+  },
+  {
+    "file": "src\\components\\video-editor\\videoPlayback\\zoomTransform.ts",
+    "line": 167,
+    "text": "function clamp(value: number, min: number, max: number) {"
+  },
+  {
+    "file": "src\\components\\video-editor\\VideoPlayback.tsx",
+    "line": 1038,
+    "text": "const clampFocusToStage = useCallback((focus: ZoomFocus, depth: ZoomDepth) => {"
+  },
+  {
+    "file": "src\\lib\\assetPath.ts",
+    "line": 32,
+    "text": "function toFileUrl(filePath: string): string {"
+  },
+  {
+    "file": "src\\lib\\exporter\\audioRoutingEngine.ts",
+    "line": 39,
+    "text": "function clampGain(value: number, max: number) {"
+  },
+  {
+    "file": "src\\lib\\exporter\\mediaResource.ts",
+    "line": 11,
+    "text": "function fromFileUrl(resource: string): string {"
+  },
+  {
+    "file": "src\\lib\\exporter\\modernFrameRenderer.ts",
+    "line": 375,
+    "text": "function clampUnitInterval(value: number): number {"
+  },
+  {
+    "file": "src\\lib\\exporter\\nativeStaticLayoutGeometry.ts",
+    "line": 14,
+    "text": "function clampEven(value: number, max: number) {"
+  },
+  {
+    "file": "src\\lib\\exporter\\nativeStaticLayoutTelemetry.ts",
+    "line": 40,
+    "text": "function clampUnit(value: number) {"
+  },
+  {
+    "file": "src\\lib\\extensions\\cursorCoordinates.ts",
+    "line": 20,
+    "text": "function clamp01(value: number): number {"
+  },
+  {
+    "file": "src\\lib\\mediaTiming.ts",
+    "line": 1,
+    "text": "export function clampMediaTimeToDuration(targetTime: number, duration?: number | null): number {"
+  },
+  {
+    "file": "src\\lib\\utils.ts",
+    "line": 8,
+    "text": "export function clamp(value: number, min: number, max: number): number {"
+  },
+  {
+    "file": "electron\\hudOverlayBounds.ts",
+    "line": 12,
+    "text": "function clamp(value: number, min: number, max: number): number {"
+  },
+  {
+    "file": "electron\\ipc\\cursor\\telemetry.ts",
+    "line": 28,
+    "text": "export function clamp(value: number, min: number, max: number) {"
+  },
+  {
+    "file": "electron\\ipc\\export\\native-video.ts",
+    "line": 1669,
+    "text": "function clampUnit(value: number) {"
+  },
+  {
+    "file": "electron\\ipc\\export\\native-video.ts",
+    "line": 2182,
+    "text": "const clampByte = (value: number) => Math.max(0, Math.min(255, Math.round(value)));"
+  },
+  {
+    "file": "electron\\ipc\\nativeVideoExport.ts",
+    "line": 185,
+    "text": "function clampUnitInterval(value: number): number {"
+  }
+]

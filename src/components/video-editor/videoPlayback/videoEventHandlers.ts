@@ -25,6 +25,7 @@ interface VideoEventHandlersParams {
 	onTimeUpdate: (time: number) => void;
 	trimRegionsRef: React.MutableRefObject<TrimRegion[]>;
 	speedRegionsRef: React.MutableRefObject<SpeedRegion[]>;
+	onFrameSeeked?: () => void;
 }
 
 export function createVideoEventHandlers(params: VideoEventHandlersParams) {
@@ -39,6 +40,7 @@ export function createVideoEventHandlers(params: VideoEventHandlersParams) {
 		onTimeUpdate,
 		trimRegionsRef,
 		speedRegionsRef,
+		onFrameSeeked,
 	} = params;
 	const presentedFrameVideo = video as PresentedFrameVideoElement;
 	let videoFrameRequestId: number | null = null;
@@ -176,6 +178,7 @@ export function createVideoEventHandlers(params: VideoEventHandlersParams) {
 		} else {
 			emitTime(video.currentTime);
 		}
+		onFrameSeeked?.();
 	};
 
 	const handleSeeking = () => {

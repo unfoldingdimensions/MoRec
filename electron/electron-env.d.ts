@@ -858,7 +858,9 @@ interface Window {
 		getShortcuts: () => Promise<Record<string, unknown> | null>;
 		saveShortcuts: (shortcuts: unknown) => Promise<{ success: boolean; error?: string }>;
 		getAppSetting: (key: string) => unknown;
+		getAppSettingAsync?: (key: string) => Promise<unknown>;
 		setAppSetting: (key: string, value: unknown) => boolean;
+		setAppSettingAsync?: (key: string, value: unknown) => Promise<boolean>;
 		setHasUnsavedChanges: (hasChanges: boolean) => void;
 		onRequestSaveBeforeClose: (callback: () => Promise<boolean>) => () => void;
 		isNativeWindowsCaptureAvailable: () => Promise<{ available: boolean }>;

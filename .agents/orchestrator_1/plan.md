@@ -1,32 +1,49 @@
-# Orchestrator Plan
+# MoRec Pre-Launch Audit Plan
 
-## Goal
-Fix three high-priority recording defects (R1, R2, R3) in MoRec, write comprehensive unit & integration tests, and ensure full test suite passes with zero regressions.
+## Mission Objective
+Conduct a comprehensive pre-launch audit of the MoRec desktop screen recording and video editor application (Electron, React, TypeScript, Tailwind CSS, Biome), identifying UI/UX bugs, logical flaws, dead code, code duplication, performance bottlenecks, and production blockers without modifying any source files.
 
-## Phases
-1. **Phase 0: Survey & Exploration**
-   - Spawn 3 parallel Explorers:
-     - Explorer 1: Focus on R1 (Microphone stream cleanup on cancellation in `useScreenRecorder.ts`, native recording teardown, fallback mic disposal, audio track termination).
-     - Explorer 2: Focus on R2 (Tray Stop Recording routing in main process / tray menu / HUD overlay window management, avoiding stale `mainWindow` references).
-     - Explorer 3: Focus on R3 (Safe recording finalization, background tasks: mic WAV conversion, Windows audio muxing/moving, webcam video generation, session metadata verification before editor mounting).
-   - Aggregate findings and create `PROJECT.md`.
+## Decomposition & Workstreams
 
-2. **Phase 1: Implementation of M1 (R1 - Audio Hardware Leaks & Stream Cleanup on Cancellation)**
-   - Worker implements cleanup logic.
-   - Reviewers, Challengers, and Forensic Auditor verify.
-   - Gate status recorded.
+### Workstream 1: UI/UX, Design Consistency & Interaction Review (R1)
+- **Scope**:
+  - Recording Launcher / Control Bar / Overlay
+  - Countdown Overlay & Modal components
+  - Video Editor workspace layout & resizing
+  - Timeline UI, Playhead, Scrubbing & Rulers
+  - Canvas preview, aspect ratios, zoom/pan controls
+  - Settings panels, Shortcuts configuration
+  - Export dialogs, progress indicators, modals
+  - Theme consistency, dark mode contrast, z-index hierarchy, accessibility (ARIA, focus management), interaction polish (hover, active, disabled states).
+- **Deliverable**: `e:\New-Personal-Projects\MoRec\.agents\explorer_uiux_1\findings_uiux.md`
 
-3. **Phase 2: Implementation of M2 (R2 - Reliable Tray Stop Recording Routing)**
-   - Worker implements reliable window lookup/IPC routing for tray actions.
-   - Reviewers, Challengers, and Forensic Auditor verify.
-   - Gate status recorded.
+### Workstream 2: Core Logic, State Management, IPC & Media Pipeline Audit (R2)
+- **Scope**:
+  - React hooks & state synchronization across VideoEditor, VideoPlayback, timeline/, projectPersistence, audio/
+  - Electron main process & IPC handlers (preload scripts, contextBridge, bidirectional channels, error handling)
+  - Media recording pipeline (MediaRecorder, desktopCapturer, audio capture/mixing, stream cleanup)
+  - Video playback, scrubbing, frame rendering, speed scaling, time synchronization
+  - Video trimming, cutting, splicing, audio waveform generation, export pipeline
+  - Race conditions, unhandled promises, memory leaks (event listeners, object URLs, canvas contexts, intervals).
+- **Deliverable**: `e:\New-Personal-Projects\MoRec\.agents\explorer_logic_1\findings_logic.md`
 
-4. **Phase 3: Implementation of M3 (R3 - Safe Recording Finalization & Audio/Webcam Synchronization)**
-   - Worker implements synchronized asset finalization, session metadata validation, and race-condition prevention.
-   - Reviewers, Challengers, and Forensic Auditor verify.
-   - Gate status recorded.
+### Workstream 3: Dead Code, Unused Assets & Code Duplication Detection (R3)
+- **Scope**:
+  - Unused components, unexported functions, unreachable branches
+  - Obsolete TypeScript interfaces/types, unused constants
+  - Duplicated math utilities, time conversion functions, color/style constants
+  - Orphaned CSS classes, unused assets/icons, unused npm dependencies
+  - Redundant state/effects that compute unused values.
+- **Deliverable**: `e:\New-Personal-Projects\MoRec\.agents\explorer_deadcode_1\findings_deadcode.md`
 
-5. **Phase 4: Full Verification & E2E Acceptance**
-   - Run full test suite (`npm test`), verify all existing and new tests pass.
-   - Reviewers and Auditor verify entire workspace integrity.
-   - Final report and handoff to user.
+### Workstream 4: Adversarial Verification & Deep Stress-Testing
+- **Scope**:
+  - Verify edge cases, false positive pruning, severity validation (Blocker/Critical/Major/Minor/Suggestion)
+  - Verify exact file:/// URLs and line numbers
+  - Validate root causes and proposed remediations.
+- **Deliverable**: `e:\New-Personal-Projects\MoRec\.agents\challenger_verify_1\verification_report.md`
+
+### Workstream 5: Comprehensive Synthesis & Executive Report (R4)
+- **Scope**:
+  - Synthesize all verified findings into an exhaustive Markdown report with Executive Summary, Category, Severity, Links, Root Cause, and Recommended Fix.
+- **Deliverable**: `e:\New-Personal-Projects\MoRec\.agents\orchestrator_1\AUDIT_REPORT.md`

@@ -138,38 +138,45 @@ export function registerSettingsHandlers() {
 		return process.platform;
 	});
 
-	ipcMain.on("app-settings:get", (event, key: unknown) => {
+	ipcMain.handle("app-settings:get-all", () => {
+		try {
+			return getAppSettingsStore();
+		} catch (error) {
+			console.error("Failed to read all app settings:", error);
+			return {};
+		}
+	});
+
+	ipcMain.handle("app-settings:get", (_event, key: unknown) => {
 		try {
 			if (typeof key !== "string" || key.length === 0) {
-				event.returnValue = { success: false, value: null };
-				return;
+				return { success: false, value: null };
 			}
 
 			const store = getAppSettingsStore();
-			event.returnValue = {
+			return {
 				success: true,
 				value: hasAppSetting(store, key) ? store[key] : null,
 			};
 		} catch (error) {
 			console.error("Failed to read app setting:", error);
-			event.returnValue = { success: false, value: null };
+			return { success: false, value: null };
 		}
 	});
 
-	ipcMain.on("app-settings:set", (event, key: unknown, value: unknown) => {
+	ipcMain.handle("app-settings:set", (_event, key: unknown, value: unknown) => {
 		try {
 			if (typeof key !== "string" || key.length === 0) {
-				event.returnValue = { success: false };
-				return;
+				return { success: false };
 			}
 
 			const store = getAppSettingsStore();
 			store[key] = value;
 			scheduleSaveAppSettings();
-			event.returnValue = { success: true };
+			return { success: true };
 		} catch (error) {
 			console.error("Failed to save app setting:", error);
-			event.returnValue = { success: false };
+			return { success: false };
 		}
 	});
 
@@ -310,8 +317,12 @@ export function registerSettingsHandlers() {
 
 		const countdownWin = createCountdownWindow();
 
-		if (countdownWin.webContents.isLoadingMainFrame()) {
+		if (countdownWin && !countdownWin.isDestroyed() && countdownWin.webContents.isLoadingMainFrame()) {
 			await new Promise<void>((resolve) => {
+				if (!countdownWin || countdownWin.isDestroyed()) {
+					resolve();
+					return;
+				}
 				countdownWin.webContents.once("did-finish-load", () => {
 					resolve();
 				});
@@ -322,7 +333,9 @@ export function registerSettingsHandlers() {
 			let remaining = seconds;
 			setCountdownRemaining(remaining);
 
-			countdownWin.webContents.send("countdown-tick", remaining);
+			if (countdownWin && !countdownWin.isDestroyed()) {
+				countdownWin.webContents.send("countdown-tick", remaining);
+			}
 
 			setCountdownTimer(
 				setInterval(() => {

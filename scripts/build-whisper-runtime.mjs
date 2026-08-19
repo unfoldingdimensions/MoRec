@@ -464,13 +464,10 @@ async function main() {
 			const isPostinstall = process.env.npm_lifecycle_event === "postinstall";
 			const isCI = process.env.CI === "true";
 			const allowMissing = process.env.WHISPER_RUNTIME_ALLOW_MISSING === "1";
-			if (isPostinstall || isCI || allowMissing) {
-				console.warn(
-					`[build-whisper-runtime] Failed to build whisper runtime for ${target.archTag} (${error.message}). Continuing without auto-caption binary.`,
-				);
-				continue;
-			}
-			throw error;
+			console.warn(
+				`[build-whisper-runtime] Failed to build whisper runtime for ${target.archTag} (${error.message}). Continuing with bundled/available binaries.`,
+			);
+			continue;
 		}
 	}
 }

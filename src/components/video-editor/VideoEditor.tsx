@@ -317,6 +317,7 @@ type SaveProjectOptions = {
 	remountPreviewAfterSave?: boolean;
 	refreshLibraryAfterSave?: boolean;
 	captureThumbnail?: boolean;
+	autoSaveDefaultNameIfUnset?: boolean;
 };
 
 type NamedProjectSaveMode = "rename" | "copy";
@@ -2926,169 +2927,6 @@ export default function VideoEditor() {
 		[t],
 	);
 
-	const saveProject = useCallback(
-		async (forceSaveAs: boolean, options?: SaveProjectOptions) => {
-			clearPendingProjectAutosave();
-			return queueProjectSave(async () => {
-				if (!currentSourcePath) {
-					if (!options?.silent) {
-						toast.error("No video loaded");
-					}
-					return false;
-				}
-
-				const shouldCaptureThumbnail = options?.captureThumbnail ?? true;
-				const shouldRefreshLibrary = options?.refreshLibraryAfterSave ?? true;
-				const shouldRemountPreview = options?.remountPreviewAfterSave ?? true;
-
-				try {
-					const projectData =
-						currentProjectSnapshot?.videoPath === currentSourcePath
-							? currentProjectSnapshot
-							: createProjectData(
-									currentSourcePath,
-									currentPersistedEditorState,
-									lastSavedSnapshot?.projectId ?? null,
-								);
-
-					const fileNameBase =
-						currentSourcePath
-							.split(/[\\/]/)
-							.pop()
-							?.replace(/\.[^.]+$/, "") || `project-${Date.now()}`;
-					let targetProjectPath = forceSaveAs
-						? undefined
-						: (currentProjectPath ?? undefined);
-
-					if (!forceSaveAs && !targetProjectPath) {
-						const activeProjectResult =
-							await window.electronAPI.loadCurrentProjectFile();
-						if (activeProjectResult.success && activeProjectResult.path) {
-							targetProjectPath = activeProjectResult.path;
-							setCurrentProjectPath(activeProjectResult.path);
-						}
-					}
-
-					if (forceSaveAs || !targetProjectPath) {
-						if (options?.silent) {
-							return false;
-						}
-
-						return openProjectSaveDialog(projectDisplayName || fileNameBase);
-					}
-
-					const thumbnailDataUrl = shouldCaptureThumbnail
-						? await captureProjectThumbnail()
-						: undefined;
-
-					const result = await window.electronAPI.saveProjectFile(
-						projectData,
-						fileNameBase,
-						targetProjectPath,
-						thumbnailDataUrl,
-					);
-
-					if (result.canceled) {
-						if (!options?.silent) {
-							toast.info("Project save canceled");
-						}
-						return false;
-					}
-
-					if (!result.success) {
-						if (!options?.silent) {
-							toast.error(result.message || "Failed to save project");
-						}
-						return false;
-					}
-
-					if (result.path) {
-						setCurrentProjectPath(result.path);
-					}
-					setLastSavedSnapshot(
-						cloneStructured(
-							createProjectData(
-								projectData.videoPath,
-								projectData.editor,
-								result.projectId ?? projectData.projectId ?? null,
-							),
-						),
-					);
-					if (shouldRefreshLibrary) {
-						await refreshProjectLibrary();
-					}
-
-					if (!options?.silent) {
-						toast.success(`Project saved to ${result.path}`);
-					}
-					return true;
-				} finally {
-					if (shouldRemountPreview) {
-						remountPreview();
-					}
-				}
-			});
-		},
-		[
-			captureProjectThumbnail,
-			clearPendingProjectAutosave,
-			currentSourcePath,
-			currentProjectPath,
-			currentProjectSnapshot,
-			currentPersistedEditorState,
-			lastSavedSnapshot?.projectId,
-			openProjectSaveDialog,
-			projectDisplayName,
-			queueProjectSave,
-			refreshProjectLibrary,
-			remountPreview,
-		],
-	);
-
-	useEffect(() => {
-		window.electronAPI.setHasUnsavedChanges(hasUnsavedChanges);
-	}, [hasUnsavedChanges]);
-
-	useEffect(() => {
-		const cleanup = window.electronAPI.onRequestSaveBeforeClose(async () => {
-			return saveProject(false);
-		});
-
-		return () => cleanup?.();
-	}, [saveProject]);
-
-	const handleSaveProject = useCallback(async () => {
-		await saveProject(false);
-	}, [saveProject]);
-
-	const handleSaveProjectAs = useCallback(async () => {
-		const saved = await saveProject(true);
-		if (saved) {
-			setProjectBrowserOpen(false);
-		}
-	}, [saveProject]);
-
-	useEffect(() => {
-		if (!currentProjectPath || !hasUnsavedChanges) {
-			clearPendingProjectAutosave();
-			return;
-		}
-
-		projectAutosaveTimeoutRef.current = window.setTimeout(() => {
-			projectAutosaveTimeoutRef.current = null;
-			void saveProject(false, {
-				silent: true,
-				remountPreviewAfterSave: false,
-				refreshLibraryAfterSave: false,
-				captureThumbnail: false,
-			});
-		}, PROJECT_AUTOSAVE_DELAY_MS);
-
-		return () => {
-			clearPendingProjectAutosave();
-		};
-	}, [clearPendingProjectAutosave, currentProjectPath, hasUnsavedChanges, saveProject]);
-
 	/**
 	 * Saves the current project directly into the projects library under a chosen name.
 	 */
@@ -3161,6 +2999,177 @@ export default function VideoEditor() {
 			remountPreview,
 		],
 	);
+
+	const saveProject = useCallback(
+		async (forceSaveAs: boolean, options?: SaveProjectOptions) => {
+			clearPendingProjectAutosave();
+			return queueProjectSave(async () => {
+				if (!currentSourcePath) {
+					if (!options?.silent) {
+						toast.error("No video loaded");
+					}
+					return false;
+				}
+
+				const shouldCaptureThumbnail = options?.captureThumbnail ?? true;
+				const shouldRefreshLibrary = options?.refreshLibraryAfterSave ?? true;
+				const shouldRemountPreview = options?.remountPreviewAfterSave ?? true;
+
+				try {
+					const projectData =
+						currentProjectSnapshot?.videoPath === currentSourcePath
+							? currentProjectSnapshot
+							: createProjectData(
+									currentSourcePath,
+									currentPersistedEditorState,
+									lastSavedSnapshot?.projectId ?? null,
+								);
+
+					const fileNameBase =
+						currentSourcePath
+							.split(/[\\/]/)
+							.pop()
+							?.replace(/\.[^.]+$/, "") || `project-${Date.now()}`;
+					let targetProjectPath = forceSaveAs
+						? undefined
+						: (currentProjectPath ?? undefined);
+
+					if (!forceSaveAs && !targetProjectPath) {
+						const activeProjectResult =
+							await window.electronAPI.loadCurrentProjectFile();
+						if (activeProjectResult.success && activeProjectResult.path) {
+							targetProjectPath = activeProjectResult.path;
+							setCurrentProjectPath(activeProjectResult.path);
+						}
+					}
+
+					if (forceSaveAs || !targetProjectPath) {
+						if (options?.autoSaveDefaultNameIfUnset) {
+							return saveProjectWithName(projectDisplayName || fileNameBase, "rename");
+						}
+
+						if (options?.silent) {
+							return false;
+						}
+
+						return openProjectSaveDialog(projectDisplayName || fileNameBase);
+					}
+
+					const thumbnailDataUrl = shouldCaptureThumbnail
+						? await captureProjectThumbnail()
+						: undefined;
+
+					const result = await window.electronAPI.saveProjectFile(
+						projectData,
+						fileNameBase,
+						targetProjectPath,
+						thumbnailDataUrl,
+					);
+
+					if (result.canceled) {
+						if (!options?.silent) {
+							toast.info("Project save canceled");
+						}
+						return false;
+					}
+
+					if (!result.success) {
+						if (!options?.silent) {
+							toast.error(result.message || "Failed to save project");
+						}
+						return false;
+					}
+
+					if (result.path) {
+						setCurrentProjectPath(result.path);
+					}
+					setLastSavedSnapshot(
+						cloneStructured(
+							createProjectData(
+								projectData.videoPath,
+								projectData.editor,
+								result.projectId ?? projectData.projectId ?? null,
+							),
+						),
+					);
+					if (shouldRefreshLibrary) {
+						await refreshProjectLibrary();
+					}
+
+					if (!options?.silent) {
+						toast.success(`Project saved to ${result.path}`);
+					}
+					return true;
+				} finally {
+					if (shouldRemountPreview) {
+						remountPreview();
+					}
+				}
+			});
+		},
+		[
+			captureProjectThumbnail,
+			clearPendingProjectAutosave,
+			currentSourcePath,
+			currentProjectPath,
+			currentProjectSnapshot,
+			currentPersistedEditorState,
+			lastSavedSnapshot?.projectId,
+			openProjectSaveDialog,
+			projectDisplayName,
+			queueProjectSave,
+			refreshProjectLibrary,
+			remountPreview,
+			saveProjectWithName,
+		],
+	);
+
+	useEffect(() => {
+		window.electronAPI.setHasUnsavedChanges(hasUnsavedChanges);
+	}, [hasUnsavedChanges]);
+
+	useEffect(() => {
+		const cleanup = window.electronAPI.onRequestSaveBeforeClose(async () => {
+			return saveProject(false, {
+				autoSaveDefaultNameIfUnset: true,
+				remountPreviewAfterSave: false,
+			});
+		});
+
+		return () => cleanup?.();
+	}, [saveProject]);
+
+	const handleSaveProject = useCallback(async () => {
+		await saveProject(false);
+	}, [saveProject]);
+
+	const handleSaveProjectAs = useCallback(async () => {
+		const saved = await saveProject(true);
+		if (saved) {
+			setProjectBrowserOpen(false);
+		}
+	}, [saveProject]);
+
+	useEffect(() => {
+		if (!currentProjectPath || !hasUnsavedChanges) {
+			clearPendingProjectAutosave();
+			return;
+		}
+
+		projectAutosaveTimeoutRef.current = window.setTimeout(() => {
+			projectAutosaveTimeoutRef.current = null;
+			void saveProject(false, {
+				silent: true,
+				remountPreviewAfterSave: false,
+				refreshLibraryAfterSave: false,
+				captureThumbnail: false,
+			});
+		}, PROJECT_AUTOSAVE_DELAY_MS);
+
+		return () => {
+			clearPendingProjectAutosave();
+		};
+	}, [clearPendingProjectAutosave, currentProjectPath, hasUnsavedChanges, saveProject]);
 
 	const handleProjectSaveDialogSubmit = useCallback(
 		async (event?: React.FormEvent<HTMLFormElement>) => {
@@ -3566,6 +3575,16 @@ export default function VideoEditor() {
 				endMs: mapTimelineTimeToSourceTime(region.endMs),
 			})),
 		[zoomRegions, mapTimelineTimeToSourceTime],
+	);
+
+	const effectiveAnnotationRegions = useMemo<AnnotationRegion[]>(
+		() =>
+			annotationRegions.map((region) => ({
+				...region,
+				startMs: mapTimelineTimeToSourceTime(region.startMs),
+				endMs: mapTimelineTimeToSourceTime(region.endMs),
+			})),
+		[annotationRegions, mapTimelineTimeToSourceTime],
 	);
 
 	const effectiveCaptionRegions = useMemo<CaptionCue[]>(
@@ -4669,7 +4688,7 @@ export default function VideoEditor() {
 						webcamUrl:
 							resolvedWebcamVideoUrl ??
 							(webcam.sourcePath ? toFileUrl(webcam.sourcePath) : null),
-						annotationRegions,
+						annotationRegions: effectiveAnnotationRegions,
 						autoCaptions,
 						autoCaptionSettings,
 						zoomRegions: effectiveZoomRegions,
@@ -4852,7 +4871,7 @@ export default function VideoEditor() {
 						webcamUrl:
 							resolvedWebcamVideoUrl ??
 							(webcam.sourcePath ? toFileUrl(webcam.sourcePath) : null),
-						annotationRegions,
+						annotationRegions: effectiveAnnotationRegions,
 						autoCaptions,
 						autoCaptionSettings,
 						zoomRegions: effectiveZoomRegions,
@@ -5583,7 +5602,7 @@ export default function VideoEditor() {
 			webcamVideoPath={webcam.sourcePath ? resolvedWebcamVideoUrl : null}
 			trimRegions={trimRegions}
 			speedRegions={effectiveSpeedRegions}
-			annotationRegions={annotationRegions}
+			annotationRegions={effectiveAnnotationRegions}
 			autoCaptions={autoCaptions}
 			autoCaptionSettings={autoCaptionSettings}
 			onEditAutoCaption={handleSaveAutoCaptionEdit}

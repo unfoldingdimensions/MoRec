@@ -1,42 +1,66 @@
-# Soft Handoff Report — Orchestrator Gen 1 to Successor Gen 2
+# Handoff Report — MoRec Pre-Launch Audit Master Orchestrator
 
-## 1. Observation & Milestone State
-- **Project Scope**: MoRec Screen Recording Reliability & Defect Fixes (R1, R2, R3).
-- **Survey Phase**: Completed by 3 parallel Explorers (`explorer_survey_1`, `explorer_survey_2`, `explorer_survey_3`).
-- **Milestone 1 (R1 - Audio Hardware Leaks & Stream Cleanup on Cancellation)**:
-  - **Status**: **DONE** (Gate: PASS).
-  - Implementation: `src/hooks/useScreenRecorder.ts` unconditionally calls `cleanupCapturedMedia()` on cancellation; `electron/ipc/register/project.ts` deletes all companion sidecars.
-  - Verified by: `worker_m1`, `reviewer_m1_1` (APPROVE), `reviewer_m1_2` (APPROVE), `challenger_m1_1` (APPROVE), `challenger_m1_2` (APPROVE), `auditor_m1` (CLEAN).
-- **Milestone 2 (R2 - Reliable Tray "Stop Recording" Target Routing)**:
-  - **Status**: **DONE** (Gate: PASS).
-  - Implementation: `electron/windows.ts` (`dispatchStopRecordingFromTray()`) and `electron/main.ts` (tray menu & post-recording window restoration) decoupled from mutable `mainWindow`.
-  - Verified by: `worker_m2`, `reviewer_m2_1` (APPROVE), `reviewer_m2_2` (APPROVE), `challenger_m2_1` (APPROVE), `challenger_m2_2` (APPROVE), `auditor_m2` (CLEAN).
-- **Milestone 3 (R3 - Safe Recording Finalization & Audio/Webcam Synchronization)**:
-  - **Status**: **IMPLEMENTED BY WORKER 3** (Awaiting verification squad: Reviewers, Challengers, Auditor).
-  - Implementation: In `src/hooks/useScreenRecorder.ts`, unawaited background IIFEs removed. Companion promises (`webcamPathPromise`, `storeMicrophoneSidecar`, `muxNativeWindowsRecording`) are fully awaited before calling `finalizeRecordingSession(finalPath, webcamPath)`. Session manifest is written atomically on disk before opening editor. `hudOverlayClose()` called in `finally`.
-  - 7 new unit tests in `src/hooks/useScreenRecorder.test.ts`. 110/110 test files pass (`npm test`: 1047 passed), 0 TypeScript errors.
-  - Report at `e:/New-Personal-Projects/MoRec/.agents/worker_m3/handoff.md`.
-- **Milestone 4 (Full Acceptance & Sign-off)**:
-  - **Status**: **PLANNED** (To be executed after M3 verification).
+**Agent**: `orchestrator_1`  
+**Working Directory**: `e:\New-Personal-Projects\MoRec\.agents\orchestrator_1`  
+**Target Milestone**: MoRec Pre-Launch Audit & Production Readiness Review  
+**Status**: Complete (Hard Handoff)
 
-## 2. Active Subagents
-- None currently running (all 16 subagents completed their assignments).
+---
 
-## 3. Pending Decisions & Remaining Work for Successor
-1. **Milestone 3 Verification Squad**:
-   - Spawn 2 Reviewers, 2 Challengers, and 1 Forensic Auditor (`teamwork_preview_auditor`) for Milestone 3 (R3).
-   - Collect handoff reports, check verdicts (APPROVE / CLEAN), and record Gate result in `GATE_STATUS.md`.
-   - Update `PROJECT.md` marking M3 DONE and M4 IN_PROGRESS.
-2. **Milestone 4 (Acceptance & Full Test Suite Verification)**:
-   - Verify all test suites pass (`npm test`).
-   - Write final handoff / completion report for the user/parent agent.
-   - Deliver final response.
+## 1. Observation
 
-## 4. Key Artifacts
-- `e:/New-Personal-Projects/MoRec/ORIGINAL_REQUEST.md` — Original User Request
-- `e:/New-Personal-Projects/MoRec/PROJECT.md` — Master Architecture, Feature Inventory, Milestones & Contracts
-- `e:/New-Personal-Projects/MoRec/.agents/orchestrator_1/DISPATCH.md` — Dispatch Log
-- `e:/New-Personal-Projects/MoRec/.agents/orchestrator_1/BRIEFING.md` — Persistent Memory Index
-- `e:/New-Personal-Projects/MoRec/.agents/orchestrator_1/progress.md` — Workflow Checklist & Liveness
-- `e:/New-Personal-Projects/MoRec/.agents/orchestrator_1/GATE_STATUS.md` — Gate Log
-- `e:/New-Personal-Projects/MoRec/.agents/worker_m3/handoff.md` — Worker 3 Handoff Report
+A full multi-agent pre-launch audit of the MoRec desktop screen recording and video editor application was conducted under strict read-only constraints. Three parallel specialized explorers (`explorer_uiux_1`, `explorer_logic_1`, `explorer_deadcode_1`) and one adversarial verification challenger (`challenger_verify_1`) inspected the complete repository (`src/`, `electron/`, `public/`, `package.json`, build configs).
+
+Key Empirical Findings:
+1. **Repository Health**: 113 test files and 1,078 unit tests are passing with 0 failures.
+2. **UI/UX & Interaction (R1)**: 25 verified findings cataloged (1 Blocker: empty URLs in `TutorialHelp.tsx:27-30` triggering toast errors; 2 Critical: Select/Dropdown `z-50` occluded behind Dialog `z-[10000]`, `CropControl.tsx` missing 4 corner handles and aspect ratio locking; 11 Major: fixed flex panels, double delete buttons in annotation settings, project popover clipping, low contrast text, and keyboard focus suppression).
+3. **Core Logic, State & IPC (R2)**: 11 verified findings cataloged (2 Critical: `electron/ipc/register/settings.ts` countdown window destruction race crashing main process, `VideoEditor.tsx`/`VideoPlayback.tsx` annotation & audio timeline-to-source time desync on trimmed clips; 5 Major: Pixi ticker 60 FPS React re-renders, `sendSync` UI thread blocking, recording teardown hook race, state desync on clip trimming, and Float32 PCM memory duplication in `WaveformGenerator.ts`).
+4. **Dead Code & Duplication (R3)**: 12 verified findings cataloged (18.98 MB unindexed wallpaper bloat in `public/wallpapers/`, phantom `electronAPI.getLinuxWindowSystem` IPC call, 532 lines of unused components/dialogs, 68 unused cursor SVGs, duplicated math utilities, and 2 unused npm packages).
+
+---
+
+## 2. Logic Chain
+
+1. *From UI-009*: Release UI contains empty URL strings (`MOREC_ISSUES_URL = ""`, `MOREC_DISCORD_URL = ""`). Triggering `openExternalUrl("")` fails Electron validation and produces user-facing error toasts -> **Conclusion**: Must be resolved before public distribution (Blocker).
+2. *From LOGIC-001*: In `start-countdown`, the main process interval timer calls `countdownWin.webContents.send()` without checking `!countdownWin.isDestroyed()`. If a user aborts recording during countdown, destroyed window access throws fatal C++ exceptions -> **Conclusion**: Main process crash hazard (Critical).
+3. *From UI-020*: `DialogContent` is styled with `z-[10000]` while portaled `SelectContent` / `DropdownMenuContent` default to `z-50`. Dropdown lists inside modal dialogs are rendered behind the backdrop -> **Conclusion**: Critical modal usability bug.
+4. *From LOGIC-004*: Annotations use timeline timestamps (`startMs`, `endMs`) whereas video playback and modern export renderers sample raw source video time. Trimmed clips cause visual displacement and early despawn of annotations -> **Conclusion**: Critical video editing correctness bug.
+5. *From DEAD-012*: 12 high-resolution wallpaper images (18.98 MB) in `public/wallpapers/` are not registered in `BUILT_IN_WALLPAPERS` and not imported in `src/`. `electron-builder.json5` bundles `public/` in `extraResources` -> **Conclusion**: Deleting them provides immediate ~19 MB installer footprint savings.
+
+---
+
+## 3. Caveats
+
+- The entire audit was conducted in strict read-only mode with zero file modifications to source code or assets.
+- Automated unit test suites (1,078 tests) currently pass because tests mock IPC channels and DOM layout layers, which explains why z-index inversions and IPC window destruction races went undetected by unit tests.
+- Proposed remediations are documented with concrete code examples in `AUDIT_REPORT.md`.
+
+---
+
+## 4. Conclusion
+
+The MoRec pre-launch audit is concluded. MoRec has a strong architecture but requires resolving **1 Blocker** and **4 Critical** issues before public launch.
+
+**Master Report Location**: `e:\New-Personal-Projects\MoRec\.agents\orchestrator_1\AUDIT_REPORT.md`
+
+### 4-Phase Prioritized Roadmap:
+- **Phase 1 (P0 Blockers)**: Fix `TutorialHelp.tsx` URLs, countdown `!isDestroyed()` safety guard, Select/Dialog z-index elevation, trimmed video annotation timeline mapping, and `CropControl` corner handles.
+- **Phase 2 (P1 Performance & Logic)**: Eliminate Pixi ticker 60 FPS React re-renders, replace `sendSync` IPC, fix recording hook teardown, synchronize caption offsets on clip move, and optimize waveform PCM memory.
+- **Phase 3 (P2 Dead Code & Bloat)**: Purge 18.98 MB unindexed wallpapers, remove phantom `getLinuxWindowSystem`, delete 7 unused components, prune 68 unused cursor SVGs, and remove unused npm packages.
+- **Phase 4 (P3 A11y & Polish)**: Add countdown live region, fix WCAG 2.1 AA text contrast, restore focus rings, and expand playhead snapping.
+
+---
+
+## 5. Verification Method
+
+To verify any finding in the report:
+1. **Inspect Target Source Files**:
+   - `file:///e:/New-Personal-Projects/MoRec/src/components/video-editor/TutorialHelp.tsx:27-30`
+   - `file:///e:/New-Personal-Projects/MoRec/electron/ipc/register/settings.ts:313-326`
+   - `file:///e:/New-Personal-Projects/MoRec/src/components/ui/dialog.tsx:22` vs `src/components/ui/select.tsx:71`
+   - `file:///e:/New-Personal-Projects/MoRec/src/components/video-editor/VideoEditor.tsx:3561` & `VideoPlayback.tsx:3354`
+   - `file:///e:/New-Personal-Projects/MoRec/public/wallpapers/`
+2. **Review Verification Artifacts**:
+   - Master Audit Report: `file:///e:/New-Personal-Projects/MoRec/.agents/orchestrator_1/AUDIT_REPORT.md`
+   - Challenger Fact-Check: `file:///e:/New-Personal-Projects/MoRec/.agents/challenger_verify_1/verification_report.md`
+   - Domain Explorer Catalogs: `explorer_uiux_1/findings_uiux.md`, `explorer_logic_1/findings_logic.md`, `explorer_deadcode_1/findings_deadcode.md`

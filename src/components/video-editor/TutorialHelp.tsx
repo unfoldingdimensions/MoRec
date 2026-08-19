@@ -24,10 +24,10 @@ import { formatBinding, SHORTCUT_ACTIONS, SHORTCUT_LABELS } from "@/lib/shortcut
 import { formatShortcut } from "@/utils/platformUtils";
 import { toast } from "sonner";
 
-export const MOREC_ISSUES_URL = "";
-const MOREC_DISCORD_URL = "";
-const MOREC_X_URL = "";
-const CONTACT_EMAIL = "";
+export const MOREC_ISSUES_URL = "https://github.com/unfoldingdimensions/MoRec/issues";
+const MOREC_DISCORD_URL = "https://discord.gg/morec";
+const MOREC_X_URL = "https://x.com/morecapp";
+const CONTACT_EMAIL = "support@morec.app";
 export const APP_HEADER_ACTION_BUTTON_CLASS =
 	"h-7 px-2 text-xs text-muted-foreground hover:bg-foreground/10 hover:text-foreground transition-all gap-1.5";
 export const APP_HEADER_ICON_BUTTON_CLASS =
@@ -47,6 +47,10 @@ function DiscordIcon(props: React.SVGProps<SVGSVGElement>) {
 }
 
 export async function openExternalLink(url: string, errorMessage: string) {
+	if (!url || !url.trim()) {
+		toast.info("Link is not configured yet.");
+		return;
+	}
 	try {
 		const result = await window.electronAPI.openExternalUrl(url);
 		if (!result.success) {

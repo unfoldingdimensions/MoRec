@@ -495,12 +495,12 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			null,
 		);
 		const [frameUpdateCounter, setFrameUpdateCounter] = useState(0);
-		const [annotationSceneTransform, setAnnotationSceneTransform] =
-			useState<SceneTransformState>({
-				scale: 1,
-				x: 0,
-				y: 0,
-			});
+		const annotationContainerRef = useRef<HTMLDivElement | null>(null);
+		const annotationSceneTransformRef = useRef<SceneTransformState>({
+			scale: 1,
+			x: 0,
+			y: 0,
+		});
 		const [annotationRecordingRect, setAnnotationRecordingRect] =
 			useState<AnnotationRecordingRect>({
 				x: 0,
@@ -671,6 +671,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 								preference: backend,
 								autoStart: true,
 								sharedTicker: false,
+								preserveDrawingBuffer: true,
 							},
 							PIXI_RENDERER_INIT_TIMEOUT_MS,
 							backend,
@@ -1428,6 +1429,11 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 						const handleSecondSeeked = () => {
 							video.removeEventListener("seeked", handleSecondSeeked);
 							video.pause();
+							const videoTextureSource = videoSpriteRef.current?.texture?.source as
+								| { update?: () => void }
+								| undefined;
+							videoTextureSource?.update?.();
+							appRef.current?.render();
 							resolve();
 						};
 
@@ -1554,7 +1560,6 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			}
 
 			if (suspendRendering) {
-				app.ticker.stop();
 				bgVideoRef.current?.pause();
 				webcamVideoRef.current?.pause();
 				layoutVideoContentRef.current?.();
@@ -1563,6 +1568,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 					| undefined;
 				videoTextureSource?.update?.();
 				app.render();
+				app.ticker.stop();
 				return;
 			}
 
@@ -2277,6 +2283,17 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			layoutVideoContent();
 			video.pause();
 
+			const updateTextureSource = () => {
+				const videoTextureSource = videoSpriteRef.current?.texture?.source as
+					| { update?: () => void }
+					| undefined;
+				videoTextureSource?.update?.();
+				appRef.current?.render();
+			};
+
+			// Force an initial texture upload so the paused first frame renders immediately
+			updateTextureSource();
+
 			const { handlePlay, handlePause, handleSeeked, handleSeeking, dispose } =
 				createVideoEventHandlers({
 					video,
@@ -2289,6 +2306,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 					onTimeUpdate,
 					trimRegionsRef,
 					speedRegionsRef,
+					onFrameSeeked: updateTextureSource,
 				});
 
 			video.addEventListener("play", handlePlay);
@@ -2361,21 +2379,14 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 				state.x = appliedTransform.x;
 				state.y = appliedTransform.y;
 				state.appliedScale = appliedTransform.scale;
-				setAnnotationSceneTransform((current) => {
-					if (
-						Math.abs(current.scale - appliedTransform.scale) < 0.001 &&
-						Math.abs(current.x - appliedTransform.x) < 0.1 &&
-						Math.abs(current.y - appliedTransform.y) < 0.1
-					) {
-						return current;
-					}
-
-					return {
-						scale: appliedTransform.scale,
-						x: appliedTransform.x,
-						y: appliedTransform.y,
-					};
-				});
+				annotationSceneTransformRef.current = {
+					scale: appliedTransform.scale,
+					x: appliedTransform.x,
+					y: appliedTransform.y,
+				};
+				if (annotationContainerRef.current) {
+					annotationContainerRef.current.style.transform = `matrix(${appliedTransform.scale}, 0, 0, ${appliedTransform.scale}, ${appliedTransform.x}, ${appliedTransform.y})`;
+				}
 			};
 
 			const ticker = () => {
@@ -2847,6 +2858,10 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			videoReadyRafRef.current = requestAnimationFrame(waitForRenderableFrame);
 		};
 
+		const handleLoadedData = (e: React.SyntheticEvent<HTMLVideoElement, Event>) => {
+			handleLoadedMetadata(e);
+		};
+
 		const [resolvedWallpaper, setResolvedWallpaper] = useState<string | null>(null);
 		const [resolvedWallpaperKind, setResolvedWallpaperKind] = useState<
 			"image" | "video" | "style"
@@ -2955,7 +2970,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 				: { background: resolvedWallpaper || "" };
 		const fallbackVideoClassName = pixiRendererError
 			? "absolute inset-0 h-full w-full object-cover"
-			: "pointer-events-none absolute left-0 top-0 h-px w-px opacity-0";
+			: "pointer-events-none fixed -left-[99999px] -top-[99999px] w-[640px] h-[360px] opacity-0";
 		const hasRendererFallback = Boolean(pixiRendererError);
 
 		const nativeAspectRatio = (() => {
@@ -3019,6 +3034,19 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 								: "none",
 					}}
 				/>
+				{suspendRendering && (
+					<div className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/40 backdrop-blur-[2px] transition-all duration-300">
+						<div className="flex flex-col items-center gap-2.5 rounded-xl border border-white/10 bg-black/75 px-5 py-3.5 text-center shadow-2xl backdrop-blur-md">
+							<div className="flex items-center gap-2 text-xs font-semibold text-white">
+								<div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#2563EB] border-t-transparent" />
+								<span>Rendering Export</span>
+							</div>
+							<p className="max-w-[200px] text-[11px] leading-tight text-white/70">
+								Preview paused while GPU is encoding your video.
+							</p>
+						</div>
+					</div>
+				)}
 				{hasRendererFallback && (
 					<div className="absolute inset-0 z-10 flex items-center justify-center bg-black/60 p-2 text-center">
 						<div className="rounded-md bg-black/70 px-3 py-1.5 text-xs text-white">
@@ -3317,10 +3345,11 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 							</div>
 						) : null}
 						<div
+							ref={annotationContainerRef}
 							className="absolute inset-0"
 							style={{
 								pointerEvents: "none",
-								transform: `matrix(${annotationSceneTransform.scale}, 0, 0, ${annotationSceneTransform.scale}, ${annotationSceneTransform.x}, ${annotationSceneTransform.y})`,
+								transform: `matrix(${annotationSceneTransformRef.current.scale}, 0, 0, ${annotationSceneTransformRef.current.scale}, ${annotationSceneTransformRef.current.x}, ${annotationSceneTransformRef.current.y})`,
 								transformOrigin: "top left",
 							}}
 						>
@@ -3408,7 +3437,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 													600,
 											}}
 											sceneTransform={{ scale: 1, x: 0, y: 0 }}
-											interactionScale={annotationSceneTransform.scale}
+											interactionScale={annotationSceneTransformRef.current.scale}
 											onPositionChange={(id, position) =>
 												onAnnotationPositionChange?.(id, position)
 											}
@@ -3431,10 +3460,12 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 					ref={videoRef}
 					src={videoPath}
 					className={fallbackVideoClassName}
-					preload="metadata"
+					crossOrigin="anonymous"
+					preload="auto"
 					playsInline
 					aria-hidden="true"
 					onLoadedMetadata={handleLoadedMetadata}
+					onLoadedData={handleLoadedData}
 					onDurationChange={(e) => {
 						onDurationChange(e.currentTarget.duration);
 					}}

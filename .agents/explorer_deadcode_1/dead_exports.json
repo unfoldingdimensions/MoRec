@@ -1,0 +1,2690 @@
+[
+  {
+    "symbol": "isCursorHidden",
+    "file": "electron\\cursorHider.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\cursorHider.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "resetCursorHiderState",
+    "file": "electron\\cursorHider.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\cursorHider.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "GpuSwitches",
+    "file": "electron\\gpuSwitches.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\gpuSwitches.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "shouldForceLinuxEgl",
+    "file": "electron\\gpuSwitches.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\gpuSwitches.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "HudOverlayWorkArea",
+    "file": "electron\\hudOverlayBounds.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\hudOverlayBounds.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "ensureReadableFile",
+    "file": "electron\\ipc\\captions\\generate.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\captions\\generate.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "isExecutableFile",
+    "file": "electron\\ipc\\captions\\generate.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\captions\\generate.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "resolveWhisperExecutablePath",
+    "file": "electron\\ipc\\captions\\generate.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\captions\\generate.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "resolveCaptionAudioCandidates",
+    "file": "electron\\ipc\\captions\\generate.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\captions\\generate.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "extractCaptionAudioSource",
+    "file": "electron\\ipc\\captions\\generate.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\captions\\generate.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "detectSilenceIntervals",
+    "file": "electron\\ipc\\captions\\generate.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\captions\\generate.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "parseWhisperJsonWords",
+    "file": "electron\\ipc\\captions\\parser.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\captions\\parser.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "parseSrtTimestamp",
+    "file": "electron\\ipc\\captions\\parser.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\captions\\parser.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "SegmentOptions",
+    "file": "electron\\ipc\\captions\\segment.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\captions\\segment.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "endsSentence",
+    "file": "electron\\ipc\\captions\\segment.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\captions\\segment.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "ResegmentOptions",
+    "file": "electron\\ipc\\captions\\silence.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\captions\\silence.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "downloadFileWithProgress",
+    "file": "electron\\ipc\\captions\\whisper.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\captions\\whisper.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "getWindowBoundsFromNativeSource",
+    "file": "electron\\ipc\\cursor\\bounds.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\cursor\\bounds.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "parseXwininfoBounds",
+    "file": "electron\\ipc\\cursor\\bounds.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\cursor\\bounds.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "normalizeHookMouseButton",
+    "file": "electron\\ipc\\cursor\\interaction.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\cursor\\interaction.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "getHookMouseButton",
+    "file": "electron\\ipc\\cursor\\interaction.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\cursor\\interaction.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "repairBundledUiohookBinaryForCurrentArch",
+    "file": "electron\\ipc\\cursor\\interaction.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\cursor\\interaction.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "emitCursorStateChanged",
+    "file": "electron\\ipc\\cursor\\monitor.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\cursor\\monitor.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "handleCursorMonitorStdout",
+    "file": "electron\\ipc\\cursor\\monitor.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\cursor\\monitor.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "hasExportStream",
+    "file": "electron\\ipc\\export\\exportStream.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\export\\exportStream.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "NativeStaticLayoutExportProgress",
+    "file": "electron\\ipc\\export\\native-video.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\export\\native-video.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "NvidiaCudaExportSummary",
+    "file": "electron\\ipc\\export\\native-video.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\export\\native-video.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "NativeVideoStreamStatsProbe",
+    "file": "electron\\ipc\\export\\native-video.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\export\\native-video.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "NativeStaticLayoutExportMetrics",
+    "file": "electron\\ipc\\export\\native-video.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\export\\native-video.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "NativeStaticLayoutExportSession",
+    "file": "electron\\ipc\\export\\native-video.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\export\\native-video.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "parseWindowsGpuExportSummary",
+    "file": "electron\\ipc\\export\\native-video.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\export\\native-video.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "parseNvidiaCudaExportSummary",
+    "file": "electron\\ipc\\export\\native-video.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\export\\native-video.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "validateNvidiaCudaExportSummary",
+    "file": "electron\\ipc\\export\\native-video.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\export\\native-video.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "validateWindowsGpuExportSummary",
+    "file": "electron\\ipc\\export\\native-video.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\export\\native-video.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "parseNativeVideoStreamStatsProbeOutput",
+    "file": "electron\\ipc\\export\\native-video.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\export\\native-video.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "validateNativeVideoStreamStats",
+    "file": "electron\\ipc\\export\\native-video.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\export\\native-video.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "parseWindowsGpuExportProgressLine",
+    "file": "electron\\ipc\\export\\native-video.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\export\\native-video.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "mapNvidiaCudaWrapperProgressPercentage",
+    "file": "electron\\ipc\\export\\native-video.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\export\\native-video.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "hasNativeStaticLayoutProgressAdvanced",
+    "file": "electron\\ipc\\export\\native-video.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\export\\native-video.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "parseFfmpegFrameRate",
+    "file": "electron\\ipc\\export\\native-video.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\export\\native-video.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "parseNativeVideoMetadataProbeOutput",
+    "file": "electron\\ipc\\export\\native-video.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\export\\native-video.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "probeNativeVideoStreamStats",
+    "file": "electron\\ipc\\export\\native-video.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\export\\native-video.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "isNativeStaticLayoutH264SourceCodec",
+    "file": "electron\\ipc\\export\\native-video.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\export\\native-video.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "shouldCreateNativeStaticLayoutSourceProxy",
+    "file": "electron\\ipc\\export\\native-video.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\export\\native-video.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "getNativeStaticLayoutSourceProxyBitrate",
+    "file": "electron\\ipc\\export\\native-video.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\export\\native-video.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "buildNativeStaticLayoutSourceProxyArgs",
+    "file": "electron\\ipc\\export\\native-video.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\export\\native-video.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "validateNativeStaticLayoutSourceProxyMetadata",
+    "file": "electron\\ipc\\export\\native-video.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\export\\native-video.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "parseFfmpegProgressLineSeconds",
+    "file": "electron\\ipc\\export\\native-video.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\export\\native-video.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "waitForNativeVideoExportDrain",
+    "file": "electron\\ipc\\export\\native-video.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\export\\native-video.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "getNativeVideoExportFrameLength",
+    "file": "electron\\ipc\\export\\native-video.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\export\\native-video.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "writeNativeVideoExportFrame",
+    "file": "electron\\ipc\\export\\native-video.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\export\\native-video.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "normalizeNativeStaticLayoutBackground",
+    "file": "electron\\ipc\\export\\native-video.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\export\\native-video.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "hasNvidiaGpuDeviceInGpuInfo",
+    "file": "electron\\ipc\\export\\native-video.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\export\\native-video.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "getNvidiaCudaAudioExportSkipReason",
+    "file": "electron\\ipc\\export\\native-video.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\export\\native-video.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "getNvidiaCudaAutoStallTimeoutMs",
+    "file": "electron\\ipc\\export\\native-video.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\export\\native-video.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "getNativeGpuCompositorStallTimeoutMs",
+    "file": "electron\\ipc\\export\\native-video.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\export\\native-video.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "getExperimentalNvidiaCudaExportSkipReason",
+    "file": "electron\\ipc\\export\\native-video.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\export\\native-video.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "resolveExperimentalNvidiaCudaExportScriptPath",
+    "file": "electron\\ipc\\export\\native-video.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\export\\native-video.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "buildExperimentalWindowsGpuStaticLayoutArgs",
+    "file": "electron\\ipc\\export\\native-video.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\export\\native-video.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "buildExperimentalNvidiaCudaStaticLayoutArgs",
+    "file": "electron\\ipc\\export\\native-video.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\export\\native-video.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "getAvailableNativeVideoEncoders",
+    "file": "electron\\ipc\\export\\native-video.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\export\\native-video.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "probeNativeVideoEncoder",
+    "file": "electron\\ipc\\export\\native-video.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\export\\native-video.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "canCopyAudioCodecIntoMp4",
+    "file": "electron\\ipc\\export\\native-video.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\export\\native-video.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "buildNativeVideoAudioMuxArgs",
+    "file": "electron\\ipc\\export\\native-video.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\export\\native-video.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "NativeStaticLayoutRoute",
+    "file": "electron\\ipc\\export\\nativeStaticLayoutRoutePlan.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\export\\nativeStaticLayoutRoutePlan.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "NativeStaticLayoutRouteDecision",
+    "file": "electron\\ipc\\export\\nativeStaticLayoutRoutePlan.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\export\\nativeStaticLayoutRoutePlan.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "NvidiaCudaExportCapabilityProbe",
+    "file": "electron\\ipc\\export\\nativeStaticLayoutRoutePlan.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\export\\nativeStaticLayoutRoutePlan.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "WindowsD3D11ExportCapabilityProbe",
+    "file": "electron\\ipc\\export\\nativeStaticLayoutRoutePlan.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\export\\nativeStaticLayoutRoutePlan.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "NativeStaticLayoutRouteSource",
+    "file": "electron\\ipc\\export\\nativeStaticLayoutRoutePlan.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\export\\nativeStaticLayoutRoutePlan.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "NativeStaticLayoutRoutePlan",
+    "file": "electron\\ipc\\export\\nativeStaticLayoutRoutePlan.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\export\\nativeStaticLayoutRoutePlan.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "planNativeStaticLayoutRoutes",
+    "file": "electron\\ipc\\export\\nativeStaticLayoutRoutePlan.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\export\\nativeStaticLayoutRoutePlan.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "loadFfmpegStatic",
+    "file": "electron\\ipc\\ffmpeg\\binary.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\ffmpeg\\binary.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "loadFfprobeStatic",
+    "file": "electron\\ipc\\ffmpeg\\binary.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\ffmpeg\\binary.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "resolveSystemFfmpegBinaryPath",
+    "file": "electron\\ipc\\ffmpeg\\binary.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\ffmpeg\\binary.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "resolveSystemFfprobeBinaryPath",
+    "file": "electron\\ipc\\ffmpeg\\binary.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\ffmpeg\\binary.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "getAudioSyncAdjustment",
+    "file": "electron\\ipc\\ffmpeg\\filters.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\ffmpeg\\filters.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "applyRecordedAudioStartDelay",
+    "file": "electron\\ipc\\ffmpeg\\filters.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\ffmpeg\\filters.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "appendSyncedAudioFilter",
+    "file": "electron\\ipc\\ffmpeg\\filters.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\ffmpeg\\filters.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "normalizePauseSegments",
+    "file": "electron\\ipc\\ffmpeg\\filters.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\ffmpeg\\filters.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "buildPausedAudioFilter",
+    "file": "electron\\ipc\\ffmpeg\\filters.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\ffmpeg\\filters.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "WinMonitorHandle",
+    "file": "electron\\ipc\\monitorResolver.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\monitorResolver.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "NativeVideoExportEditedTrackStrategy",
+    "file": "electron\\ipc\\nativeVideoExport.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\nativeVideoExport.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "NativeVideoExportStartOptions",
+    "file": "electron\\ipc\\nativeVideoExport.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\nativeVideoExport.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "NativeVideoExportAudioSegment",
+    "file": "electron\\ipc\\nativeVideoExport.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\nativeVideoExport.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "NativeStaticLayoutChunk",
+    "file": "electron\\ipc\\nativeVideoExport.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\nativeVideoExport.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "resolveUnpackedAppPath",
+    "file": "electron\\ipc\\paths\\binaries.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\paths\\binaries.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "getNativeCaptureHelperSourcePath",
+    "file": "electron\\ipc\\paths\\binaries.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\paths\\binaries.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "getPrebundledNativeHelperPath",
+    "file": "electron\\ipc\\paths\\binaries.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\paths\\binaries.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "resolvePreferredWindowsNativeHelperPath",
+    "file": "electron\\ipc\\paths\\binaries.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\paths\\binaries.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "getNativeCursorMonitorSourcePath",
+    "file": "electron\\ipc\\paths\\binaries.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\paths\\binaries.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "getNativeCursorMonitorBinaryPath",
+    "file": "electron\\ipc\\paths\\binaries.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\paths\\binaries.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "getNativeWindowListSourcePath",
+    "file": "electron\\ipc\\paths\\binaries.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\paths\\binaries.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "getNativeWindowListBinaryPath",
+    "file": "electron\\ipc\\paths\\binaries.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\paths\\binaries.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "ensureNativeHelperMigration",
+    "file": "electron\\ipc\\paths\\binaries.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\paths\\binaries.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "isAllowedLocalMediaPath",
+    "file": "electron\\ipc\\project\\manager.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\project\\manager.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "resolveProjectMediaSources",
+    "file": "electron\\ipc\\project\\manager.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\project\\manager.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "buildProjectLibraryEntry",
+    "file": "electron\\ipc\\project\\manager.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\project\\manager.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "getRecordingSessionManifestPath",
+    "file": "electron\\ipc\\project\\session.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\project\\session.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "resolveRecordingSessionManifest",
+    "file": "electron\\ipc\\project\\session.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\project\\session.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "resolveLinkedWebcamPath",
+    "file": "electron\\ipc\\project\\session.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\project\\session.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "WINDOWS_NATIVE_MIC_PRE_FILTERS",
+    "file": "electron\\ipc\\recording\\audioFilters.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\recording\\audioFilters.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "BROWSER_MIC_SIDECAR_BASE_FILTERS",
+    "file": "electron\\ipc\\recording\\audioFilters.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\recording\\audioFilters.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "BROWSER_MIC_SIDECAR_NO_AGC_GAIN_FILTERS",
+    "file": "electron\\ipc\\recording\\audioFilters.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\recording\\audioFilters.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "BROWSER_MIC_SIDECAR_FILTERS",
+    "file": "electron\\ipc\\recording\\audioFilters.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\recording\\audioFilters.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "RECORDING_AUDIO_SIDECAR_DEBUG_ENV",
+    "file": "electron\\ipc\\recording\\audioFilters.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\recording\\audioFilters.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "MIN_VALID_RECORDED_VIDEO_BYTES",
+    "file": "electron\\ipc\\recording\\diagnostics.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\recording\\diagnostics.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "RECORDING_AUDIO_MUX_MIN_TIMEOUT_MS",
+    "file": "electron\\ipc\\recording\\diagnostics.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\recording\\diagnostics.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "RECORDING_AUDIO_MUX_MAX_TIMEOUT_MS",
+    "file": "electron\\ipc\\recording\\diagnostics.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\recording\\diagnostics.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "VideoStreamDurationProbe",
+    "file": "electron\\ipc\\recording\\diagnostics.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\recording\\diagnostics.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "getRecordingAudioMuxTimeoutMs",
+    "file": "electron\\ipc\\recording\\diagnostics.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\recording\\diagnostics.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "probeMediaDurationSeconds",
+    "file": "electron\\ipc\\recording\\diagnostics.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\recording\\diagnostics.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "parseFfprobeVideoStreamDuration",
+    "file": "electron\\ipc\\recording\\diagnostics.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\recording\\diagnostics.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "probeVideoStreamDuration",
+    "file": "electron\\ipc\\recording\\diagnostics.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\recording\\diagnostics.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "probeVideoStreamDurationSeconds",
+    "file": "electron\\ipc\\recording\\diagnostics.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\recording\\diagnostics.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "getRecordingDiagnosticsPath",
+    "file": "electron\\ipc\\recording\\diagnostics.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\recording\\diagnostics.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "getUsableCompanionAudioCandidates",
+    "file": "electron\\ipc\\recording\\diagnostics.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\recording\\diagnostics.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "getCompanionAudioStartDelayMs",
+    "file": "electron\\ipc\\recording\\diagnostics.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\recording\\diagnostics.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "hasEmbeddedAudioStream",
+    "file": "electron\\ipc\\recording\\diagnostics.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\recording\\diagnostics.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "getCompanionAudioFallbackPaths",
+    "file": "electron\\ipc\\recording\\diagnostics.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\recording\\diagnostics.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "MacCompanionAudioSuffix",
+    "file": "electron\\ipc\\recording\\macCompanionAudio.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\recording\\macCompanionAudio.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "hasSiblingProjectFile",
+    "file": "electron\\ipc\\recording\\prune.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\recording\\prune.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "NativeWindowsVideoPaddingResult",
+    "file": "electron\\ipc\\recording\\windows.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\recording\\windows.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "NativeWindowsAudioMuxResult",
+    "file": "electron\\ipc\\recording\\windows.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\recording\\windows.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "WINDOWS_MIC_CAPTURE_MODE_ENV",
+    "file": "electron\\ipc\\recording\\windowsFallbacks.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\recording\\windowsFallbacks.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "moveExportedTempFile",
+    "file": "electron\\ipc\\register\\export.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\register\\export.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "CaptionSidecarCue",
+    "file": "electron\\ipc\\register\\exportCaptionSidecars.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\register\\exportCaptionSidecars.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "CaptionSidecarWriteResult",
+    "file": "electron\\ipc\\register\\exportCaptionSidecars.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\register\\exportCaptionSidecars.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "serializeSrt",
+    "file": "electron\\ipc\\register\\exportCaptionSidecars.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\register\\exportCaptionSidecars.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "serializeVtt",
+    "file": "electron\\ipc\\register\\exportCaptionSidecars.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\register\\exportCaptionSidecars.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "writeCaptionSidecars",
+    "file": "electron\\ipc\\register\\exportCaptionSidecars.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\register\\exportCaptionSidecars.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "LINUX_PORTAL_SCREEN_SOURCE_ID",
+    "file": "electron\\ipc\\register\\sourceMapping.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\register\\sourceMapping.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "isLikelyLinuxWaylandSession",
+    "file": "electron\\ipc\\register\\sourceMapping.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\register\\sourceMapping.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "HookEventName",
+    "file": "electron\\ipc\\types.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\types.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "HookEventListener",
+    "file": "electron\\ipc\\types.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\types.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "stripJsonByteOrderMark",
+    "file": "electron\\ipc\\utils.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\utils.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "WindowsCaptureSourceLike",
+    "file": "electron\\ipc\\windowsCaptureSelection.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\windowsCaptureSelection.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "WindowsCaptureDisplayBounds",
+    "file": "electron\\ipc\\windowsCaptureSelection.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\windowsCaptureSelection.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "WindowsCaptureDisplayLike",
+    "file": "electron\\ipc\\windowsCaptureSelection.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\windowsCaptureSelection.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "ResolvedWindowsCaptureDisplay",
+    "file": "electron\\ipc\\windowsCaptureSelection.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\windowsCaptureSelection.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "ResolvedWindowsCaptureTarget",
+    "file": "electron\\ipc\\windowsCaptureSelection.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\ipc\\windowsCaptureSelection.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "MAIN_DIST",
+    "file": "electron\\main.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\main.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "resolveHttpByteRange",
+    "file": "electron\\mediaServer.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\mediaServer.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "isAllowedMediaPath",
+    "file": "electron\\mediaServer.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\mediaServer.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "MEDIA_CONTENT_TYPES",
+    "file": "electron\\mediaTypes.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\mediaTypes.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "NavigationEvent",
+    "file": "electron\\navigationPolicy.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\navigationPolicy.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "normalizeExternalHttpUrl",
+    "file": "electron\\navigationPolicy.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\navigationPolicy.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "isInternalRendererTarget",
+    "file": "electron\\navigationPolicy.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\navigationPolicy.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "createWillNavigateHandler",
+    "file": "electron\\navigationPolicy.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\navigationPolicy.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "createWillRedirectHandler",
+    "file": "electron\\navigationPolicy.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\navigationPolicy.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "createWindowOpenHandler",
+    "file": "electron\\navigationPolicy.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\navigationPolicy.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "MediaPermissionPolicyRequest",
+    "file": "electron\\permissionPolicy.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\permissionPolicy.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "DisplayCapturePolicyRequest",
+    "file": "electron\\permissionPolicy.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\permissionPolicy.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "isTrustedCaptureDocumentUrl",
+    "file": "electron\\permissionPolicy.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\permissionPolicy.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "UPDATE_REMINDER_DELAY_MS",
+    "file": "electron\\updater.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\updater.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "UpdateToastPhase",
+    "file": "electron\\updater.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\updater.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "UpdateStatusKind",
+    "file": "electron\\updater.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\updater.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "isAutoUpdateFeatureEnabled",
+    "file": "electron\\updater.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\updater.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "createUpdateToastWindow",
+    "file": "electron\\windows.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\electron\\windows.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "REQUIRED_MACOS_ENTITLEMENTS",
+    "file": "scripts\\macos-distribution-policy.mjs",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\scripts\\macos-distribution-policy.mjs",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "expectedMachOArchitecture",
+    "file": "scripts\\macos-distribution-policy.mjs",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\scripts\\macos-distribution-policy.mjs",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "parseLipoArchitectures",
+    "file": "scripts\\macos-distribution-policy.mjs",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\scripts\\macos-distribution-policy.mjs",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "getNativeHelperManifestPath",
+    "file": "scripts\\native-helper-manifest.mjs",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\scripts\\native-helper-manifest.mjs",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "normalizeElectronMainCjsSource",
+    "file": "scripts\\normalize-electron-main-cjs.mjs",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\scripts\\normalize-electron-main-cjs.mjs",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "verifyMacOSDistribution",
+    "file": "scripts\\verify-macos-distribution.mjs",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\scripts\\verify-macos-distribution.mjs",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "WINDOWS_CMAKE_GENERATORS",
+    "file": "scripts\\windows-cmake-generators.mjs",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\scripts\\windows-cmake-generators.mjs",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "HudInteractiveBounds",
+    "file": "src\\components\\launch\\hudMousePassthrough.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\launch\\hudMousePassthrough.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "HudOffset",
+    "file": "src\\components\\launch\\hudViewportBounds.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\launch\\hudViewportBounds.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "HudViewportBounds",
+    "file": "src\\components\\launch\\hudViewportBounds.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\launch\\hudViewportBounds.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "HudViewportSize",
+    "file": "src\\components\\launch\\hudViewportBounds.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\launch\\hudViewportBounds.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "SourceSelectorContent",
+    "file": "src\\components\\launch\\SourceSelector.tsx",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\launch\\SourceSelector.tsx",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "Accordion",
+    "file": "src\\components\\ui\\accordion.tsx",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\ui\\accordion.tsx",
+    "type": "block-export",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "AccordionItem",
+    "file": "src\\components\\ui\\accordion.tsx",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\ui\\accordion.tsx",
+    "type": "block-export",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "AccordionTrigger",
+    "file": "src\\components\\ui\\accordion.tsx",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\ui\\accordion.tsx",
+    "type": "block-export",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "AccordionContent",
+    "file": "src\\components\\ui\\accordion.tsx",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\ui\\accordion.tsx",
+    "type": "block-export",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "ButtonProps",
+    "file": "src\\components\\ui\\button.tsx",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\ui\\button.tsx",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "buttonVariants",
+    "file": "src\\components\\ui\\button.tsx",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\ui\\button.tsx",
+    "type": "block-export",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "CardHeader",
+    "file": "src\\components\\ui\\card.tsx",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\ui\\card.tsx",
+    "type": "block-export",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "CardFooter",
+    "file": "src\\components\\ui\\card.tsx",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\ui\\card.tsx",
+    "type": "block-export",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "CardTitle",
+    "file": "src\\components\\ui\\card.tsx",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\ui\\card.tsx",
+    "type": "block-export",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "CardDescription",
+    "file": "src\\components\\ui\\card.tsx",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\ui\\card.tsx",
+    "type": "block-export",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "CardContent",
+    "file": "src\\components\\ui\\card.tsx",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\ui\\card.tsx",
+    "type": "block-export",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "ContentClamp",
+    "file": "src\\components\\ui\\content-clamp.tsx",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\ui\\content-clamp.tsx",
+    "type": "block-export",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "DialogPortal",
+    "file": "src\\components\\ui\\dialog.tsx",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\ui\\dialog.tsx",
+    "type": "block-export",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "DialogOverlay",
+    "file": "src\\components\\ui\\dialog.tsx",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\ui\\dialog.tsx",
+    "type": "block-export",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "DialogClose",
+    "file": "src\\components\\ui\\dialog.tsx",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\ui\\dialog.tsx",
+    "type": "block-export",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "DropdownMenuCheckboxItem",
+    "file": "src\\components\\ui\\dropdown-menu.tsx",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\ui\\dropdown-menu.tsx",
+    "type": "block-export",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "DropdownMenuRadioItem",
+    "file": "src\\components\\ui\\dropdown-menu.tsx",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\ui\\dropdown-menu.tsx",
+    "type": "block-export",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "DropdownMenuLabel",
+    "file": "src\\components\\ui\\dropdown-menu.tsx",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\ui\\dropdown-menu.tsx",
+    "type": "block-export",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "DropdownMenuSeparator",
+    "file": "src\\components\\ui\\dropdown-menu.tsx",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\ui\\dropdown-menu.tsx",
+    "type": "block-export",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "DropdownMenuShortcut",
+    "file": "src\\components\\ui\\dropdown-menu.tsx",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\ui\\dropdown-menu.tsx",
+    "type": "block-export",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "DropdownMenuGroup",
+    "file": "src\\components\\ui\\dropdown-menu.tsx",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\ui\\dropdown-menu.tsx",
+    "type": "block-export",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "DropdownMenuPortal",
+    "file": "src\\components\\ui\\dropdown-menu.tsx",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\ui\\dropdown-menu.tsx",
+    "type": "block-export",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "DropdownMenuSub",
+    "file": "src\\components\\ui\\dropdown-menu.tsx",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\ui\\dropdown-menu.tsx",
+    "type": "block-export",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "DropdownMenuSubContent",
+    "file": "src\\components\\ui\\dropdown-menu.tsx",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\ui\\dropdown-menu.tsx",
+    "type": "block-export",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "DropdownMenuSubTrigger",
+    "file": "src\\components\\ui\\dropdown-menu.tsx",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\ui\\dropdown-menu.tsx",
+    "type": "block-export",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "DropdownMenuRadioGroup",
+    "file": "src\\components\\ui\\dropdown-menu.tsx",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\ui\\dropdown-menu.tsx",
+    "type": "block-export",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "InputProps",
+    "file": "src\\components\\ui\\input.tsx",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\ui\\input.tsx",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "LabelProps",
+    "file": "src\\components\\ui\\label.tsx",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\ui\\label.tsx",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "PopoverAnchor",
+    "file": "src\\components\\ui\\popover.tsx",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\ui\\popover.tsx",
+    "type": "block-export",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "SelectGroup",
+    "file": "src\\components\\ui\\select.tsx",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\ui\\select.tsx",
+    "type": "block-export",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "SelectLabel",
+    "file": "src\\components\\ui\\select.tsx",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\ui\\select.tsx",
+    "type": "block-export",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "SelectSeparator",
+    "file": "src\\components\\ui\\select.tsx",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\ui\\select.tsx",
+    "type": "block-export",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "SelectScrollUpButton",
+    "file": "src\\components\\ui\\select.tsx",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\ui\\select.tsx",
+    "type": "block-export",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "SelectScrollDownButton",
+    "file": "src\\components\\ui\\select.tsx",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\ui\\select.tsx",
+    "type": "block-export",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "SkeletonProps",
+    "file": "src\\components\\ui\\skeleton.tsx",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\ui\\skeleton.tsx",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "skeletonVariants",
+    "file": "src\\components\\ui\\skeleton.tsx",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\ui\\skeleton.tsx",
+    "type": "block-export",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "FONT_FAMILY_VALUES",
+    "file": "src\\components\\video-editor\\AnnotationSettingsPanel.tsx",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\AnnotationSettingsPanel.tsx",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "FONT_SIZES",
+    "file": "src\\components\\video-editor\\AnnotationSettingsPanel.tsx",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\AnnotationSettingsPanel.tsx",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "ArrowUpRight",
+    "file": "src\\components\\video-editor\\ArrowSvgs.tsx",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\ArrowSvgs.tsx",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "ArrowUpLeft",
+    "file": "src\\components\\video-editor\\ArrowSvgs.tsx",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\ArrowSvgs.tsx",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "ArrowDownRight",
+    "file": "src\\components\\video-editor\\ArrowSvgs.tsx",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\ArrowSvgs.tsx",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "ArrowDownLeft",
+    "file": "src\\components\\video-editor\\ArrowSvgs.tsx",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\ArrowSvgs.tsx",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "SourceAudioTrackId",
+    "file": "src\\components\\video-editor\\audio\\audioTypes.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\audio\\audioTypes.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "SourceAudioTrackMetaItem",
+    "file": "src\\components\\video-editor\\audio\\audioTypes.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\audio\\audioTypes.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "UseSourceAudioTrackSettingsResult",
+    "file": "src\\components\\video-editor\\audio\\useSourceAudioTrackSettings.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\audio\\useSourceAudioTrackSettings.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "CaptionEditWordRef",
+    "file": "src\\components\\video-editor\\captionEditing.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\captionEditing.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "CaptionWordLayout",
+    "file": "src\\components\\video-editor\\captionLayout.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\captionLayout.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "CaptionLineLayout",
+    "file": "src\\components\\video-editor\\captionLayout.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\captionLayout.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "ActiveCaptionLayout",
+    "file": "src\\components\\video-editor\\captionLayout.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\captionLayout.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "flattenCaptionWords",
+    "file": "src\\components\\video-editor\\captionLayout.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\captionLayout.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "getCaptionTargetWidth",
+    "file": "src\\components\\video-editor\\captionStyle.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\captionStyle.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "ClipSpeedChangeBlockReason",
+    "file": "src\\components\\video-editor\\clipSpeedChange.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\clipSpeedChange.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "ClipSpeedChangePlan",
+    "file": "src\\components\\video-editor\\clipSpeedChange.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\clipSpeedChange.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "BlockedClipSpeedChange",
+    "file": "src\\components\\video-editor\\clipSpeedChange.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\clipSpeedChange.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "CursorMotionPreset",
+    "file": "src\\components\\video-editor\\cursorMotionPresets.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\cursorMotionPresets.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "CursorMotionPresetSelectionInput",
+    "file": "src\\components\\video-editor\\cursorMotionPresets.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\cursorMotionPresets.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "resolveCursorMotionPresetId",
+    "file": "src\\components\\video-editor\\cursorMotionPresets.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\cursorMotionPresets.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "EditorHistoryStack",
+    "file": "src\\components\\video-editor\\editorHistory.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\editorHistory.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "EditorHistoryRecordResult",
+    "file": "src\\components\\video-editor\\editorHistory.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\editorHistory.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "MAX_EDITOR_HISTORY_ENTRIES",
+    "file": "src\\components\\video-editor\\editorHistory.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\editorHistory.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "cloneEditorHistorySnapshot",
+    "file": "src\\components\\video-editor\\editorHistory.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\editorHistory.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "areEditorHistorySnapshotsEqual",
+    "file": "src\\components\\video-editor\\editorHistory.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\editorHistory.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "EditorPreferences",
+    "file": "src\\components\\video-editor\\editorPreferences.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\editorPreferences.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "EDITOR_PREFERENCES_STORAGE_KEY",
+    "file": "src\\components\\video-editor\\editorPreferences.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\editorPreferences.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "EDITOR_PRESETS_STORAGE_KEY",
+    "file": "src\\components\\video-editor\\editorPreferences.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\editorPreferences.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "DEFAULT_EDITOR_PREFERENCES",
+    "file": "src\\components\\video-editor\\editorPreferences.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\editorPreferences.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "normalizeEditorPreferences",
+    "file": "src\\components\\video-editor\\editorPreferences.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\editorPreferences.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "ExportStatusModel",
+    "file": "src\\components\\video-editor\\exportStatusModel.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\exportStatusModel.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "FormatSelector",
+    "file": "src\\components\\video-editor\\FormatSelector.tsx",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\FormatSelector.tsx",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "GifOptionsPanel",
+    "file": "src\\components\\video-editor\\GifOptionsPanel.tsx",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\GifOptionsPanel.tsx",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "KeyboardShortcutsHelp",
+    "file": "src\\components\\video-editor\\KeyboardShortcutsHelp.tsx",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\KeyboardShortcutsHelp.tsx",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "Mp4ExportRouting",
+    "file": "src\\components\\video-editor\\mp4ExportRouting.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\mp4ExportRouting.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "ResolvedMp4ExportSettings",
+    "file": "src\\components\\video-editor\\mp4ExportSettings.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\mp4ExportSettings.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "PROJECT_VERSION",
+    "file": "src\\components\\video-editor\\projectPersistence.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\projectPersistence.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "normalizeRegionTiming",
+    "file": "src\\components\\video-editor\\projectPersistence.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\projectPersistence.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "normalizeExportEncodingMode",
+    "file": "src\\components\\video-editor\\projectPersistence.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\projectPersistence.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "DevOpenRecordingConfig",
+    "file": "src\\components\\video-editor\\smokeExportConfig.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\smokeExportConfig.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "SmokeExportProgressSample",
+    "file": "src\\components\\video-editor\\smokeExportProgress.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\smokeExportProgress.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "TimelineScaleConfig",
+    "file": "src\\components\\video-editor\\timeline\\core\\time.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\timeline\\core\\time.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "DndEngineConfig",
+    "file": "src\\components\\video-editor\\timeline\\dnd\\engine.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\timeline\\dnd\\engine.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "clampSpanToBounds",
+    "file": "src\\components\\video-editor\\timeline\\dnd\\engine.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\timeline\\dnd\\engine.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "getSiblingSpans",
+    "file": "src\\components\\video-editor\\timeline\\dnd\\engine.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\timeline\\dnd\\engine.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "clampResizedSpanToNeighbours",
+    "file": "src\\components\\video-editor\\timeline\\dnd\\engine.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\timeline\\dnd\\engine.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "clampDraggedSpanToNeighbours",
+    "file": "src\\components\\video-editor\\timeline\\dnd\\engine.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\timeline\\dnd\\engine.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "TimelineAudioPeaksResult",
+    "file": "src\\components\\video-editor\\timeline\\hooks\\useTimelineAudioPeaks.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\timeline\\hooks\\useTimelineAudioPeaks.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "TimelineWheelPanDeltaInput",
+    "file": "src\\components\\video-editor\\timeline\\hooks\\useTimelineRange.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\timeline\\hooks\\useTimelineRange.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "resolveTimelineWheelPanDeltaPx",
+    "file": "src\\components\\video-editor\\timeline\\hooks\\useTimelineRange.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\timeline\\hooks\\useTimelineRange.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "TimelineNotifications",
+    "file": "src\\components\\video-editor\\timeline\\hooks\\utils\\timelineNotifications.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\timeline\\hooks\\utils\\timelineNotifications.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "DeleteSelectionTarget",
+    "file": "src\\components\\video-editor\\timeline\\hooks\\utils\\timelineSelectionUtils.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\timeline\\hooks\\utils\\timelineSelectionUtils.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "getAnnotationLabel",
+    "file": "src\\components\\video-editor\\timeline\\model\\timelineModel.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\timeline\\model\\timelineModel.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "getAudioLabel",
+    "file": "src\\components\\video-editor\\timeline\\model\\timelineModel.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\timeline\\model\\timelineModel.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "TIMELINE_ROW_MIN_HEIGHT_PX",
+    "file": "src\\components\\video-editor\\timeline\\timelineLayout.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\timeline\\timelineLayout.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "TIMELINE_VISIBLE_ROW_COUNT",
+    "file": "src\\components\\video-editor\\timeline\\timelineLayout.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\timeline\\timelineLayout.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "MIN_DWELL_DURATION_MS",
+    "file": "src\\components\\video-editor\\timeline\\zoomSuggestionUtils.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\timeline\\zoomSuggestionUtils.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "MAX_DWELL_DURATION_MS",
+    "file": "src\\components\\video-editor\\timeline\\zoomSuggestionUtils.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\timeline\\zoomSuggestionUtils.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "DWELL_MOVE_THRESHOLD",
+    "file": "src\\components\\video-editor\\timeline\\zoomSuggestionUtils.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\timeline\\zoomSuggestionUtils.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "MIN_FRESH_RECORDING_AUTO_ZOOM_SOURCE_ASPECT_RATIO",
+    "file": "src\\components\\video-editor\\timeline\\zoomSuggestionUtils.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\timeline\\zoomSuggestionUtils.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "ZoomDwellCandidate",
+    "file": "src\\components\\video-editor\\timeline\\zoomSuggestionUtils.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\timeline\\zoomSuggestionUtils.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "CursorInteractionCandidate",
+    "file": "src\\components\\video-editor\\timeline\\zoomSuggestionUtils.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\timeline\\zoomSuggestionUtils.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "SuggestedZoomRegion",
+    "file": "src\\components\\video-editor\\timeline\\zoomSuggestionUtils.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\timeline\\zoomSuggestionUtils.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "InteractionZoomSuggestionStatus",
+    "file": "src\\components\\video-editor\\timeline\\zoomSuggestionUtils.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\timeline\\zoomSuggestionUtils.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "InteractionZoomSuggestionResult",
+    "file": "src\\components\\video-editor\\timeline\\zoomSuggestionUtils.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\timeline\\zoomSuggestionUtils.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "CLICK_CLUSTER_MERGE_GAP_MS",
+    "file": "src\\components\\video-editor\\timeline\\zoomSuggestionUtils.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\timeline\\zoomSuggestionUtils.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "CLICK_CLUSTER_PAD_MS",
+    "file": "src\\components\\video-editor\\timeline\\zoomSuggestionUtils.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\timeline\\zoomSuggestionUtils.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "detectZoomDwellCandidates",
+    "file": "src\\components\\video-editor\\timeline\\zoomSuggestionUtils.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\timeline\\zoomSuggestionUtils.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "detectInteractionCandidates",
+    "file": "src\\components\\video-editor\\timeline\\zoomSuggestionUtils.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\timeline\\zoomSuggestionUtils.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "APP_HEADER_ACTION_BUTTON_CLASS",
+    "file": "src\\components\\video-editor\\TutorialHelp.tsx",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\TutorialHelp.tsx",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "CursorVisualSettings",
+    "file": "src\\components\\video-editor\\types.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\types.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "findClipAtTimelineTime",
+    "file": "src\\components\\video-editor\\types.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\types.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "AnnotationPosition",
+    "file": "src\\components\\video-editor\\types.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\types.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "AnnotationSize",
+    "file": "src\\components\\video-editor\\types.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\types.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "AnnotationTextStyle",
+    "file": "src\\components\\video-editor\\types.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\types.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "PlaybackSpeed",
+    "file": "src\\components\\video-editor\\types.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\types.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "SPEED_OPTIONS",
+    "file": "src\\components\\video-editor\\types.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\types.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "NVIDIA_CUDA_EXPORT_OPT_IN_SETTING_KEY",
+    "file": "src\\components\\video-editor\\useNvidiaCudaExportOptIn.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\useNvidiaCudaExportOptIn.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "isNvidiaCudaExportAvailable",
+    "file": "src\\components\\video-editor\\useNvidiaCudaExportOptIn.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\useNvidiaCudaExportOptIn.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "resolveNvidiaCudaExportOptIn",
+    "file": "src\\components\\video-editor\\useNvidiaCudaExportOptIn.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\useNvidiaCudaExportOptIn.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "loadInitialNvidiaCudaExportOptIn",
+    "file": "src\\components\\video-editor\\useNvidiaCudaExportOptIn.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\useNvidiaCudaExportOptIn.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "saveNvidiaCudaExportOptIn",
+    "file": "src\\components\\video-editor\\useNvidiaCudaExportOptIn.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\useNvidiaCudaExportOptIn.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "MIN_DELTA",
+    "file": "src\\components\\video-editor\\videoPlayback\\constants.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\videoPlayback\\constants.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "VIEWPORT_SCALE",
+    "file": "src\\components\\video-editor\\videoPlayback\\constants.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\videoPlayback\\constants.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "ZOOM_TRANSLATION_DEADZONE_PX",
+    "file": "src\\components\\video-editor\\videoPlayback\\constants.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\videoPlayback\\constants.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "ZOOM_SCALE_DEADZONE",
+    "file": "src\\components\\video-editor\\videoPlayback\\constants.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\videoPlayback\\constants.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "SNAP_TO_EDGES_RATIO_MANUAL",
+    "file": "src\\components\\video-editor\\videoPlayback\\cursorFollowCamera.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\videoPlayback\\cursorFollowCamera.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "CursorFollowConfig",
+    "file": "src\\components\\video-editor\\videoPlayback\\cursorFollowCamera.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\videoPlayback\\cursorFollowCamera.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "DEFAULT_CURSOR_FOLLOW_CONFIG",
+    "file": "src\\components\\video-editor\\videoPlayback\\cursorFollowCamera.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\videoPlayback\\cursorFollowCamera.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "getDisplayedTimelineEndMs",
+    "file": "src\\components\\video-editor\\videoPlayback\\cursorLoopTelemetry.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\videoPlayback\\cursorLoopTelemetry.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "NativeCursorAtlasEntry",
+    "file": "src\\components\\video-editor\\videoPlayback\\cursorRenderer.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\videoPlayback\\cursorRenderer.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "NativeCursorAtlas",
+    "file": "src\\components\\video-editor\\videoPlayback\\cursorRenderer.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\videoPlayback\\cursorRenderer.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "CursorRenderConfig",
+    "file": "src\\components\\video-editor\\videoPlayback\\cursorRenderer.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\videoPlayback\\cursorRenderer.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "SmoothedCursorState",
+    "file": "src\\components\\video-editor\\videoPlayback\\cursorRenderer.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\videoPlayback\\cursorRenderer.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "drawCursorOnCanvas",
+    "file": "src\\components\\video-editor\\videoPlayback\\cursorRenderer.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\videoPlayback\\cursorRenderer.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "CURSOR_SWAY_SLIDER_SCALE",
+    "file": "src\\components\\video-editor\\videoPlayback\\cursorSway.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\videoPlayback\\cursorSway.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "ProjectedCursorPosition",
+    "file": "src\\components\\video-editor\\videoPlayback\\cursorViewport.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\videoPlayback\\cursorViewport.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "softenFocusToScale",
+    "file": "src\\components\\video-editor\\videoPlayback\\focusUtils.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\videoPlayback\\focusUtils.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "edgeSnapFocus",
+    "file": "src\\components\\video-editor\\videoPlayback\\focusUtils.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\videoPlayback\\focusUtils.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "stageFocusToVideoSpace",
+    "file": "src\\components\\video-editor\\videoPlayback\\focusUtils.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\videoPlayback\\focusUtils.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "PADDING_SCALE_FACTOR",
+    "file": "src\\components\\video-editor\\videoPlayback\\layoutUtils.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\videoPlayback\\layoutUtils.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "PaddedLayoutResult",
+    "file": "src\\components\\video-editor\\videoPlayback\\layoutUtils.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\videoPlayback\\layoutUtils.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "cubicBezier",
+    "file": "src\\components\\video-editor\\videoPlayback\\mathUtils.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\videoPlayback\\mathUtils.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "easeOutExpo",
+    "file": "src\\components\\video-editor\\videoPlayback\\mathUtils.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\videoPlayback\\mathUtils.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "smoothStep",
+    "file": "src\\components\\video-editor\\videoPlayback\\mathUtils.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\videoPlayback\\mathUtils.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "easeInOutCubic",
+    "file": "src\\components\\video-editor\\videoPlayback\\mathUtils.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\videoPlayback\\mathUtils.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "easeOutCubic",
+    "file": "src\\components\\video-editor\\videoPlayback\\mathUtils.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\videoPlayback\\mathUtils.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "SpringConfig",
+    "file": "src\\components\\video-editor\\videoPlayback\\motionSmoothing.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\videoPlayback\\motionSmoothing.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "UploadedCursorAsset",
+    "file": "src\\components\\video-editor\\videoPlayback\\uploadedCursorAssets.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\videoPlayback\\uploadedCursorAssets.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "cursorStyleSizeMultipliers",
+    "file": "src\\components\\video-editor\\videoPlayback\\uploadedCursorAssets.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\videoPlayback\\uploadedCursorAssets.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "computeRegionStrength",
+    "file": "src\\components\\video-editor\\videoPlayback\\zoomRegionUtils.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\videoPlayback\\zoomRegionUtils.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "computeFocusFromTransform",
+    "file": "src\\components\\video-editor\\videoPlayback\\zoomTransform.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\videoPlayback\\zoomTransform.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "getWebcamOverlayScale",
+    "file": "src\\components\\video-editor\\webcamOverlay.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\components\\video-editor\\webcamOverlay.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "ThemePreference",
+    "file": "src\\contexts\\ThemeContext.tsx",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\contexts\\ThemeContext.tsx",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "ResolvedTheme",
+    "file": "src\\contexts\\ThemeContext.tsx",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\contexts\\ThemeContext.tsx",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "loadThemePreference",
+    "file": "src\\contexts\\ThemeContext.tsx",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\contexts\\ThemeContext.tsx",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "persistThemePreference",
+    "file": "src\\contexts\\ThemeContext.tsx",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\contexts\\ThemeContext.tsx",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "AudioLevelMeterOptions",
+    "file": "src\\hooks\\useAudioLevelMeter.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\hooks\\useAudioLevelMeter.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "UseExtensionsResult",
+    "file": "src\\hooks\\useExtensions.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\hooks\\useExtensions.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "MicrophoneDevice",
+    "file": "src\\hooks\\useMicrophoneDevices.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\hooks\\useMicrophoneDevices.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "BrowserMicrophoneProfile",
+    "file": "src\\hooks\\useScreenRecorder.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\hooks\\useScreenRecorder.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "BrowserCaptureCursorPolicy",
+    "file": "src\\hooks\\useScreenRecorder.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\hooks\\useScreenRecorder.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "normalizeBrowserMicrophoneProfile",
+    "file": "src\\hooks\\useScreenRecorder.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\hooks\\useScreenRecorder.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "resolveBrowserCaptureCursorPolicy",
+    "file": "src\\hooks\\useScreenRecorder.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\hooks\\useScreenRecorder.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "shouldUseNativeWindowsCaptureForSource",
+    "file": "src\\hooks\\useScreenRecorder.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\hooks\\useScreenRecorder.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "createProcessedMicrophoneConstraints",
+    "file": "src\\hooks\\useScreenRecorder.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\hooks\\useScreenRecorder.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "createBrowserRecordingOptions",
+    "file": "src\\hooks\\useScreenRecorder.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\hooks\\useScreenRecorder.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "VideoDevice",
+    "file": "src\\hooks\\useVideoDevices.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\hooks\\useVideoDevices.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "isAbsoluteLocalAssetPath",
+    "file": "src\\lib\\assetPath.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\lib\\assetPath.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "saveCustomFonts",
+    "file": "src\\lib\\customFonts.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\lib\\customFonts.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "removeCustomFont",
+    "file": "src\\lib\\customFonts.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\lib\\customFonts.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "loadFont",
+    "file": "src\\lib\\customFonts.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\lib\\customFonts.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "softLimitOfflineMixPeaksInPlace",
+    "file": "src\\lib\\exporter\\audioEncoder.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\lib\\exporter\\audioEncoder.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "ResolvedAudioTrackKind",
+    "file": "src\\lib\\exporter\\audioRoutingEngine.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\lib\\exporter\\audioRoutingEngine.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "ResolvedAudioTrack",
+    "file": "src\\lib\\exporter\\audioRoutingEngine.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\lib\\exporter\\audioRoutingEngine.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "ResolvedAudioPlan",
+    "file": "src\\lib\\exporter\\audioRoutingEngine.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\lib\\exporter\\audioRoutingEngine.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "LightningRuntimePlatform",
+    "file": "src\\lib\\exporter\\backendPolicy.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\lib\\exporter\\backendPolicy.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "LightningExportRoute",
+    "file": "src\\lib\\exporter\\backendPolicy.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\lib\\exporter\\backendPolicy.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "LightningExportRouteDecision",
+    "file": "src\\lib\\exporter\\backendPolicy.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\lib\\exporter\\backendPolicy.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "LightningExportRoutePlan",
+    "file": "src\\lib\\exporter\\backendPolicy.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\lib\\exporter\\backendPolicy.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "planLightningExportRoutes",
+    "file": "src\\lib\\exporter\\backendPolicy.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\lib\\exporter\\backendPolicy.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "getDefaultLightningRenderBackend",
+    "file": "src\\lib\\exporter\\backendPolicy.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\lib\\exporter\\backendPolicy.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "EditedTrackStrategy",
+    "file": "src\\lib\\exporter\\editedTrackStrategy.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\lib\\exporter\\editedTrackStrategy.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "EditedTrackSourceSegment",
+    "file": "src\\lib\\exporter\\editedTrackStrategy.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\lib\\exporter\\editedTrackStrategy.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "EditedTrackStrategyInput",
+    "file": "src\\lib\\exporter\\editedTrackStrategy.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\lib\\exporter\\editedTrackStrategy.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "getEncodingModeBitrateMultiplier",
+    "file": "src\\lib\\exporter\\exportBitrate.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\lib\\exporter\\exportBitrate.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "normalizeExportExtension",
+    "file": "src\\lib\\exporter\\exportSavePolicy.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\lib\\exporter\\exportSavePolicy.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "isExportTooLargeForInMemorySave",
+    "file": "src\\lib\\exporter\\exportSavePolicy.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\lib\\exporter\\exportSavePolicy.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "FinalizationProgressState",
+    "file": "src\\lib\\exporter\\finalizationTimeout.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\lib\\exporter\\finalizationTimeout.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "getExportFinalizationTimeoutMs",
+    "file": "src\\lib\\exporter\\finalizationTimeout.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\lib\\exporter\\finalizationTimeout.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "getExportFinalizationIdleTimeoutMs",
+    "file": "src\\lib\\exporter\\finalizationTimeout.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\lib\\exporter\\finalizationTimeout.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "ForwardFrameSourceMetadata",
+    "file": "src\\lib\\exporter\\forwardFrameSource.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\lib\\exporter\\forwardFrameSource.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "getGifRepeat",
+    "file": "src\\lib\\exporter\\gifExporter.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\lib\\exporter\\gifExporter.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "buildGifFrameRendererConfig",
+    "file": "src\\lib\\exporter\\gifExporter.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\lib\\exporter\\gifExporter.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "isLocalMediaServerUrl",
+    "file": "src\\lib\\exporter\\localMediaSource.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\lib\\exporter\\localMediaSource.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "getNormalizedMediaResourceUrl",
+    "file": "src\\lib\\exporter\\localMediaSource.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\lib\\exporter\\localMediaSource.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "getResourceFileName",
+    "file": "src\\lib\\exporter\\mediaResource.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\lib\\exporter\\mediaResource.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "MuxerTargetMode",
+    "file": "src\\lib\\exporter\\muxer.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\lib\\exporter\\muxer.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "captureCanvasFrameForNativeExport",
+    "file": "src\\lib\\exporter\\nativeFrameCapture.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\lib\\exporter\\nativeFrameCapture.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "NativeStaticLayoutCursorTelemetrySample",
+    "file": "src\\lib\\exporter\\nativeStaticLayoutTelemetry.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\lib\\exporter\\nativeStaticLayoutTelemetry.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "NativeStaticLayoutCursorTelemetryOptions",
+    "file": "src\\lib\\exporter\\nativeStaticLayoutTelemetry.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\lib\\exporter\\nativeStaticLayoutTelemetry.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "ShadowLayerProfile",
+    "file": "src\\lib\\exporter\\shadowProfile.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\lib\\exporter\\shadowProfile.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "SourceTrackRoutingPolicy",
+    "file": "src\\lib\\exporter\\sourceTrackRoutingPolicy.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\lib\\exporter\\sourceTrackRoutingPolicy.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "getDecodedFrameStartupOffsetUs",
+    "file": "src\\lib\\exporter\\streamingDecoder.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\lib\\exporter\\streamingDecoder.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "buildTemporalSampleOffsetsUs",
+    "file": "src\\lib\\exporter\\temporalMotionBlur.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\lib\\exporter\\temporalMotionBlur.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "SmoothedCursorSnapshot",
+    "file": "src\\lib\\extensions\\cursorCoordinates.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\lib\\extensions\\cursorCoordinates.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "RecordlyExtensionAPI",
+    "file": "src\\lib\\extensions\\types.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\lib\\extensions\\types.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "RecordlyExtensionModule",
+    "file": "src\\lib\\extensions\\types.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\lib\\extensions\\types.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "initializePixiApplication",
+    "file": "src\\lib\\pixiApplicationLifecycle.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\lib\\pixiApplicationLifecycle.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "FixedShortcut",
+    "file": "src\\lib\\shortcuts.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\lib\\shortcuts.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "bindingsEqual",
+    "file": "src\\lib\\shortcuts.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\lib\\shortcuts.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "isComparableObject",
+    "file": "src\\lib\\utils.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\lib\\utils.ts",
+    "type": "named",
+    "reason": "test_only_usages"
+  },
+  {
+    "symbol": "WALLPAPER_PATHS",
+    "file": "src\\lib\\wallpapers.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\lib\\wallpapers.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "WALLPAPER_RELATIVE_PATHS",
+    "file": "src\\lib\\wallpapers.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\lib\\wallpapers.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "getAspectRatioDimensions",
+    "file": "src\\utils\\aspectRatioUtils.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\utils\\aspectRatioUtils.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "getModifierKey",
+    "file": "src\\utils\\platformUtils.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\utils\\platformUtils.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  },
+  {
+    "symbol": "getShiftKey",
+    "file": "src\\utils\\platformUtils.ts",
+    "fullPath": "E:\\New-Personal-Projects\\MoRec\\src\\utils\\platformUtils.ts",
+    "type": "named",
+    "reason": "zero_usages"
+  }
+]

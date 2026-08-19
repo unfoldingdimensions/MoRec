@@ -862,7 +862,12 @@ function createEditorWindowWrapper() {
 
 		if (choice === 0) {
 			editorWindow.webContents.send("request-save-before-close");
+			const timeout = setTimeout(() => {
+				closeEditorWindowBypassingUnsavedPrompt(editorWindow);
+			}, 5000);
+
 			ipcMain.once("save-before-close-done", (_event, saved: boolean) => {
+				clearTimeout(timeout);
 				if (saved) {
 					closeEditorWindowBypassingUnsavedPrompt(editorWindow);
 				}

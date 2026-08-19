@@ -1303,12 +1303,33 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 		void window.electronAPI.setRecordingPreferences({ webcamDeviceId: deviceId });
 	}, []);
 
+	const stopRecordingRef = useRef(stopRecording);
+	stopRecordingRef.current = stopRecording;
+
+	const recoverNativeRecordingSessionRef = useRef(recoverNativeRecordingSession);
+	recoverNativeRecordingSessionRef.current = recoverNativeRecordingSession;
+
+	const stopMicFallbackRecorderRef = useRef(stopMicFallbackRecorder);
+	stopMicFallbackRecorderRef.current = stopMicFallbackRecorder;
+
+	const stopWebcamRecorderRef = useRef(stopWebcamRecorder);
+	stopWebcamRecorderRef.current = stopWebcamRecorder;
+
+	const cleanupCapturedMediaRef = useRef(cleanupCapturedMedia);
+	cleanupCapturedMediaRef.current = cleanupCapturedMedia;
+
+	const markRecordingResumedRef = useRef(markRecordingResumed);
+	markRecordingResumedRef.current = markRecordingResumed;
+
+	const getRecordingDurationMsRef = useRef(getRecordingDurationMs);
+	getRecordingDurationMsRef.current = getRecordingDurationMs;
+
 	useEffect(() => {
 		let cleanup: (() => void) | undefined;
 
 		if (window.electronAPI?.onStopRecordingFromTray) {
 			cleanup = window.electronAPI.onStopRecordingFromTray(() => {
-				stopRecording();
+				stopRecordingRef.current();
 			});
 		}
 
@@ -1325,8 +1346,8 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 					setPaused(false);
 					const isNativeWindows = nativeWindowsRecording.current;
 					const stoppedAtMs = Date.now();
-					markRecordingResumed(stoppedAtMs);
-					const expectedDurationMs = getRecordingDurationMs(stoppedAtMs);
+					markRecordingResumedRef.current(stoppedAtMs);
+					const expectedDurationMs = getRecordingDurationMsRef.current(stoppedAtMs);
 					nativeScreenRecording.current = false;
 					nativeWindowsRecording.current = false;
 					await window.electronAPI.setRecordingState(false);
@@ -1335,10 +1356,10 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 						setFinalizing(true);
 						const fallbackStartDelayMs = micFallbackStartDelayMs.current;
 						const fallbackTrackSettings = micFallbackTrackSettings.current;
-						const micFallbackBlobPromise = stopMicFallbackRecorder();
-						const webcamPathPromise = stopWebcamRecorder();
+						const micFallbackBlobPromise = stopMicFallbackRecorderRef.current();
+						const webcamPathPromise = stopWebcamRecorderRef.current();
 						try {
-							const recoveredPath = await recoverNativeRecordingSession(
+							const recoveredPath = await recoverNativeRecordingSessionRef.current(
 								micFallbackBlobPromise,
 								fallbackStartDelayMs,
 								webcamPathPromise,
@@ -1356,11 +1377,11 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 							);
 						} finally {
 							setFinalizing(false);
-							cleanupCapturedMedia();
+							cleanupCapturedMediaRef.current();
 						}
 					} else {
-						cleanupCapturedMedia();
-						await stopWebcamRecorder();
+						cleanupCapturedMediaRef.current();
+						await stopWebcamRecorderRef.current();
 					}
 
 					if (state.reason === "window-unavailable" && !hasPromptedForReselect.current) {
@@ -1379,10 +1400,15 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 			cleanup?.();
 			removeRecordingStateListener?.();
 			removeRecordingInterruptedListener?.();
+		};
+	}, []);
 
+	// Teardown active recording strictly on component unmount
+	useEffect(() => {
+		return () => {
 			if (nativeScreenRecording.current) {
 				nativeScreenRecording.current = false;
-				void window.electronAPI.stopNativeScreenRecording();
+				void window.electronAPI?.stopNativeScreenRecording?.();
 			}
 
 			const recorder = mediaRecorder.current;
@@ -1391,17 +1417,9 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 				recorder.stop();
 			}
 
-			cleanupCapturedMedia();
+			cleanupCapturedMediaRef.current();
 		};
-	}, [
-		cleanupCapturedMedia,
-		getRecordingDurationMs,
-		markRecordingResumed,
-		recoverNativeRecordingSession,
-		stopMicFallbackRecorder,
-		stopRecording,
-		stopWebcamRecorder,
-	]);
+	}, []);
 
 	const startRecording = async () => {
 		if (startInFlight.current) {
