@@ -30,7 +30,8 @@ export function renderCaptions(
 	ctx.save();
 
 	const fontSize = getCaptionScaledFontSize(settings.fontSize, width, settings.maxWidth);
-	ctx.font = `${CAPTION_FONT_WEIGHT} ${fontSize}px ${getDefaultCaptionFontFamily()}`;
+	const fontFamily = settings.fontFamily || getDefaultCaptionFontFamily();
+	ctx.font = `${CAPTION_FONT_WEIGHT} ${fontSize}px ${fontFamily}`;
 	const padding = getCaptionPadding(fontSize);
 
 	const activeCaptionLayout = buildActiveCaptionLayout({

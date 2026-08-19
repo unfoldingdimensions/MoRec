@@ -739,7 +739,9 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 				return null;
 			}
 
-			measurementContext.font = `${CAPTION_FONT_WEIGHT} ${fontSize}px ${getDefaultCaptionFontFamily()}`;
+			const captionFontFamily =
+				autoCaptionSettings.fontFamily || getDefaultCaptionFontFamily();
+			measurementContext.font = `${CAPTION_FONT_WEIGHT} ${fontSize}px ${captionFontFamily}`;
 
 			return buildActiveCaptionLayout({
 				cues: autoCaptions,
@@ -774,7 +776,9 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 				return null;
 			}
 
-			measurementContext.font = `${CAPTION_FONT_WEIGHT} ${fontSize}px ${getDefaultCaptionFontFamily()}`;
+			const captionFontFamily =
+				autoCaptionSettings.fontFamily || getDefaultCaptionFontFamily();
+			measurementContext.font = `${CAPTION_FONT_WEIGHT} ${fontSize}px ${captionFontFamily}`;
 			const measuredWidth = Math.max(
 				...captionEditSession.draft
 					.split(/\r?\n/)
@@ -3140,7 +3144,8 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 										}}
 										style={{
 											backgroundColor: `rgba(0, 0, 0, ${autoCaptionSettings.backgroundOpacity})`,
-											fontFamily: getDefaultCaptionFontFamily(),
+											fontFamily:
+												autoCaptionSettings.fontFamily || getDefaultCaptionFontFamily(),
 											fontSize: `${getCaptionScaledFontSize(
 												autoCaptionSettings.fontSize,
 												overlayRef.current?.clientWidth || 960,

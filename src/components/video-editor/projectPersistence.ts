@@ -769,7 +769,11 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 			rawAutoCaptionSettings.language.trim()
 				? rawAutoCaptionSettings.language.trim()
 				: DEFAULT_AUTO_CAPTION_SETTINGS.language,
-		fontFamily: getDefaultCaptionFontFamily(),
+		fontFamily:
+			typeof rawAutoCaptionSettings.fontFamily === "string" &&
+			rawAutoCaptionSettings.fontFamily.trim()
+				? rawAutoCaptionSettings.fontFamily.trim()
+				: getDefaultCaptionFontFamily(),
 		fontSize: isFiniteNumber(rawAutoCaptionSettings.fontSize)
 			? clamp(rawAutoCaptionSettings.fontSize, 16, 72)
 			: DEFAULT_AUTO_CAPTION_SETTINGS.fontSize,

@@ -43,4 +43,30 @@ describe("normalizeProjectEditor", () => {
 			linked: true,
 		});
 	});
+
+	it("preserves custom autoCaptionSettings fontFamily", () => {
+		const editor = normalizeProjectEditor({
+			autoCaptionSettings: {
+				fontFamily: '"Geist", sans-serif',
+				fontSize: 32,
+			},
+		});
+
+		expect(editor.autoCaptionSettings).toMatchObject({
+			fontFamily: '"Geist", sans-serif',
+			fontSize: 32,
+		});
+	});
+
+	it("falls back to default caption fontFamily when autoCaptionSettings fontFamily is empty or omitted", () => {
+		const editor = normalizeProjectEditor({
+			autoCaptionSettings: {
+				fontFamily: "   ",
+			},
+		});
+
+		expect(editor.autoCaptionSettings.fontFamily).toBe(
+			'"SF Pro Text", "SF Pro Display", Helvetica, sans-serif',
+		);
+	});
 });
