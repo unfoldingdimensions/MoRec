@@ -87,4 +87,22 @@ describe("normalizeProjectEditor", () => {
 			'"SF Pro Text", "SF Pro Display", Helvetica, sans-serif',
 		);
 	});
+
+	it("validates and clamps shadowIntensity properly", () => {
+		expect(normalizeProjectEditor({ shadowIntensity: 0.45 }).shadowIntensity).toBe(0.45);
+		expect(normalizeProjectEditor({ shadowIntensity: -2 }).shadowIntensity).toBe(0);
+		expect(normalizeProjectEditor({ shadowIntensity: 10 }).shadowIntensity).toBe(1);
+		expect(normalizeProjectEditor({ shadowIntensity: Number.NaN }).shadowIntensity).toBe(0.67);
+		expect(normalizeProjectEditor({ shadowIntensity: Number.POSITIVE_INFINITY }).shadowIntensity).toBe(0.67);
+		expect(normalizeProjectEditor({ shadowIntensity: undefined }).shadowIntensity).toBe(0.67);
+	});
+
+	it("validates and clamps borderRadius properly", () => {
+		expect(normalizeProjectEditor({ borderRadius: 25 }).borderRadius).toBe(25);
+		expect(normalizeProjectEditor({ borderRadius: -10 }).borderRadius).toBe(0);
+		expect(normalizeProjectEditor({ borderRadius: 500 }).borderRadius).toBe(200);
+		expect(normalizeProjectEditor({ borderRadius: Number.NaN }).borderRadius).toBe(12.5);
+		expect(normalizeProjectEditor({ borderRadius: Number.NEGATIVE_INFINITY }).borderRadius).toBe(12.5);
+		expect(normalizeProjectEditor({ borderRadius: undefined }).borderRadius).toBe(12.5);
+	});
 });
