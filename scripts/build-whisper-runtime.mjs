@@ -428,37 +428,50 @@ async function main() {
 		console.log(
 			`[build-whisper-runtime] Configuring whisper.cpp ${whisperVersion} for ${target.archTag}...`,
 		);
-		if (target.platform === "win32") {
-			configureWithWindowsCmakeGenerator({
-				prefix: "build-whisper-runtime",
-				clearCache: () => {
-					rmSync(path.join(target.buildRoot, "CMakeCache.txt"), { force: true });
-					rmSync(path.join(target.buildRoot, "CMakeFiles"), {
-						recursive: true,
-						force: true,
-					});
-				},
-				configure: (generator, toolset) =>
-					execFileSync(cmake, getConfigureArgs(sourceDir, target, generator, toolset), {
-						stdio: "inherit",
-						timeout: 300000,
-					}),
-			});
-		} else {
-			execFileSync(cmake, getConfigureArgs(sourceDir, target), {
-				stdio: "inherit",
-				timeout: 300000,
-			});
+		try {
+			if (target.platform === "win32") {
+				configureWithWindowsCmakeGenerator({
+					prefix: "build-whisper-runtime",
+					clearCache: () => {
+						rmSync(path.join(target.buildRoot, "CMakeCache.txt"), { force: true });
+						rmSync(path.join(target.buildRoot, "CMakeFiles"), {
+							recursive: true,
+							force: true,
+						});
+					},
+					configure: (generator, toolset) =>
+						execFileSync(cmake, getConfigureArgs(sourceDir, target, generator, toolset), {
+							stdio: "inherit",
+							timeout: 300000,
+						}),
+				});
+			} else {
+				execFileSync(cmake, getConfigureArgs(sourceDir, target), {
+					stdio: "inherit",
+					timeout: 300000,
+				});
+			}
+
+			console.log(
+				`[build-whisper-runtime] Building bundled whisper runtime for ${target.archTag}...`,
+			);
+			execFileSync(cmake, getBuildArgs(target), { stdio: "inherit", timeout: 900000 });
+
+			const { candidateDir, runtimeEntries } = await findRuntimeArtifacts(target);
+			await stageRuntimeArtifacts(target, candidateDir, runtimeEntries);
+			console.log(`[build-whisper-runtime] Staged whisper runtime -> ${target.outputDir}`);
+		} catch (error) {
+			const isPostinstall = process.env.npm_lifecycle_event === "postinstall";
+			const isCI = process.env.CI === "true";
+			const allowMissing = process.env.WHISPER_RUNTIME_ALLOW_MISSING === "1";
+			if (isPostinstall || isCI || allowMissing) {
+				console.warn(
+					`[build-whisper-runtime] Failed to build whisper runtime for ${target.archTag} (${error.message}). Continuing without auto-caption binary.`,
+				);
+				continue;
+			}
+			throw error;
 		}
-
-		console.log(
-			`[build-whisper-runtime] Building bundled whisper runtime for ${target.archTag}...`,
-		);
-		execFileSync(cmake, getBuildArgs(target), { stdio: "inherit", timeout: 900000 });
-
-		const { candidateDir, runtimeEntries } = await findRuntimeArtifacts(target);
-		await stageRuntimeArtifacts(target, candidateDir, runtimeEntries);
-		console.log(`[build-whisper-runtime] Staged whisper runtime -> ${target.outputDir}`);
 	}
 }
 

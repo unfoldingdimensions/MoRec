@@ -135,6 +135,26 @@ try {
 			),
 	});
 } catch (error) {
+	if (existsSync(bundledExePath)) {
+		console.log(
+			"[build-windows-gpu-export] Build tools not configured; using bundled helper: " +
+				bundledExePath,
+		);
+		const verification = verifyNativeHelperManifest({
+			projectRoot,
+			helperId,
+			sourceDir,
+			binaryPath: bundledExePath,
+			binaryName: "morec-gpu-export.exe",
+		});
+		if (!verification.ok) {
+			console.error(
+				formatNativeHelperManifestWarning("build-windows-gpu-export", verification),
+			);
+			process.exit(1);
+		}
+		process.exit(0);
+	}
 	console.error("[build-windows-gpu-export] CMake configure failed:", error.message);
 	process.exit(1);
 }

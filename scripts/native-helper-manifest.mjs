@@ -46,9 +46,10 @@ function hashSourceTree(sourceDir) {
 	const hash = createHash("sha256");
 	for (const relativePath of collectSourceFiles(sourceDir)) {
 		const absolutePath = path.join(sourceDir, relativePath);
+		const content = readFileSync(absolutePath).toString("utf8").replace(/\r\n/g, "\n");
 		hash.update(relativePath);
 		hash.update("\n");
-		hash.update(readFileSync(absolutePath));
+		hash.update(content);
 		hash.update("\n");
 	}
 

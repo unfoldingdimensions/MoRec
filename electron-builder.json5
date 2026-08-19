@@ -41,7 +41,8 @@
   "publish": [
     {
       "provider": "github",
-      "owner": "morec",s*"repo": "morec",
+      "owner": "unfoldingdimensions",
+      "repo": "MoRec",
       "tagNamePrefix": "v",
       "publishAutoUpdate": true
     }
