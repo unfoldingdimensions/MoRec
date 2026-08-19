@@ -1,7 +1,25 @@
 import { describe, expect, it } from "vitest";
 
-import { normalizeProjectEditor } from "./projectPersistence";
+import { normalizeProjectEditor, normalizeRegionTiming } from "./projectPersistence";
 import { ADVANCED_VERTICAL_PADDING_MAX } from "./types";
+
+describe("normalizeRegionTiming", () => {
+	it("normalizes valid region start and end ms", () => {
+		expect(normalizeRegionTiming(1000, 3000)).toEqual({ startMs: 1000, endMs: 3000 });
+	});
+
+	it("falls back to 0 start and default duration for non-finite inputs", () => {
+		expect(normalizeRegionTiming(null, undefined)).toEqual({ startMs: 0, endMs: 1000 });
+	});
+
+	it("swaps and clamps when endMs is before startMs", () => {
+		expect(normalizeRegionTiming(5000, 2000)).toEqual({ startMs: 2000, endMs: 2001 });
+	});
+
+	it("ensures endMs is at least startMs + 1", () => {
+		expect(normalizeRegionTiming(1000, 1000)).toEqual({ startMs: 1000, endMs: 1001 });
+	});
+});
 
 describe("normalizeProjectEditor", () => {
 	it("preserves the extended advanced vertical padding range", () => {

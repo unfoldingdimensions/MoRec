@@ -1,3 +1,4 @@
+import { clamp } from "@/lib/utils";
 import type { ExportEncodeBackend, ExportEncodingMode } from "./types";
 
 const DEFAULT_ENCODING_MODE: ExportEncodingMode = "balanced";
@@ -36,10 +37,6 @@ const KEYFRAME_INTERVAL_SECONDS: Record<ExportEncodingMode, number> = {
 
 function normalizeEncodingMode(encodingMode?: ExportEncodingMode): ExportEncodingMode {
 	return encodingMode ?? DEFAULT_ENCODING_MODE;
-}
-
-function clamp(value: number, min: number, max: number): number {
-	return Math.min(Math.max(value, min), max);
 }
 
 function getEffectiveHardwareConcurrency(hardwareConcurrency?: number): number {

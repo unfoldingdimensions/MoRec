@@ -1,3 +1,4 @@
+import { clamp } from "@/lib/utils";
 import type { CaptionEditTarget } from "./captionEditing";
 import type {
 	AutoCaptionAnimation,
@@ -63,10 +64,6 @@ const CAPTION_ENTER_MS = 180;
 // same opacity/translateY/scale curve and duration they faded in with.
 const CAPTION_EXIT_MS = CAPTION_ENTER_MS;
 const CAPTION_BLOCK_GAP_BREAK_MS = 500;
-
-function clamp(value: number, min: number, max: number) {
-	return Math.min(max, Math.max(min, value));
-}
 
 function clamp01(value: number) {
 	return clamp(value, 0, 1);

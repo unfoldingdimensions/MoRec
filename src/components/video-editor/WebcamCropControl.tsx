@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { cn } from "@/lib/utils";
+import { clamp, cn } from "@/lib/utils";
 import type { CropRegion } from "./types";
 import { getWebcamPreviewTargetTimeSeconds } from "./videoPlayback/webcamSync";
 import { normalizeWebcamCropRegion } from "./webcamOverlay";
@@ -67,10 +67,6 @@ const RESIZE_HANDLES: Array<{
 		cursorClassName: "cursor-nesw-resize",
 	},
 ];
-
-function clamp(value: number, min: number, max: number): number {
-	return Math.min(max, Math.max(min, value));
-}
 
 function flipCropHorizontally(cropRegion: CropRegion): CropRegion {
 	const crop = normalizeWebcamCropRegion(cropRegion);

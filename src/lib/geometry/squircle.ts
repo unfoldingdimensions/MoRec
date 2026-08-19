@@ -1,4 +1,5 @@
 import type { Graphics } from "pixi.js";
+import { clamp } from "@/lib/utils";
 
 interface SquircleRect {
 	x: number;
@@ -15,10 +16,6 @@ interface SquirclePoint {
 
 const SQUIRCLE_EXPONENT = 4.5;
 const SQUIRCLE_SEGMENTS_PER_CORNER = 10;
-
-function clamp(value: number, min: number, max: number) {
-	return Math.min(max, Math.max(min, value));
-}
 
 function getClampedRadius(width: number, height: number, radius: number) {
 	return clamp(radius, 0, Math.min(width, height) / 2);

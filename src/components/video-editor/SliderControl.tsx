@@ -1,6 +1,6 @@
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { useCallback, useRef, memo, useEffect } from "react";
-import { cn } from "@/lib/utils";
+import { clamp, cn } from "@/lib/utils";
 
 interface SliderControlProps {
 	label: string;
@@ -13,10 +13,6 @@ interface SliderControlProps {
 	formatValue: (value: number) => string;
 	parseInput: (text: string) => number | null;
 	accentColor?: "purple" | "blue";
-}
-
-function clamp(value: number, min: number, max: number) {
-	return Math.min(max, Math.max(min, value));
 }
 
 function quantizeToStep(value: number, min: number, step: number) {

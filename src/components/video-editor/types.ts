@@ -1,3 +1,5 @@
+import { clamp } from "@/lib/utils";
+
 export type ZoomDepth = 1 | 2 | 3 | 4 | 5 | 6;
 
 export interface ZoomFocus {
@@ -619,12 +621,7 @@ export const DEFAULT_AUTO_ZOOM_DEPTH: ZoomDepth = 2;
 
 export function clampFocusToDepth(focus: ZoomFocus, _depth: ZoomDepth): ZoomFocus {
 	return {
-		cx: clamp(focus.cx, 0, 1),
-		cy: clamp(focus.cy, 0, 1),
+		cx: Number.isNaN(focus.cx) ? 0.5 : clamp(focus.cx, 0, 1),
+		cy: Number.isNaN(focus.cy) ? 0.5 : clamp(focus.cy, 0, 1),
 	};
-}
-
-function clamp(value: number, min: number, max: number) {
-	if (Number.isNaN(value)) return (min + max) / 2;
-	return Math.min(max, Math.max(min, value));
 }

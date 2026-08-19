@@ -18,6 +18,7 @@ import {
 	TEMPORAL_MOTION_BLUR_MIN_SAMPLE_COUNT,
 	TEMPORAL_MOTION_BLUR_MIN_SHUTTER_FRACTION,
 } from "@/lib/exporter/temporalMotionBlur";
+import { clamp } from "@/lib/utils";
 import { DEFAULT_WALLPAPER_PATH } from "@/lib/wallpapers";
 import { ASPECT_RATIOS, type AspectRatio, isCustomAspectRatio } from "@/utils/aspectRatioUtils";
 import { CURSOR_MOTION_PRESETS, resolveCursorMotionPresetId } from "./cursorMotionPresets";
@@ -166,8 +167,16 @@ function isFiniteNumber(value: unknown): value is number {
 	return typeof value === "number" && Number.isFinite(value);
 }
 
-function clamp(value: number, min: number, max: number) {
-	return Math.min(max, Math.max(min, value));
+export function normalizeRegionTiming(
+	rawStartMs: unknown,
+	rawEndMs: unknown,
+	defaultDurationMs = 1000,
+): { startMs: number; endMs: number } {
+	const rawStart = isFiniteNumber(rawStartMs) ? Math.round(rawStartMs) : 0;
+	const rawEnd = isFiniteNumber(rawEndMs) ? Math.round(rawEndMs) : rawStart + defaultDurationMs;
+	const startMs = Math.max(0, Math.min(rawStart, rawEnd));
+	const endMs = Math.max(startMs + 1, rawEnd);
+	return { startMs, endMs };
 }
 
 type PersistedDevMotionBlurSettings = {
@@ -448,14 +457,7 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 					Boolean(region && typeof region.id === "string"),
 				)
 				.map((region) => {
-					const rawStart = isFiniteNumber(region.startMs)
-						? Math.round(region.startMs)
-						: 0;
-					const rawEnd = isFiniteNumber(region.endMs)
-						? Math.round(region.endMs)
-						: rawStart + 1000;
-					const startMs = Math.max(0, Math.min(rawStart, rawEnd));
-					const endMs = Math.max(startMs + 1, rawEnd);
+					const { startMs, endMs } = normalizeRegionTiming(region.startMs, region.endMs);
 
 					return {
 						id: region.id,
@@ -490,14 +492,7 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 					Boolean(region && typeof region.id === "string"),
 				)
 				.map((region) => {
-					const rawStart = isFiniteNumber(region.startMs)
-						? Math.round(region.startMs)
-						: 0;
-					const rawEnd = isFiniteNumber(region.endMs)
-						? Math.round(region.endMs)
-						: rawStart + 1000;
-					const startMs = Math.max(0, Math.min(rawStart, rawEnd));
-					const endMs = Math.max(startMs + 1, rawEnd);
+					const { startMs, endMs } = normalizeRegionTiming(region.startMs, region.endMs);
 					return {
 						id: region.id,
 						startMs,
@@ -512,14 +507,7 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 					Boolean(region && typeof region.id === "string"),
 				)
 				.map((region) => {
-					const rawStart = isFiniteNumber(region.startMs)
-						? Math.round(region.startMs)
-						: 0;
-					const rawEnd = isFiniteNumber(region.endMs)
-						? Math.round(region.endMs)
-						: rawStart + 1000;
-					const startMs = Math.max(0, Math.min(rawStart, rawEnd));
-					const endMs = Math.max(startMs + 1, rawEnd);
+					const { startMs, endMs } = normalizeRegionTiming(region.startMs, region.endMs);
 					return {
 						id: region.id,
 						startMs,
@@ -546,14 +534,7 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 					Boolean(region && typeof region.id === "string"),
 				)
 				.map((region) => {
-					const rawStart = isFiniteNumber(region.startMs)
-						? Math.round(region.startMs)
-						: 0;
-					const rawEnd = isFiniteNumber(region.endMs)
-						? Math.round(region.endMs)
-						: rawStart + 1000;
-					const startMs = Math.max(0, Math.min(rawStart, rawEnd));
-					const endMs = Math.max(startMs + 1, rawEnd);
+					const { startMs, endMs } = normalizeRegionTiming(region.startMs, region.endMs);
 
 					const speed =
 						region.speed === 0.25 ||
@@ -581,14 +562,7 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 					Boolean(region && typeof region.id === "string"),
 				)
 				.map((region, index) => {
-					const rawStart = isFiniteNumber(region.startMs)
-						? Math.round(region.startMs)
-						: 0;
-					const rawEnd = isFiniteNumber(region.endMs)
-						? Math.round(region.endMs)
-						: rawStart + 1000;
-					const startMs = Math.max(0, Math.min(rawStart, rawEnd));
-					const endMs = Math.max(startMs + 1, rawEnd);
+					const { startMs, endMs } = normalizeRegionTiming(region.startMs, region.endMs);
 
 					return {
 						id: region.id,
@@ -672,14 +646,7 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 					Boolean(region && typeof region.id === "string"),
 				)
 				.map((region) => {
-					const rawStart = isFiniteNumber(region.startMs)
-						? Math.round(region.startMs)
-						: 0;
-					const rawEnd = isFiniteNumber(region.endMs)
-						? Math.round(region.endMs)
-						: rawStart + 1000;
-					const startMs = Math.max(0, Math.min(rawStart, rawEnd));
-					const endMs = Math.max(startMs + 1, rawEnd);
+					const { startMs, endMs } = normalizeRegionTiming(region.startMs, region.endMs);
 
 					return {
 						id: region.id,
@@ -701,12 +668,7 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 		? ((editor as Partial<ProjectEditorState>).autoCaptions as CaptionCue[])
 				.filter((cue): cue is CaptionCue => Boolean(cue && typeof cue.id === "string"))
 				.map((cue) => {
-					const rawStart = isFiniteNumber(cue.startMs) ? Math.round(cue.startMs) : 0;
-					const rawEnd = isFiniteNumber(cue.endMs)
-						? Math.round(cue.endMs)
-						: rawStart + 1000;
-					const startMs = Math.max(0, Math.min(rawStart, rawEnd));
-					const endMs = Math.max(startMs + 1, rawEnd);
+					const { startMs, endMs } = normalizeRegionTiming(cue.startMs, cue.endMs);
 					const words: CaptionCueWord[] | undefined = Array.isArray(cue.words)
 						? cue.words
 								.filter((word): word is CaptionCueWord =>

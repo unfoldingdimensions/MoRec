@@ -1,10 +1,7 @@
+import { clamp } from "@/lib/utils";
 import type { CropRegion, WebcamCorner, WebcamPositionPreset } from "./types";
 
 const MIN_WEBCAM_OVERLAY_SIZE_PX = 56;
-
-function clamp(value: number, min: number, max: number) {
-	return Math.min(max, Math.max(min, value));
-}
 
 export function getWebcamPositionForPreset(preset: WebcamPositionPreset): { x: number; y: number } {
 	switch (preset) {
