@@ -132,6 +132,7 @@ type UseScreenRecorderReturn = {
 	finalizing: boolean;
 	countdownActive: boolean;
 	toggleRecording: () => void;
+	stopRecording: () => void;
 	pauseRecording: () => void;
 	resumeRecording: () => void;
 	cancelRecording: () => void;
@@ -1080,7 +1081,7 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 		}
 	}, []);
 
-	const stopRecording = useRef(() => {
+	const stopRecording = useCallback(() => {
 		setPaused(false);
 		if (nativeScreenRecording.current) {
 			nativeScreenRecording.current = false;
@@ -1209,7 +1210,19 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 			setFinalizing(true);
 			window.electronAPI?.setRecordingState(false);
 		}
-	});
+	}, [
+		buildNativeCaptureFailureMessage,
+		finalizeRecordingSession,
+		getRecordingDurationMs,
+		isMacOS,
+		logNativeCaptureDiagnostics,
+		markRecordingResumed,
+		notifyRecordingFinalizationFailure,
+		recoverNativeRecordingSession,
+		stopMicFallbackRecorder,
+		stopWebcamRecorder,
+		storeMicrophoneSidecar,
+	]);
 
 	useEffect(() => {
 		void (async () => {
@@ -1303,7 +1316,7 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 
 		if (window.electronAPI?.onStopRecordingFromTray) {
 			cleanup = window.electronAPI.onStopRecordingFromTray(() => {
-				stopRecording.current();
+				stopRecording();
 			});
 		}
 
@@ -1394,6 +1407,7 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 		markRecordingResumed,
 		recoverNativeRecordingSession,
 		stopMicFallbackRecorder,
+		stopRecording,
 		stopWebcamRecorder,
 	]);
 
@@ -2114,13 +2128,13 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 		window.electronAPI?.setRecordingState(false);
 	}, [cleanupCapturedMedia, markRecordingResumed, recording]);
 
-	const toggleRecording = async () => {
+	const toggleRecording = useCallback(async () => {
 		if (starting || countdownActive || finalizing) {
 			return;
 		}
 
 		if (recording) {
-			stopRecording.current();
+			stopRecording();
 			return;
 		}
 
@@ -2138,7 +2152,7 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 		}
 
 		startRecording();
-	};
+	}, [countdownActive, countdownDelay, finalizing, recording, startRecording, starting, stopRecording]);
 
 	return {
 		recording,
@@ -2146,6 +2160,7 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 		finalizing,
 		countdownActive,
 		toggleRecording,
+		stopRecording,
 		pauseRecording,
 		resumeRecording,
 		cancelRecording,
