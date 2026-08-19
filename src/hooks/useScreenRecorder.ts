@@ -1926,6 +1926,8 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 			};
 			recorder.onerror = () => {
 				setRecording(false);
+				setFinalizing(false);
+				cleanupCapturedMedia();
 			};
 			const mainStartedAt = Date.now();
 			beginWebcamCapture();
