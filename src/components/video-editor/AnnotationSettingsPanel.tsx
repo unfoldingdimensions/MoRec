@@ -109,7 +109,15 @@ export function AnnotationSettingsPanel({
 		const file = files[0];
 
 		// Validate file type
-		const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"];
+		const validTypes = [
+			"image/jpeg",
+			"image/jpg",
+			"image/png",
+			"image/gif",
+			"image/webp",
+			"image/avif",
+			"image/svg+xml",
+		];
 		if (!validTypes.includes(file.type)) {
 			toast.error(t("annotations.imageUploadError"), {
 				description: t("annotations.imageUploadErrorDescription"),
@@ -511,7 +519,7 @@ export function AnnotationSettingsPanel({
 								type="file"
 								ref={fileInputRef}
 								onChange={handleImageUpload}
-								accept=".jpg,.jpeg,.png,.gif,.webp,image/*"
+								accept=".jpg,.jpeg,.png,.gif,.webp,.avif,.svg,image/*"
 								className="hidden"
 							/>
 							<Button

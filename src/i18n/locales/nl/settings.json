@@ -220,8 +220,15 @@
 		"wallpaperPreview": "Achtergrondvoorbeeld",
 		"uploadCustom": "Afbeelding uploaden",
 		"uploadSuccess": "Eigen afbeelding succesvol geüpload!",
-		"uploadError": "Upload een JPG- of JPEG-afbeelding.",
-		"uploadErrorDescription": "Alleen JPG- en JPEG-afbeeldingen worden ondersteund."
+		"uploadError": "Upload een geldig afbeeldingsbestand.",
+		"uploadErrorDescription": "Ondersteunde formaten: PNG, JPG, WebP, AVIF, GIF, SVG.",
+		"uploadVideoSuccess": "Video-achtergrond toegevoegd",
+		"uploadVideoError": "Kan video-achtergrond niet importeren",
+		"unsupportedVideoFormat": "Niet-ondersteund formaat",
+		"unsupportedVideoFormatDescription": "Selecteer een videobestand (mp4, webm, mov, etc.)"
+	},
+	"annotation": {
+		"delete": "Annotatie verwijderen"
 	},
 	"export": {
 		"title": "Exporteren",

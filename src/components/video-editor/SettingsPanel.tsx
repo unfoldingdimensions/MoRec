@@ -2077,16 +2077,29 @@ export function SettingsPanel({
 			if (!result?.success || !result.path) return;
 			const filePath = result.path;
 			if (!isVideoWallpaperSource(filePath)) {
-				toast.error("Unsupported format", {
-					description: "Please select a video file (mp4, webm, mov, etc.)",
-				});
+				toast.error(
+					tSettings("background.unsupportedVideoFormat", "Unsupported format"),
+					{
+						description: tSettings(
+							"background.unsupportedVideoFormatDescription",
+							"Please select a video file (mp4, webm, mov, etc.)",
+						),
+					},
+				);
 				return;
 			}
 			setCustomImages((prev) => (prev.includes(filePath) ? prev : [filePath, ...prev]));
 			onWallpaperChange(filePath);
-			toast.success("Video background added");
+			toast.success(
+				tSettings("background.uploadVideoSuccess", "Video background added"),
+			);
 		} catch {
-			toast.error("Failed to import video background");
+			toast.error(
+				tSettings(
+					"background.uploadVideoError",
+					"Failed to import video background",
+				),
+			);
 		}
 	};
 
@@ -3724,10 +3737,6 @@ export function SettingsPanel({
 				return clipSectionContent;
 			case "audio":
 				return audioSectionContent;
-			case "frame":
-				return sceneSectionContent;
-			case "crop":
-				return sceneSectionContent;
 			case "captions":
 				return captionsSectionContent;
 			case "caption":

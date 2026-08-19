@@ -220,8 +220,15 @@
 		"wallpaperPreview": "桌布預覽",
 		"uploadCustom": "上傳自訂圖片",
 		"uploadSuccess": "自訂圖片已成功上傳！",
-		"uploadError": "請上傳 JPG 或 JPEG 圖片檔。",
-		"uploadErrorDescription": "僅支援 JPG 與 JPEG 圖片。"
+		"uploadError": "請上傳有效的圖片檔。",
+		"uploadErrorDescription": "支援的格式：PNG、JPG、WebP、AVIF、GIF、SVG。",
+		"uploadVideoSuccess": "已新增影片背景",
+		"uploadVideoError": "匯入影片背景失敗",
+		"unsupportedVideoFormat": "不支援的格式",
+		"unsupportedVideoFormatDescription": "請選取影片檔案 (mp4、webm、mov 等)"
+	},
+	"annotation": {
+		"delete": "刪除標註"
 	},
 	"export": {
 		"title": "匯出",

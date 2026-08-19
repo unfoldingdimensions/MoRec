@@ -220,8 +220,15 @@
 		"wallpaperPreview": "壁纸预览",
 		"uploadCustom": "上传自定义",
 		"uploadSuccess": "自定义图片上传成功！",
-		"uploadError": "请上传 JPG 或 JPEG 图片文件。",
-		"uploadErrorDescription": "仅支持 JPG 和 JPEG 图片。"
+		"uploadError": "请上传有效的图片文件。",
+		"uploadErrorDescription": "支持的格式：PNG、JPG、WebP、AVIF、GIF、SVG。",
+		"uploadVideoSuccess": "视频背景已添加",
+		"uploadVideoError": "导入视频背景失败",
+		"unsupportedVideoFormat": "不支持的格式",
+		"unsupportedVideoFormatDescription": "请选择视频文件 (mp4、webm、mov 等)"
+	},
+	"annotation": {
+		"delete": "删除批注"
 	},
 	"export": {
 		"title": "导出",

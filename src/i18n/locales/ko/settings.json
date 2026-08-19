@@ -220,8 +220,15 @@
 		"wallpaperPreview": "배경화면 미리보기",
 		"uploadCustom": "사용자 이미지 업로드",
 		"uploadSuccess": "사용자 이미지를 업로드했습니다!",
-		"uploadError": "JPG 또는 JPEG 이미지 파일을 업로드해 주세요.",
-		"uploadErrorDescription": "JPG 또는 JPEG 이미지 파일을 업로드해 주세요."
+		"uploadError": "올바른 이미지 파일을 업로드해 주세요.",
+		"uploadErrorDescription": "지원 형식: PNG, JPG, WebP, AVIF, GIF, SVG.",
+		"uploadVideoSuccess": "비디오 배경이 추가되었습니다",
+		"uploadVideoError": "비디오 배경을 가져오지 못했습니다",
+		"unsupportedVideoFormat": "지원되지 않는 형식",
+		"unsupportedVideoFormatDescription": "비디오 파일(mp4, webm, mov 등)을 선택해 주세요"
+	},
+	"annotation": {
+		"delete": "주석 삭제"
 	},
 	"export": {
 		"title": "내보내기",

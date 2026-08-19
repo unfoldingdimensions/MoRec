@@ -1909,6 +1909,9 @@ export class ModernVideoExporter {
 	private getNativeStaticLayoutImageExtension(mimeType: string): string | null {
 		if (mimeType === "image/jpeg" || mimeType === "image/jpg") return "jpg";
 		if (mimeType === "image/png") return "png";
+		if (mimeType === "image/webp") return "webp";
+		if (mimeType === "image/avif") return "avif";
+		if (mimeType === "image/gif") return "gif";
 		if (mimeType === "image/bmp") return "bmp";
 		return null;
 	}

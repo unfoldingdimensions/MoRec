@@ -220,8 +220,15 @@
 		"wallpaperPreview": "Prévia do papel de parede",
 		"uploadCustom": "Enviar personalizado",
 		"uploadSuccess": "Imagem personalizada enviada com sucesso!",
-		"uploadError": "Envie um arquivo de imagem JPG ou JPEG.",
-		"uploadErrorDescription": "Somente imagens JPG e JPEG são suportadas."
+		"uploadError": "Envie um arquivo de imagem válido.",
+		"uploadErrorDescription": "Formatos suportados: PNG, JPG, WebP, AVIF, GIF, SVG.",
+		"uploadVideoSuccess": "Fundo de vídeo adicionado",
+		"uploadVideoError": "Falha ao importar o fundo de vídeo",
+		"unsupportedVideoFormat": "Formato não suportado",
+		"unsupportedVideoFormatDescription": "Selecione um arquivo de vídeo (mp4, webm, mov, etc.)"
+	},
+	"annotation": {
+		"delete": "Excluir anotação"
 	},
 	"export": {
 		"title": "Exportar",

@@ -20,30 +20,33 @@ export interface ShortcutBinding {
 export type ShortcutsConfig = Record<ShortcutAction, ShortcutBinding>;
 
 export interface FixedShortcut {
+	id: string;
 	label: string;
 	display: string;
 	bindings: ShortcutBinding[];
 }
 
 export const FIXED_SHORTCUTS: FixedShortcut[] = [
-	{ label: "Cycle Annotations Forward", display: "Tab", bindings: [{ key: "tab" }] },
+	{ id: "cycleForward", label: "Cycle Annotations Forward", display: "Tab", bindings: [{ key: "tab" }] },
 	{
+		id: "cycleBackward",
 		label: "Cycle Annotations Backward",
 		display: "Shift + Tab",
 		bindings: [{ key: "tab", shift: true }],
 	},
 	{
+		id: "deleteSelectedAlt",
 		label: "Delete Selected (alt)",
 		display: "Del / ⌫",
 		bindings: [{ key: "delete" }, { key: "backspace" }],
 	},
-	{ label: "Pan Timeline", display: "Shift + Scroll", bindings: [] },
-	{ label: "Zoom Timeline", display: "Ctrl + Scroll", bindings: [] },
+	{ id: "panTimeline", label: "Pan Timeline", display: "Shift + Scroll", bindings: [] },
+	{ id: "zoomTimeline", label: "Zoom Timeline", display: "Ctrl + Scroll", bindings: [] },
 ];
 
 export type ShortcutConflict =
 	| { type: "configurable"; action: ShortcutAction }
-	| { type: "fixed"; label: string };
+	| { type: "fixed"; id: string; label: string };
 
 export function bindingsEqual(a: ShortcutBinding, b: ShortcutBinding): boolean {
 	return (
@@ -61,7 +64,7 @@ export function findConflict(
 ): ShortcutConflict | null {
 	for (const fixed of FIXED_SHORTCUTS) {
 		if (fixed.bindings.some((b) => bindingsEqual(b, binding))) {
-			return { type: "fixed", label: fixed.label };
+			return { type: "fixed", id: fixed.id, label: fixed.label };
 		}
 	}
 	for (const action of SHORTCUT_ACTIONS) {

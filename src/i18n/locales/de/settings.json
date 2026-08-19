@@ -220,8 +220,15 @@
 		"wallpaperPreview": "Vorschau des Hintergrundbildes",
 		"uploadCustom": "Benutzerdefiniertes Bild hochladen",
 		"uploadSuccess": "Benutzerdefiniertes Bild erfolgreich hochgeladen!",
-		"uploadError": "Bitte lade eine JPG- oder JPEG-Bilddatei hoch.",
-		"uploadErrorDescription": "Es werden nur JPG- und JPEG-Bilder unterstützt."
+		"uploadError": "Bitte lade eine gültige Bilddatei hoch.",
+		"uploadErrorDescription": "Unterstützte Formate: PNG, JPG, WebP, AVIF, GIF, SVG.",
+		"uploadVideoSuccess": "Videohintergrund hinzugefügt",
+		"uploadVideoError": "Videohintergrund konnte nicht importiert werden",
+		"unsupportedVideoFormat": "Nicht unterstütztes Format",
+		"unsupportedVideoFormatDescription": "Bitte wähle eine Videodatei (mp4, webm, mov usw.)"
+	},
+	"annotation": {
+		"delete": "Anmerkung löschen"
 	},
 	"export": {
 		"title": "Exportieren",

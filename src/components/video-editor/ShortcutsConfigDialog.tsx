@@ -28,6 +28,7 @@ const MODIFIER_KEYS = new Set(["Control", "Shift", "Alt", "Meta"]);
 
 export function ShortcutsConfigDialog() {
 	const t = useScopedT("dialogs");
+	const tShortcuts = useScopedT("shortcuts");
 	const { shortcuts, isMac, isConfigOpen, closeConfig, setShortcuts, persistShortcuts } =
 		useShortcuts();
 
@@ -72,7 +73,11 @@ export function ShortcutsConfigDialog() {
 			setCaptureFor(null);
 
 			if (found?.type === "fixed") {
-				toast.error(t("shortcutsConfig.reserved", undefined, { label: found.label }));
+				toast.error(
+					t("shortcutsConfig.reserved", undefined, {
+						label: tShortcuts(`actions.${found.id}`, found.label),
+					}),
+				);
 				return;
 			}
 
@@ -86,7 +91,7 @@ export function ShortcutsConfigDialog() {
 
 		window.addEventListener("keydown", handleCapture, { capture: true });
 		return () => window.removeEventListener("keydown", handleCapture, { capture: true });
-	}, [captureFor, draft, t]);
+	}, [captureFor, draft, t, tShortcuts]);
 
 	const handleSwap = useCallback(() => {
 		if (!conflict || conflict.conflictWith.type !== "configurable") return;
@@ -145,7 +150,7 @@ export function ShortcutsConfigDialog() {
 							<div key={action}>
 								<div className="flex items-center justify-between py-1.5 px-1 border-b border-foreground/5">
 									<span className="text-sm text-muted-foreground">
-										{SHORTCUT_LABELS[action]}
+										{tShortcuts(`actions.${action}`, SHORTCUT_LABELS[action])}
 									</span>
 									<button
 										type="button"
@@ -176,9 +181,12 @@ export function ShortcutsConfigDialog() {
 									<div className="flex items-center justify-between px-1 py-1.5 mb-0.5 bg-amber-500/10 border border-amber-500/20 rounded text-xs">
 										<span className="text-amber-400">
 											{t("shortcutsConfig.alreadyUsedBy", undefined, {
-												action: SHORTCUT_LABELS[
-													conflict.conflictWith.action
-												],
+												action: tShortcuts(
+													`actions.${conflict.conflictWith.action}`,
+													SHORTCUT_LABELS[
+														conflict.conflictWith.action
+													],
+												),
 											})}
 										</span>
 										<div className="flex gap-1.5">
@@ -208,12 +216,14 @@ export function ShortcutsConfigDialog() {
 					<p className="text-[10px] text-muted-foreground/70 mb-2 uppercase tracking-wide font-semibold">
 						{t("shortcutsConfig.fixed")}
 					</p>
-					{FIXED_SHORTCUTS.map(({ label, display }) => (
+					{FIXED_SHORTCUTS.map(({ id, label, display }) => (
 						<div
-							key={label}
+							key={id}
 							className="flex items-center justify-between py-1.5 px-1 border-b border-foreground/5 last:border-0"
 						>
-							<span className="text-sm text-muted-foreground">{label}</span>
+							<span className="text-sm text-muted-foreground">
+								{tShortcuts(`actions.${id}`, label)}
+							</span>
 							<kbd className="px-2 py-1 bg-foreground/5 border border-foreground/10 rounded text-xs font-mono text-muted-foreground min-w-[90px] text-center">
 								{display}
 							</kbd>

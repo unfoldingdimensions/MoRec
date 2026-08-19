@@ -220,8 +220,15 @@
 		"wallpaperPreview": "Vista previa del fondo",
 		"uploadCustom": "Subir personalizado",
 		"uploadSuccess": "¡Imagen personalizada subida exitosamente!",
-		"uploadError": "Por favor sube un archivo de imagen JPG o JPEG.",
-		"uploadErrorDescription": "Solo se admiten imágenes JPG y JPEG."
+		"uploadError": "Por favor sube un archivo de imagen válido.",
+		"uploadErrorDescription": "Formatos compatibles: PNG, JPG, WebP, AVIF, GIF, SVG.",
+		"uploadVideoSuccess": "Fondo de video añadido",
+		"uploadVideoError": "Error al importar el fondo de video",
+		"unsupportedVideoFormat": "Formato no compatible",
+		"unsupportedVideoFormatDescription": "Por favor selecciona un archivo de video (mp4, webm, mov, etc.)"
+	},
+	"annotation": {
+		"delete": "Eliminar anotación"
 	},
 	"export": {
 		"title": "Exportar",

@@ -220,8 +220,15 @@
 		"wallpaperPreview": "Wallpaper preview",
 		"uploadCustom": "Upload Custom",
 		"uploadSuccess": "Custom image uploaded successfully!",
-		"uploadError": "Please upload a JPG or JPEG image file.",
-		"uploadErrorDescription": "Only JPG and JPEG images are supported."
+		"uploadError": "Please upload a valid image file.",
+		"uploadErrorDescription": "Supported formats: PNG, JPG, WebP, AVIF, GIF, SVG.",
+		"uploadVideoSuccess": "Video background added",
+		"uploadVideoError": "Failed to import video background",
+		"unsupportedVideoFormat": "Unsupported format",
+		"unsupportedVideoFormatDescription": "Please select a video file (mp4, webm, mov, etc.)"
+	},
+	"annotation": {
+		"delete": "Delete Annotation"
 	},
 	"export": {
 		"title": "Export",

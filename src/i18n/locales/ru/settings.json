@@ -220,8 +220,15 @@
 		"wallpaperPreview": "Предпросмотр",
 		"uploadCustom": "Загрузить",
 		"uploadSuccess": "Изображение загружено.",
-		"uploadError": "Загрузите JPG или JPEG.",
-		"uploadErrorDescription": "Поддерживаются только JPG и JPEG."
+		"uploadError": "Пожалуйста, загрузите допустимый файл изображения.",
+		"uploadErrorDescription": "Поддерживаемые форматы: PNG, JPG, WebP, AVIF, GIF, SVG.",
+		"uploadVideoSuccess": "Видео фон добавлен",
+		"uploadVideoError": "Не удалось импортировать видео фон",
+		"unsupportedVideoFormat": "Неподдерживаемый формат",
+		"unsupportedVideoFormatDescription": "Пожалуйста, выберите видеофайл (mp4, webm, mov и т. д.)"
+	},
+	"annotation": {
+		"delete": "Удалить аннотацию"
 	},
 	"export": {
 		"title": "Экспорт",

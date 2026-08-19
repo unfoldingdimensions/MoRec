@@ -1684,12 +1684,6 @@ export default function VideoEditor() {
 		[t, extensionSectionButtons],
 	);
 
-	useEffect(() => {
-		if (activeEffectSection === "frame" || activeEffectSection === "crop") {
-			setActiveEffectSection("scene");
-		}
-	}, [activeEffectSection]);
-
 	const buildPersistedEditorState = useCallback(
 		(
 			editor: Partial<{

@@ -109,8 +109,6 @@ export type EditorEffectSection =
 	| "webcam"
 	| "settings"
 	| "zoom"
-	| "frame"
-	| "crop"
 	| "extensions"
 	| "clip"
 	| "audio"
