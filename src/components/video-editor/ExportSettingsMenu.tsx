@@ -105,7 +105,7 @@ export function ExportSettingsMenu({
 								onClick={() => onExportFormatChange?.(option.value)}
 								aria-pressed={isActive}
 								className={cn(
-									"relative flex-1 overflow-hidden rounded-xl border py-2 text-xs font-medium transition-colors",
+									"relative flex-1 overflow-hidden rounded-xl border py-2 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB]",
 									isActive
 										? "border-[#2563EB]/50 text-[#2563EB] dark:text-white"
 										: "border-foreground/10 bg-foreground/5 text-muted-foreground hover:bg-foreground/10 hover:text-foreground",
@@ -146,7 +146,7 @@ export function ExportSettingsMenu({
 									type="button"
 									onClick={() => onExportQualityChange?.(option.value)}
 									aria-pressed={isActive}
-									className="relative rounded-lg px-1 py-1 text-[11px] font-medium transition-colors"
+									className="relative rounded-lg px-1 py-1 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB]"
 								>
 									{isActive ? (
 										<motion.span
@@ -213,7 +213,7 @@ export function ExportSettingsMenu({
 									type="button"
 									onClick={() => onExportEncodingModeChange?.(option.value)}
 									aria-pressed={isActive}
-									className="relative rounded-lg px-1 py-1 text-[11px] font-medium transition-colors"
+									className="relative rounded-lg px-1 py-1 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB]"
 								>
 									{isActive ? (
 										<motion.span
@@ -254,7 +254,7 @@ export function ExportSettingsMenu({
 									type="button"
 									onClick={() => onMp4FrameRateChange?.(rate)}
 									aria-pressed={isActive}
-									className="relative rounded-lg px-1 py-1 text-[11px] font-medium transition-colors"
+									className="relative rounded-lg px-1 py-1 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB]"
 								>
 									{isActive ? (
 										<motion.span
@@ -306,7 +306,7 @@ export function ExportSettingsMenu({
 									type="button"
 									onClick={() => onExportPipelineModelChange?.(option.value)}
 									aria-pressed={isActive}
-									className="relative rounded-lg px-1 py-1 text-[11px] font-medium transition-colors"
+									className="relative rounded-lg px-1 py-1 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB]"
 								>
 									{isActive ? (
 										<motion.span
@@ -414,7 +414,7 @@ export function ExportSettingsMenu({
 											type="button"
 											onClick={() => onGifFrameRateChange?.(rate.value)}
 											aria-pressed={isActive}
-											className="relative rounded-lg text-[11px] font-medium transition-colors"
+											className="relative rounded-lg text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB]"
 										>
 											{isActive ? (
 												<motion.span
@@ -454,7 +454,7 @@ export function ExportSettingsMenu({
 												onGifSizePresetChange?.(key as GifSizePreset)
 											}
 											aria-pressed={isActive}
-											className="relative rounded-lg text-[11px] font-medium transition-colors"
+											className="relative rounded-lg text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB]"
 										>
 											{isActive ? (
 												<motion.span
@@ -518,7 +518,7 @@ export function ExportSettingsMenu({
 				type="button"
 				size="lg"
 				onClick={onExport}
-				className="h-11 w-full gap-2 rounded-lg bg-[#2563EB] text-sm font-semibold text-white transition-colors duration-200 hover:bg-[#2563EB]/90"
+				className="h-11 w-full gap-2 rounded-lg bg-[#2563EB] text-sm font-semibold text-white transition-colors duration-200 hover:bg-[#2563EB]/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB] focus-visible:ring-offset-2"
 			>
 				<Download className="h-4 w-4" />
 				{tSettings("export.exportVideo", undefined, {

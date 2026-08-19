@@ -890,15 +890,7 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 		const recorder = webcamRecorder.current;
 		const pending = webcamStopPromise.current;
 
-		if (!recorder) {
-			const result = pending ? await pending : resolvedWebcamPath.current;
-			webcamStopPromise.current = null;
-			pendingWebcamPathPromise.current = null;
-			resolvedWebcamPath.current = result ?? null;
-			return result ?? null;
-		}
-
-		if (recorder.state !== "inactive") {
+		if (recorder && recorder.state !== "inactive") {
 			recorder.stop();
 		} else if (pending && webcamStopResolver.current) {
 			webcamStopResolver.current(resolvedWebcamPath.current);
@@ -1938,10 +1930,14 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 					);
 				}
 			};
-			recorder.onerror = () => {
+			recorder.onerror = (event) => {
+				console.error("[useScreenRecorder] Browser recorder error:", event);
 				setRecording(false);
 				setFinalizing(false);
+				setPaused(false);
 				cleanupCapturedMedia();
+				void stopWebcamRecorder();
+				void window.electronAPI?.setRecordingState(false);
 			};
 			const mainStartedAt = Date.now();
 			beginWebcamCapture();
@@ -2087,8 +2083,6 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 		webcamRecorder.current = null;
 		webcamStartTime.current = null;
 		webcamTimeOffsetMs.current = 0;
-		webcamStream.current?.getTracks().forEach((t) => t.stop());
-		webcamStream.current = null;
 		pendingWebcamPathPromise.current = null;
 		resolvedWebcamPath.current = null;
 
@@ -2115,14 +2109,17 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 
 		chunks.current = [];
 		if (mediaRecorder.current) {
-			if (mediaRecorder.current.state !== "inactive") {
+			const recorder = mediaRecorder.current;
+			mediaRecorder.current = null;
+			recorder.onstop = null;
+			recorder.onerror = null;
+			if (recorder.state !== "inactive") {
 				try {
-					mediaRecorder.current.stop();
+					recorder.stop();
 				} catch {
 					/* ignore */
 				}
 			}
-			mediaRecorder.current = null;
 		}
 		setRecording(false);
 		window.electronAPI?.setRecordingState(false);
