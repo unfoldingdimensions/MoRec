@@ -62,6 +62,29 @@ export function isAllowedMediaPath(realPath: string): boolean {
 	return approvedLocalReadPaths.has(realPath);
 }
 
+/**
+ * Only reflect loopback renderer origins. A wildcard policy previously let any
+ * webpage open in the user's browser read responses from this localhost server
+ * (recording paths are predictable), exfiltrating approved media cross-origin.
+ */
+function resolveAllowedCorsOrigin(request: IncomingMessage): string | undefined {
+	const origin = request.headers.origin;
+	if (typeof origin !== "string" || origin.length === 0) {
+		return undefined;
+	}
+	try {
+		const parsed = new URL(origin);
+		const host = parsed.hostname;
+		const isLoopback = host === "localhost" || host === "127.0.0.1" || host === "[::1]";
+		if (parsed.protocol === "http:" && isLoopback) {
+			return origin;
+		}
+	} catch {
+		// Malformed origin: treat as absent.
+	}
+	return undefined;
+}
+
 async function handleMediaRequest(
 	request: IncomingMessage,
 	response: ServerResponse,
@@ -101,11 +124,14 @@ async function handleMediaRequest(
 		const fileSize = stat.size;
 		const rangeHeader = request.headers.range;
 
-		const corsHeaders = {
-			"Access-Control-Allow-Origin": "*",
+		const allowedOrigin = resolveAllowedCorsOrigin(request);
+		const corsHeaders: Record<string, string> = {
 			"Access-Control-Allow-Credentials": "false",
 			"Access-Control-Expose-Headers": "Content-Range, Content-Length, Accept-Ranges",
 		};
+		if (allowedOrigin) {
+			corsHeaders["Access-Control-Allow-Origin"] = allowedOrigin;
+		}
 
 		if (request.method === "OPTIONS") {
 			response.writeHead(204, {
@@ -211,6 +237,9 @@ export async function ensureMediaServer(): Promise<string> {
 		});
 
 		server.once("error", (error) => {
+			// Clear the cached rejection so a later call retries the bind
+			// instead of failing media playback for the whole session.
+			mediaServerStartPromise = null;
 			reject(error);
 		});
 

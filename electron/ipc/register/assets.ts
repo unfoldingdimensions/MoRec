@@ -4,8 +4,8 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { dialog, ipcMain } from "electron";
 import { USER_DATA_PATH } from "../../appPaths";
-import { normalizePath } from "../utils";
-import { getAssetRootPath } from "../project/manager";
+import { approveUserPath, normalizePath } from "../utils";
+import { getAssetRootPath, isAllowedLocalReadPath } from "../project/manager";
 
 const IMAGE_FILE_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "avif", "gif", "svg", "bmp"];
 
@@ -25,6 +25,7 @@ export function registerAssetHandlers() {
 				return { success: false, canceled: true };
 			}
 
+			approveUserPath(result.filePaths[0]);
 			return { success: true, path: result.filePaths[0] };
 		} catch (error) {
 			return { success: false, error: String(error) };
@@ -36,6 +37,11 @@ export function registerAssetHandlers() {
 		const stats = await fs.stat(resolvedPath);
 		if (!stats.isFile()) {
 			throw new Error("Path is not a readable file");
+		}
+		// The renderer is untrusted: only app-managed directories and paths the
+		// app itself approved (dialog-picked images and wallpapers) may be read.
+		if (!isAllowedLocalReadPath(resolvedPath)) {
+			throw new Error("Path is not approved for local reads");
 		}
 		return normalizePath(resolvedPath);
 	}

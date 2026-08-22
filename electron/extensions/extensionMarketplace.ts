@@ -187,6 +187,12 @@ export async function downloadAndInstallExtension(
 		return { success: false, error: "Invalid download URL" };
 	}
 
+	// The id flows into temp-directory paths; reject separators and other
+	// traversal-capable characters before any path.join uses it.
+	if (!/^[a-z0-9][a-z0-9._-]*$/i.test(extensionId)) {
+		return { success: false, error: "Invalid extension id" };
+	}
+
 	const tempDir = path.join(app.getPath("temp"), `morec-ext-${extensionId}-${Date.now()}`);
 	const zipPath = path.join(tempDir, "extension.zip");
 
