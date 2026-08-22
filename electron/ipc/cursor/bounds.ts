@@ -209,7 +209,7 @@ export async function resolveWindowsWindowBounds(
 		const { stdout } = await execFileAsync(
 			"powershell.exe",
 			["-NoProfile", "-Command", script, String(windowId ?? ""), windowTitle],
-			{ timeout: 1500 },
+			{ timeout: 2500, windowsHide: true },
 		);
 		const bounds = JSON.parse(stdout) as WindowBounds;
 		return bounds && bounds.width > 0 && bounds.height > 0 ? bounds : null;
@@ -233,23 +233,62 @@ export function stopWindowBoundsCapture() {
 	setSelectedWindowBounds(null);
 }
 
+// Windows resolves bounds via PowerShell + Add-Type, which usually takes longer
+// than one poll interval; a faster cadence just stacks overlapping compiles and
+// starves the CPU during capture. macOS/Linux use cheap native lookups.
+const WINDOWS_BOUNDS_POLL_INTERVAL_MS = 1000;
+const BOUNDS_POLL_INTERVAL_MS = 250;
+const STALE_BOUNDS_MAX_AGE_MS = 3000;
+
+let windowBoundsRefreshInFlight = false;
+let lastGoodWindowBounds: { at: number; bounds: WindowBounds } | null = null;
+
 async function refreshSelectedWindowBounds() {
 	if (!selectedSource?.id?.startsWith("window:")) {
 		setSelectedWindowBounds(null);
+		lastGoodWindowBounds = null;
 		return;
 	}
 
-	let bounds: WindowBounds | null = null;
-
-	if (process.platform === "darwin") {
-		bounds = await resolveMacWindowBounds(selectedSource);
-	} else if (process.platform === "win32") {
-		bounds = await resolveWindowsWindowBounds(selectedSource);
-	} else if (process.platform === "linux") {
-		bounds = await resolveLinuxWindowBounds(selectedSource);
+	// Skip the tick while a lookup is still running: the PowerShell bridge can
+	// outrun the poll interval, and overlapping invocations compile Add-Type
+	// several times per second while screen-capturing.
+	if (windowBoundsRefreshInFlight) {
+		return;
 	}
+	windowBoundsRefreshInFlight = true;
 
-	setSelectedWindowBounds(bounds);
+	try {
+		let bounds: WindowBounds | null = null;
+
+		if (process.platform === "darwin") {
+			bounds = await resolveMacWindowBounds(selectedSource);
+		} else if (process.platform === "win32") {
+			bounds = await resolveWindowsWindowBounds(selectedSource);
+		} else if (process.platform === "linux") {
+			bounds = await resolveLinuxWindowBounds(selectedSource);
+		}
+
+		if (bounds) {
+			lastGoodWindowBounds = { at: Date.now(), bounds };
+			setSelectedWindowBounds(bounds);
+			return;
+		}
+
+		// Keep the last good bounds briefly so a slow or failed lookup does not
+		// blank cursor normalization; drop them once they go stale.
+		if (
+			lastGoodWindowBounds &&
+			Date.now() - lastGoodWindowBounds.at <= STALE_BOUNDS_MAX_AGE_MS
+		) {
+			setSelectedWindowBounds(lastGoodWindowBounds.bounds);
+		} else {
+			lastGoodWindowBounds = null;
+			setSelectedWindowBounds(null);
+		}
+	} finally {
+		windowBoundsRefreshInFlight = false;
+	}
 }
 
 export function startWindowBoundsCapture() {
@@ -262,10 +301,13 @@ export function startWindowBoundsCapture() {
 		return;
 	}
 
+	lastGoodWindowBounds = null;
 	void refreshSelectedWindowBounds();
+	const intervalMs =
+		process.platform === "win32" ? WINDOWS_BOUNDS_POLL_INTERVAL_MS : BOUNDS_POLL_INTERVAL_MS;
 	setWindowBoundsCaptureInterval(
 		setInterval(() => {
 			void refreshSelectedWindowBounds();
-		}, 250),
+		}, intervalMs),
 	);
 }
