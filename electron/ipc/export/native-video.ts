@@ -3217,16 +3217,26 @@ export async function exportNativeStaticLayoutVideo(
 		throw new Error("Native static layout export produced no chunks");
 	}
 
+	// sessionId flows into temp-directory paths; a renderer-supplied id with
+	// path separators could escape the temp root, so keep only safe characters
+	// and fall back to a generated id otherwise.
+	const SAFE_SESSION_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 	const sessionId =
-		options.sessionId ??
+		(typeof options.sessionId === "string" && SAFE_SESSION_ID_PATTERN.test(options.sessionId)
+			? options.sessionId
+			: null) ??
 		`morec-static-layout-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 	const session: NativeStaticLayoutExportSession = {
 		terminating: false,
 		currentProcess: null,
 	};
-	const chunkDirectory = path.join(app.getPath("temp"), sessionId);
+	const tempRoot = path.resolve(app.getPath("temp"));
+	const chunkDirectory = path.join(tempRoot, sessionId);
+	if (!path.resolve(chunkDirectory).startsWith(tempRoot + path.sep)) {
+		throw new Error("Invalid native static layout export session id");
+	}
 	const concatListPath = path.join(chunkDirectory, "chunks.txt");
-	const videoOnlyPath = path.join(app.getPath("temp"), `${sessionId}.mp4`);
+	const videoOnlyPath = path.join(tempRoot, `${sessionId}.mp4`);
 	const ffprobePath = getFfprobeBinaryPath();
 	let outputPathToKeep: string | null = null;
 	let videoOutputValidated = false;
@@ -3921,6 +3931,18 @@ export async function probeNativeVideoEncoder(
 			}
 			resolve(false);
 		}, 15000);
+
+		// Spawn failures (missing binary, antivirus block) emit "error" instead
+		// of "close"; without a listener Node crashes the main process.
+		process.once("error", () => {
+			clearTimeout(timeout);
+			resolve(false);
+		});
+		// Draining EPIPE prevents an unhandled stream error if the process dies
+		// before the probe frames finish writing.
+		process.stdin.on("error", () => {
+			// intentionally ignored: the close/error handlers resolve the probe
+		});
 
 		process.stderr.on("data", (chunk: Buffer) => {
 			stderrOutput += chunk.toString();
