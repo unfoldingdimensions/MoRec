@@ -128,6 +128,11 @@ export async function startNativeCursorMonitor() {
 				setCurrentCursorVisualType("arrow");
 			}
 		});
+		// The stop path writes "stop\n"; if the helper already died, that write
+		// emits an async EPIPE that a try/catch cannot catch and would crash main.
+		spawned.stdin?.on("error", () => {
+			// intentionally drained: the close handler clears the process state
+		});
 
 		if (spawned.stdout) spawned.stdout.on("data", handleCursorMonitorStdout);
 		if (spawned.stderr) {

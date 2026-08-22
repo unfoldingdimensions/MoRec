@@ -540,6 +540,11 @@ export function registerRecordingHandlers(
 						stdio: ["pipe", "pipe", "pipe"],
 						env: { ...process.env, __COMPAT_LAYER: "HighDpiAware" },
 					});
+					// The stop path writes "stop\n"; if the helper already died, that
+					// write emits an async EPIPE that would crash the main process.
+					wcProc.stdin.on("error", () => {
+						// intentionally drained: lifecycle handlers clear the capture state
+					});
 					setWindowsCaptureProcess(wcProc);
 					attachWindowsCaptureLifecycle(wcProc);
 
@@ -744,6 +749,11 @@ export function registerRecordingHandlers(
 				captProc = spawn(helperPath, [JSON.stringify(config)], {
 					cwd: recordingsDir,
 					stdio: ["pipe", "pipe", "pipe"],
+				});
+				// The stop path writes "stop\n"; if the helper already died, that
+				// write emits an async EPIPE that would crash the main process.
+				captProc.stdin.on("error", () => {
+					// intentionally drained: lifecycle handlers clear the capture state
 				});
 				setNativeCaptureProcess(captProc);
 				attachNativeCaptureLifecycle(captProc);
