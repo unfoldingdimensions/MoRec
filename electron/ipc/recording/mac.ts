@@ -77,33 +77,62 @@ export function waitForNativeCaptureStart(process: ChildProcessWithoutNullStream
 	});
 }
 
-export function waitForNativeCaptureStop(process: ChildProcessWithoutNullStreams) {
+const MAC_CAPTURE_STOP_TIMEOUT_MS = 45_000;
+
+export function waitForNativeCaptureStop(
+	process: ChildProcessWithoutNullStreams,
+	timeoutMs = MAC_CAPTURE_STOP_TIMEOUT_MS,
+) {
 	return new Promise<string>((resolve, reject) => {
-		const onClose = (code: number | null) => {
+		let settled = false;
+		const finish = (callback: () => void) => {
+			if (settled) return;
+			settled = true;
 			cleanup();
-			const match = nativeCaptureOutputBuffer.match(/Recording stopped\. Output path: (.+)/);
-			if (match?.[1]) {
-				resolve(match[1].trim());
-				return;
-			}
-			if (code === 0 && nativeCaptureTargetPath) {
-				resolve(nativeCaptureTargetPath);
-				return;
-			}
-			reject(
-				new Error(
-					nativeCaptureOutputBuffer.trim() ||
-						`Native capture helper exited with code ${code ?? "unknown"}`,
-				),
-			);
+			callback();
+		};
+
+		// A hung ScreenCaptureKit helper must not wedge the recorder UI forever;
+		// kill it after the timeout so the stop IPC rejects and recovery runs.
+		const timer = setTimeout(() => {
+			finish(() => {
+				try {
+					if (!process.killed) process.kill();
+				} catch {
+					// The process may already be gone; the caller only needs the timeout error.
+				}
+				reject(new Error("Timed out waiting for native macOS capture to stop"));
+			});
+		}, timeoutMs);
+
+		const onClose = (code: number | null) => {
+			finish(() => {
+				const match = nativeCaptureOutputBuffer.match(/Recording stopped\. Output path: (.+)/);
+				if (match?.[1]) {
+					resolve(match[1].trim());
+					return;
+				}
+				if (code === 0 && nativeCaptureTargetPath) {
+					resolve(nativeCaptureTargetPath);
+					return;
+				}
+				reject(
+					new Error(
+						nativeCaptureOutputBuffer.trim() ||
+							`Native capture helper exited with code ${code ?? "unknown"}`,
+					),
+				);
+			});
 		};
 
 		const onError = (error: Error) => {
-			cleanup();
-			reject(error);
+			finish(() => {
+				reject(error);
+			});
 		};
 
 		const cleanup = () => {
+			clearTimeout(timer);
 			process.off("close", onClose);
 			process.off("error", onError);
 		};
