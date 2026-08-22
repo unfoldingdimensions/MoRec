@@ -964,7 +964,7 @@ export function registerRecordingHandlers(
 					}
 
 					if (windowsSystemAudioPath && tempVideoPath.endsWith(".mp4")) {
-						const tempAudioPath = tempVideoPath.replace(".mp4", ".system.wav");
+						const tempAudioPath = tempVideoPath.replace(/\.mp4$/, ".system.wav");
 						stagedTempSystemAudioPath = tempAudioPath;
 						const finalAudioPath = windowsSystemAudioPath;
 						if (await pathExists(tempAudioPath)) {
@@ -977,7 +977,7 @@ export function registerRecordingHandlers(
 					}
 
 					if (windowsMicAudioPath && tempVideoPath.endsWith(".mp4")) {
-						const tempMicPath = tempVideoPath.replace(".mp4", ".mic.wav");
+						const tempMicPath = tempVideoPath.replace(/\.mp4$/, ".mic.wav");
 						stagedTempMicAudioPath = tempMicPath;
 						const finalMicPath = windowsMicAudioPath;
 						if (await pathExists(tempMicPath)) {

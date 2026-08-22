@@ -72,19 +72,38 @@ export function isAutoRecordingPath(filePath: string) {
 }
 
 export async function moveFileWithOverwrite(sourcePath: string, destinationPath: string) {
-	await fs.mkdir(path.dirname(destinationPath), { recursive: true });
-	await fs.rm(destinationPath, { force: true });
+	const destinationDir = path.dirname(destinationPath);
+	await fs.mkdir(destinationDir, { recursive: true });
+
+	// Stage the move inside the destination directory first so the existing
+	// destination is only removed once the replacement is already on the same
+	// volume; a mid-move failure restores it instead of deleting it outright.
+	const stagedDestination = path.join(
+		destinationDir,
+		`.${path.basename(destinationPath)}.${Date.now()}.morec-tmp`,
+	);
 
 	try {
-		await fs.rename(sourcePath, destinationPath);
-	} catch (error) {
-		const nodeError = error as NodeJS.ErrnoException;
-		if (nodeError.code !== "EXDEV") {
-			throw error;
+		try {
+			await fs.rename(sourcePath, stagedDestination);
+		} catch (error) {
+			const nodeError = error as NodeJS.ErrnoException;
+			if (nodeError.code !== "EXDEV") {
+				throw error;
+			}
+			await fs.copyFile(sourcePath, stagedDestination);
+			await fs.unlink(sourcePath);
 		}
 
-		await fs.copyFile(sourcePath, destinationPath);
-		await fs.unlink(sourcePath);
+		await fs.rm(destinationPath, { force: true });
+		await fs.rename(stagedDestination, destinationPath);
+	} catch (error) {
+		try {
+			await fs.rename(stagedDestination, destinationPath);
+		} catch {
+			await fs.rm(stagedDestination, { force: true }).catch(() => undefined);
+		}
+		throw error;
 	}
 }
 

@@ -17,6 +17,7 @@ import {
 	openExportStream,
 	registerOwnedExportPath,
 	releaseOwnedExportPath,
+	removeExportSessionDirForTemp,
 	writeToExportStream,
 } from "../export/exportStream";
 import {
@@ -1003,6 +1004,7 @@ export function registerExportHandlers() {
 					const resolvedPath = approvedOutputPath;
 					await moveExportedTempFile(tempPath, resolvedPath);
 					releaseOwnedExportPath(tempPath);
+					void removeExportSessionDirForTemp(tempPath);
 					const captionSidecarResult = await writeCaptionSidecarsBestEffort(
 						resolvedPath,
 						sidecarPayload,
@@ -1047,6 +1049,7 @@ export function registerExportHandlers() {
 
 				await moveExportedTempFile(tempPath, result.filePath);
 				releaseOwnedExportPath(tempPath);
+				void removeExportSessionDirForTemp(tempPath);
 				approveUserWritePath(result.filePath);
 				const captionSidecarResult = await writeCaptionSidecarsBestEffort(
 					result.filePath,
@@ -1088,6 +1091,7 @@ export function registerExportHandlers() {
 		try {
 			await removeTemporaryExportFile(tempPath);
 			releaseOwnedExportPath(tempPath);
+			void removeExportSessionDirForTemp(tempPath);
 			return { success: true };
 		} catch (error) {
 			return { success: false, error: String(error) };

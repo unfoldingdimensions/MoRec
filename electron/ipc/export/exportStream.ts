@@ -178,6 +178,19 @@ export function hasExportStream(streamId: string): boolean {
 	return exportStreamSessions.has(streamId);
 }
 
+/**
+ * Remove the per-stream session directory once its temp file has been consumed
+ * (moved away by finalize or deleted by discard). Only empty directories are
+ * removed, so nothing else living under the temp root can be affected.
+ */
+export async function removeExportSessionDirForTemp(tempPath: string): Promise<void> {
+	const sessionDir = path.dirname(tempPath);
+	if (!path.basename(sessionDir).startsWith(SESSION_DIR_PREFIX)) {
+		return;
+	}
+	await fsp.rm(sessionDir, { recursive: false, force: true }).catch(() => undefined);
+}
+
 export async function cleanupAllExportStreams(): Promise<void> {
 	const sessions = Array.from(exportStreamSessions.values());
 	exportStreamSessions.clear();

@@ -5180,7 +5180,10 @@ export default function VideoEditor() {
 			cropRegion,
 			webcam,
 			resolvedWebcamVideoUrl,
-			annotationRegions,
+			// The export payload reads the time-mapped regions; depending on the
+			// raw regions let handleExport keep a pre-clip-edit mapping after
+			// splits/trims, rendering annotations at stale timestamps.
+			effectiveAnnotationRegions,
 			autoCaptions,
 			autoCaptionSettings,
 			captionSidecarPayload,
