@@ -109,6 +109,7 @@ import {
 	setWindowsCaptureProcess,
 	setWindowsCaptureStopRequested,
 	setWindowsCaptureTargetPath,
+	setWindowsCaptureTempPath,
 	setWindowsMicAudioPath,
 	setWindowsNativeCaptureActive,
 	setWindowsOrphanedMicAudioPath,
@@ -378,6 +379,12 @@ async function resolveExistingPath(...candidates: Array<string | null | undefine
 	return null;
 }
 
+// Guards against concurrent start invocations: IPC handlers interleave, and a
+// second start used to kill the first helper mid-start (active is only set
+// after waitForWindowsCaptureStart resolves), failing both recordings.
+let windowsCaptureStartInFlight = false;
+let nativeCaptureStartInFlight = false;
+
 export function registerRecordingHandlers(
 	onRecordingStateChange?: (recording: boolean, sourceName: string) => void,
 ) {
@@ -394,6 +401,13 @@ export function registerRecordingHandlers(
 					};
 				}
 
+				if (windowsCaptureStartInFlight) {
+					return {
+						success: false,
+						message: "A native Windows screen recording is already starting.",
+					};
+				}
+
 				if (windowsCaptureProcess && !windowsNativeCaptureActive) {
 					try {
 						windowsCaptureProcess.kill();
@@ -402,6 +416,7 @@ export function registerRecordingHandlers(
 					}
 					setWindowsCaptureProcess(null);
 					setWindowsCaptureTargetPath(null);
+					setWindowsCaptureTempPath(null);
 					setWindowsCaptureStopRequested(false);
 				}
 
@@ -412,6 +427,7 @@ export function registerRecordingHandlers(
 					};
 				}
 
+				windowsCaptureStartInFlight = true;
 				let wcProc: ChildProcessWithoutNullStreams | null = null;
 				let tempVideoPath: string | null = null;
 				let tempSystemAudioPath: string | null = null;
@@ -422,6 +438,8 @@ export function registerRecordingHandlers(
 					const timestamp = Date.now();
 					const outputPath = path.join(recordingsDir, `recording-${timestamp}.mp4`);
 					tempVideoPath = path.join(app.getPath("temp"), `morec-native-${timestamp}.mp4`);
+					setWindowsCaptureTargetPath(outputPath);
+					setWindowsCaptureTempPath(tempVideoPath);
 
 					let captureOutput = "";
 					let systemAudioPath: string | null = null;
@@ -621,6 +639,7 @@ export function registerRecordingHandlers(
 					setNativeScreenRecordingActive(false);
 					setWindowsCaptureProcess(null);
 					setWindowsCaptureTargetPath(null);
+					setWindowsCaptureTempPath(null);
 					setWindowsSystemAudioPath(null);
 					setWindowsMicAudioPath(null);
 					setWindowsOrphanedMicAudioPath(null);
@@ -631,6 +650,8 @@ export function registerRecordingHandlers(
 						message: "Failed to start native Windows capture",
 						error: String(error),
 					};
+				} finally {
+					windowsCaptureStartInFlight = false;
 				}
 			}
 
@@ -638,6 +659,13 @@ export function registerRecordingHandlers(
 				return {
 					success: false,
 					message: "Native screen recording is only available on macOS.",
+				};
+			}
+
+			if (nativeCaptureStartInFlight) {
+				return {
+					success: false,
+					message: "A native screen recording is already starting.",
 				};
 			}
 
@@ -656,6 +684,7 @@ export function registerRecordingHandlers(
 				return { success: false, message: "A native screen recording is already active." };
 			}
 
+			nativeCaptureStartInFlight = true;
 			let captProc: ChildProcessWithoutNullStreams | null = null;
 			try {
 				const recordingsDir = await getRecordingsDir();
@@ -896,9 +925,11 @@ export function registerRecordingHandlers(
 					message: "Failed to start native ScreenCaptureKit recording",
 					error: String(error),
 				};
-			}
-		},
-	);
+				} finally {
+					nativeCaptureStartInFlight = false;
+				}
+			},
+		);
 
 	ipcMain.handle("stop-native-screen-recording", async () => {
 		const start = Date.now();

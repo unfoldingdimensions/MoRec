@@ -7,10 +7,16 @@ import {
 	selectedSource,
 	setWindowsCaptureProcess,
 	setWindowsCaptureStopRequested,
+	setWindowsMicAudioPath,
 	setWindowsNativeCaptureActive,
+	setWindowsOrphanedMicAudioPath,
+	setWindowsSystemAudioPath,
+	setWindowsCaptureTargetPath,
+	setWindowsCaptureTempPath,
 	windowsCaptureOutputBuffer,
 	windowsCaptureStopRequested,
 	windowsCaptureTargetPath,
+	windowsCaptureTempPath,
 	windowsNativeCaptureActive,
 } from "../state";
 import { AudioSyncAdjustment } from "../types";
@@ -181,6 +187,34 @@ export function attachWindowsCaptureLifecycle(proc: ChildProcessWithoutNullStrea
 
 		setWindowsNativeCaptureActive(false);
 		setWindowsCaptureStopRequested(false);
+
+		// The helper died mid-take: salvage the partially written temp output
+		// into the recordings directory (or delete it when unusable) instead of
+		// leaking it in %TEMP%, and clear the stale companion paths so a later
+		// stop/recover call cannot mistake this dead session for a live one.
+		void (async () => {
+			const tempPath = windowsCaptureTempPath;
+			const targetPath = windowsCaptureTargetPath;
+			setWindowsCaptureTempPath(null);
+			setWindowsCaptureTargetPath(null);
+			setWindowsSystemAudioPath(null);
+			setWindowsMicAudioPath(null);
+			setWindowsOrphanedMicAudioPath(null);
+
+			if (!tempPath || tempPath === targetPath) {
+				return;
+			}
+			try {
+				const stat = await fs.stat(tempPath).catch(() => null);
+				if (stat && stat.size > 0 && targetPath) {
+					await moveFileWithOverwrite(tempPath, targetPath);
+				} else {
+					await fs.rm(tempPath, { force: true }).catch(() => undefined);
+				}
+			} catch (error) {
+				console.warn("[windows-capture] Failed to salvage temp output:", error);
+			}
+		})();
 
 		const sourceName = selectedSource?.name ?? "Screen";
 		BrowserWindow.getAllWindows().forEach((window) => {

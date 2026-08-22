@@ -39,6 +39,9 @@ export let nativeCursorMonitorOutputBuffer = "";
 export let windowsCaptureProcess: ChildProcessWithoutNullStreams | null = null;
 export let windowsCaptureOutputBuffer = "";
 export let windowsCaptureTargetPath: string | null = null;
+// Temp (pre-move) output the helper writes to; tracked so an unexpected helper
+// exit can salvage or clean up the partially written take.
+export let windowsCaptureTempPath: string | null = null;
 export let windowsNativeCaptureActive = false;
 export let windowsCaptureStopRequested = false;
 export let windowsCapturePaused = false;
@@ -156,6 +159,9 @@ export function setWindowsCaptureOutputBuffer(v: string) {
 }
 export function setWindowsCaptureTargetPath(v: string | null) {
 	windowsCaptureTargetPath = v;
+}
+export function setWindowsCaptureTempPath(v: string | null) {
+	windowsCaptureTempPath = v;
 }
 export function setWindowsNativeCaptureActive(v: boolean) {
 	windowsNativeCaptureActive = v;

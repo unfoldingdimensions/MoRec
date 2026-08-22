@@ -14,6 +14,7 @@ import {
 	setWindowsCaptureProcess,
 	setWindowsCaptureStopRequested,
 	setWindowsCaptureTargetPath,
+	setWindowsCaptureTempPath,
 	setWindowsMicAudioPath,
 	setWindowsNativeCaptureActive,
 	setWindowsOrphanedMicAudioPath,
@@ -39,6 +40,7 @@ export function killWindowsCaptureProcess() {
 		}
 		setWindowsCaptureProcess(null);
 		setWindowsCaptureTargetPath(null);
+		setWindowsCaptureTempPath(null);
 		setWindowsNativeCaptureActive(false);
 		setNativeScreenRecordingActive(false);
 		setWindowsCaptureStopRequested(false);

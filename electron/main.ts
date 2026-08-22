@@ -27,6 +27,14 @@ import {
 	killWindowsCaptureProcess,
 	registerIpcHandlers,
 } from "./ipc/handlers";
+import {
+	setWindowsCaptureStopRequested,
+	windowsCaptureProcess,
+	windowsCaptureTargetPath,
+	windowsNativeCaptureActive,
+} from "./ipc/state";
+import { waitForWindowsCaptureStop } from "./ipc/recording/windows";
+import { moveFileWithOverwrite } from "./ipc/utils";
 import { ensureMediaServer } from "./mediaServer";
 import { shouldGrantDisplayCapture, shouldGrantMediaPermission } from "./permissionPolicy";
 import { ensurePackagedRendererServer, getPackagedRendererBaseUrl } from "./rendererServer";
@@ -890,7 +898,35 @@ function createSourceSelectorWindowWrapper() {
 
 // On macOS, applications and their menu bar stay active until the user quits
 // explicitly with Cmd + Q.
-app.on("before-quit", () => {
+let quittingAfterCaptureStop = false;
+app.on("before-quit", (event) => {
+	// Quitting mid-recording used to hard-kill the capture helper, destroying
+	// the take and leaking the temp file. Ask the helper to finalize first
+	// (bounded wait), then proceed with the regular teardown.
+	if (!quittingAfterCaptureStop && windowsNativeCaptureActive && windowsCaptureProcess) {
+		quittingAfterCaptureStop = true;
+		event.preventDefault();
+		const captureProc = windowsCaptureProcess;
+		setWindowsCaptureStopRequested(true);
+		void (async () => {
+			try {
+				captureProc.stdin.write("stop\n");
+				const stoppedPath = await waitForWindowsCaptureStop(captureProc, 5_000);
+				const targetPath = windowsCaptureTargetPath;
+				if (stoppedPath && targetPath && stoppedPath !== targetPath) {
+					await moveFileWithOverwrite(stoppedPath, targetPath).catch(() => undefined);
+				}
+			} catch (error) {
+				console.warn("[quit] Could not finalize recording before quit:", error);
+			}
+			killWindowsCaptureProcess();
+			showCursor();
+			cleanupNativeVideoExportSessions();
+			void cleanupAllExportStreams();
+			app.quit();
+		})();
+		return;
+	}
 	killWindowsCaptureProcess();
 	showCursor();
 	cleanupNativeVideoExportSessions();
