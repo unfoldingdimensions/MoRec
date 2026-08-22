@@ -39,6 +39,7 @@ const WEBCAM_FRAME_RATE = 30;
 const WEBCAM_SUFFIX = "-webcam";
 const MICROPHONE_FALLBACK_ERROR_TOAST_ID = "recording-microphone-fallback-error";
 const MICROPHONE_SIDECAR_ERROR_TOAST_ID = "recording-microphone-sidecar-error";
+const BROWSER_RECORDER_ERROR_TOAST_ID = "recording-browser-recorder-error";
 export type BrowserMicrophoneProfile =
 	| "processed"
 	| "no-agc"
@@ -1950,6 +1951,38 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 			};
 			recorder.onerror = (event) => {
 				console.error("[useScreenRecorder] Browser recorder error:", event);
+				// An encoder failure must not discard the take: flush whatever was
+				// already encoded and route it through the normal onstop save path.
+				let salvaged = false;
+				if (recorder.state === "recording" || recorder.state === "paused") {
+					if (recorder.state === "paused") {
+						try {
+							recorder.resume();
+						} catch (error) {
+							console.warn("Failed to resume recorder after error:", error);
+						}
+					}
+					pendingWebcamPathPromise.current = stopWebcamRecorder();
+					try {
+						recorder.requestData();
+					} catch (error) {
+						console.warn("Failed to flush recorder after error:", error);
+					}
+					try {
+						recorder.stop();
+						setRecording(false);
+						setFinalizing(true);
+						window.electronAPI?.setRecordingState(false);
+						salvaged = true;
+						toast.error(
+							"Recorder error — saving the portion captured so far.",
+							{ id: BROWSER_RECORDER_ERROR_TOAST_ID, duration: 10000 },
+						);
+					} catch (error) {
+						console.error("Failed to stop recorder after error:", error);
+					}
+				}
+				if (salvaged) return;
 				setRecording(false);
 				setFinalizing(false);
 				setPaused(false);
