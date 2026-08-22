@@ -311,26 +311,46 @@ export function registerSettingsHandlers() {
 			return { success: false, error: "Countdown already in progress" };
 		}
 
+		// A NaN/undefined/non-finite value would never tick down to zero and
+		// would leave countdownInProgress stuck for the rest of the session.
+		const countdownSeconds = Math.max(1, Math.floor(Number(seconds) || 0));
+
 		setCountdownInProgress(true);
 		setCountdownCancelled(false);
-		setCountdownRemaining(seconds);
+		setCountdownRemaining(countdownSeconds);
 
 		const countdownWin = createCountdownWindow();
 
 		if (countdownWin && !countdownWin.isDestroyed() && countdownWin.webContents.isLoadingMainFrame()) {
 			await new Promise<void>((resolve) => {
-				if (!countdownWin || countdownWin.isDestroyed()) {
+				// If the window fails to load, is closed, or the load event never
+				// fires, resolve anyway: hanging here would lock countdownInProgress
+				// forever and block every future countdown until app restart.
+				const failSafe = setTimeout(finish, 10_000);
+				function finish() {
+					clearTimeout(failSafe);
+					countdownWin.webContents.off("did-finish-load", onFinishLoad);
+					countdownWin.webContents.off("did-fail-load", onFailLoad);
+					countdownWin.off("closed", onClosed);
 					resolve();
-					return;
 				}
-				countdownWin.webContents.once("did-finish-load", () => {
-					resolve();
-				});
+				function onFinishLoad() {
+					finish();
+				}
+				function onFailLoad() {
+					finish();
+				}
+				function onClosed() {
+					finish();
+				}
+				countdownWin.webContents.once("did-finish-load", onFinishLoad);
+				countdownWin.webContents.once("did-fail-load", onFailLoad);
+				countdownWin.once("closed", onClosed);
 			});
 		}
 
 		return new Promise<{ success: boolean; cancelled?: boolean }>((resolve) => {
-			let remaining = seconds;
+			let remaining = countdownSeconds;
 			setCountdownRemaining(remaining);
 
 			if (countdownWin && !countdownWin.isDestroyed()) {
