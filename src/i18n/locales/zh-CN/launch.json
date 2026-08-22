@@ -53,7 +53,11 @@
 			"upToDateTitle": "Mo Rec {{version}} 已是最新版本。",
 			"availableTitle": "Mo Rec {{version}} 可更新。",
 			"availableGenericTitle": "有可用更新。"
-		}
+		},
+		"appearance": "Appearance",
+		"preparing": "Preparing recording",
+		"preparingSubtitle": "Opening the editor in a moment",
+		"previewUpdateUi": "Preview Update UI"
 	},
 	"sourceSelector": {
 		"loadingSources": "正在加载源...",
@@ -76,5 +80,11 @@
 		"microphoneDenied": "麦克风访问被拒绝。将继续录制但不包含麦克风音频。",
 		"failedToStart": "录制启动失败：{{error}}",
 		"failedToStartGeneric": "录制启动失败"
+	},
+	"common": {
+		"dark": "Dark",
+		"light": "Light",
+		"loading": "Refreshing...",
+		"system": "System"
 	}
 }

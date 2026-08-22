@@ -1,8 +1,8 @@
 {
 	"app": {
 		"name": "Mo Rec",
-		"editorTitle": "Editor do Mo Rec",
-		"subtitle": "Gravação e edição de tela",
+		"editorTitle": "Mo Rec Editor",
+		"subtitle": "Screen recording and editing",
 		"language": "Idioma",
 		"manageRecordings": "Abrir pasta de gravações"
 	},

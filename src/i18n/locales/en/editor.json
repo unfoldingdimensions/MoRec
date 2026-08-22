@@ -42,9 +42,12 @@
 		"imageUploadError": "Please upload a JPG, PNG, GIF, or WebP image file.",
 		"blurStrength": "Blur Strength: {{strength}}",
 		"solidColor": "Solid Color (Censorship)",
-		"borderRadius": "Border Radius"
+		"borderRadius": "Border Radius",
+		"arrowDirectionOption": "Arrow direction: {{direction}}",
+		"imageUploadErrorDescription": "Only JPG, PNG, GIF, WebP, AVIF, and SVG images are supported.",
+		"imageUploadFailed": "Could not read the image file.",
+		"imageUploadFailedDescription": "The file could not be read. It may be corrupted or unsupported."
 	},
-
 	"fontStyles": {
 		"classic": "Classic",
 		"editor": "Editor",
@@ -111,7 +114,14 @@
 		"showInFolder": "Show In Folder"
 	},
 	"project": {
-		"untitled": "Untitled"
+		"untitled": "Untitled",
+		"projects": "Open projects",
+		"renameInput": "Project name",
+		"renameTitle": "Rename project",
+		"saveDescription": "Name this project. It will be saved in your Mo Rec Projects folder.",
+		"saveNameLabel": "Project name",
+		"saveTitle": "Save Project",
+		"saving": "Saving..."
 	},
 	"nativeCaptureUnavailable": {
 		"title": "Nothing’s broken, but we won’t be able to render an animated cursor overlay.",
@@ -125,7 +135,13 @@
 		"completePercent": "{{percent}}% complete",
 		"issue": "Export issue",
 		"complete": "Export complete",
-		"savedSuccessfully": "Your file was saved successfully."
+		"savedSuccessfully": "Your file was saved successfully.",
+		"finalizingPercent": "Finalizing {{percent}}%",
+		"muxingAndSaving": "Muxing audio and saving file...",
+		"muxingAndSavingPercent": "Muxing and saving {{percent}}%",
+		"renderSpeed": "Render speed {{fps}} FPS",
+		"renderingAudio": "Rendering audio {{percent}}%",
+		"saving": "Opening save dialog..."
 	},
 	"export": {
 		"processingAudioEdits": "Processing audio with speed/overlay edits"
@@ -136,7 +152,40 @@
 	},
 	"timeline": {
 		"expand": "Expand Timeline",
-		"collapse": "Collapse Timeline"
+		"collapse": "Collapse Timeline",
+		"speedClipOverlap": "Speed change would overlap the next clip. Move or split clips before slowing this section.",
+		"speedZoomOverlap": "Speed change would overlap another zoom. Move or delete the overlapping zoom first."
 	},
-	"openRecordingsFolder": "Open recordings folder"
+	"openRecordingsFolder": "Open recordings folder",
+	"common": {
+		"app": {
+			"discord": "Join Discord"
+		}
+	},
+	"presets": {
+		"deleteAriaLabel": "Delete preset {{name}}",
+		"empty": "No presets yet.",
+		"errors": {
+			"deleteFailed": "Could not delete that preset. Check your browser storage settings and try again.",
+			"duplicateName": "A preset with that name already exists.",
+			"nameRequired": "Enter a preset name.",
+			"saveFailed": "Could not save that preset. Check your browser storage settings and try again."
+		},
+		"label": "Presets",
+		"namePlaceholder": "Preset name",
+		"open": "Open presets",
+		"saveCurrentAs": "Save current preset as",
+		"savedList": "Saved presets",
+		"toasts": {
+			"applied": "Applied preset \"{{name}}\"",
+			"deleted": "Deleted preset \"{{name}}\"",
+			"saved": "Saved preset \"{{name}}\""
+		}
+	},
+	"theme": {
+		"appearance": "Appearance",
+		"dark": "Dark",
+		"light": "Light",
+		"system": "System"
+	}
 }

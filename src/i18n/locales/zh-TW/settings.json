@@ -6,7 +6,8 @@
 		"modeAuto": "自動",
 		"modeManual": "手動",
 		"modeManualDescription": "為此縮放設定固定的對焦點",
-		"modeAutoDescription": "相機會自動跟隨游標"
+		"modeAutoDescription": "相機會自動跟隨游標",
+		"globalSettings": "Animation"
 	},
 	"trim": {
 		"deleteRegion": "刪除修剪區域"
@@ -154,7 +155,40 @@
 		"paddingBottom": "下",
 		"paddingLeft": "左",
 		"paddingRight": "右",
-		"removeBackground": "移除背景"
+		"removeBackground": "移除背景",
+		"cameraDebugTuning": "Camera Debug Tuning",
+		"cameraDebugTuningHint": "Development-only spring tuning controls for camera motion.",
+		"cameraSpringDampingMultiplier": "Camera damping",
+		"cameraSpringMassMultiplier": "Camera mass",
+		"cameraSpringStiffnessMultiplier": "Camera stiffness",
+		"classicZoom": "Classic Animation",
+		"cursorDebugMovedToDev": "Cursor spring tuning is available in Settings > Dev.",
+		"cursorDebugTuning": "Cursor Debug Tuning",
+		"cursorDebugTuningHint": "Development-only spring tuning controls.",
+		"cursorSpringDampingMultiplier": "Spring damping",
+		"cursorSpringMassMultiplier": "Spring mass",
+		"cursorSpringStiffnessMultiplier": "Spring stiffness",
+		"devSection": "Dev",
+		"devSectionHint": "Temporary testing controls for native capture and motion tuning.",
+		"exportBlurMovedToDev": "Export blur tuning is available in Settings > Dev.",
+		"motionBlurDebug": "Motion Blur Debug",
+		"motionBlurDebugHint": "Development-only tuning for the split move-vs-zoom blur path. Pan controls drive the streak filter, and zoom controls drive the focus-centered zoom filter.",
+		"motionBlurPanStrength": "Pan max blur",
+		"motionBlurPanThreshold": "Pan threshold",
+		"motionBlurZoomStrength": "Zoom blur strength",
+		"motionBlurZoomThreshold": "Zoom threshold",
+		"nativeCaptureWarningTester": "Native capture warning",
+		"nativeCaptureWarningTesterAvailable": "This project is not marked as unsupported, but you can still open the modal for UI testing.",
+		"nativeCaptureWarningTesterUnavailable": "This project is currently marked as native capture unavailable.",
+		"openNativeCaptureWarning": "Open warning",
+		"paddingAdvanced": "Advanced",
+		"paddingAdvancedHide": "Hide advanced padding controls",
+		"paddingAdvancedShow": "Show advanced padding controls",
+		"webcamCustomPosition": "Custom position",
+		"webcamHorizontal": "Horizontal",
+		"webcamMargin": "Margin",
+		"webcamPosition": "Position",
+		"webcamVertical": "Vertical"
 	},
 	"sections": {
 		"scene": "場景",
@@ -164,7 +198,9 @@
 		"cursor": "游標",
 		"webcam": "網路攝影機",
 		"frame": "外框",
-		"crop": "裁切"
+		"crop": "裁切",
+		"extensions": "Extensions",
+		"settings": "Settings"
 	},
 	"captions": {
 		"selectOnTimeline": "在時間軸上選擇字幕進行編輯。",
@@ -201,7 +237,10 @@
 			"split": "Split",
 			"merge": "Merge",
 			"delete": "Delete"
-		}
+		},
+		"editSaved": "Caption updated",
+		"generatingStatus": "Generating captions. This can take a moment.",
+		"selectModel": "Select Model"
 	},
 	"crop": {
 		"title": "裁切影片",
@@ -225,7 +264,9 @@
 		"uploadVideoSuccess": "已新增影片背景",
 		"uploadVideoError": "匯入影片背景失敗",
 		"unsupportedVideoFormat": "不支援的格式",
-		"unsupportedVideoFormatDescription": "請選取影片檔案 (mp4、webm、mov 等)"
+		"unsupportedVideoFormatDescription": "請選取影片檔案 (mp4、webm、mov 等)",
+		"uploadCustomVideo": "Upload Video",
+		"video": "Video"
 	},
 	"annotation": {
 		"delete": "刪除標註"
@@ -250,7 +291,31 @@
 		"saveProject": "儲存專案",
 		"exportVideo": "匯出 {{format}}",
 		"reportBug": "回報錯誤",
-		"starOnGithub": "在 GitHub 按讚"
+		"starOnGithub": "在 GitHub 按讚",
+		"captionSidecar": {
+			"hint": "Save .srt and .vtt files next to your exported video.",
+			"title": "Export captions file",
+			"toggle": "Export captions sidecar files"
+		},
+		"encoding": {
+			"balanced": "Balanced",
+			"fast": "Fast",
+			"quality": "Quality"
+		},
+		"encodingTitle": "Encoding",
+		"nvidiaCuda": {
+			"badge": "Experimental",
+			"hint": "Try GPU export on this Windows device.",
+			"title": "NVIDIA CUDA",
+			"toggle": "Enable experimental NVIDIA CUDA export"
+		},
+		"pipeline": {
+			"legacy": "Legacy",
+			"legacyHint": "Legacy uses the current stable WebCodecs export path.",
+			"lightningHint": "Lightning (Beta) automatically uses the fastest compatible backend and falls back when needed.",
+			"modern": "Lightning (Beta)"
+		},
+		"pipelineTitle": "Pipeline"
 	},
 	"audio": {
 		"title": "音訊",
@@ -262,5 +327,13 @@
 		"micLabel": "麥克風源",
 		"mixedLabel": "源",
 		"deleteRegion": "刪除音訊"
+	},
+	"editor": {
+		"theme": {
+			"appearance": "Appearance",
+			"dark": "Dark",
+			"light": "Light",
+			"system": "System"
+		}
 	}
 }

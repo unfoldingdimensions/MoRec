@@ -53,7 +53,11 @@
 			"upToDateTitle": "Mo Rec {{version}} is up-to-date.",
 			"availableTitle": "Mo Rec {{version}} is beschikbaar.",
 			"availableGenericTitle": "Er is een update beschikbaar."
-		}
+		},
+		"appearance": "Appearance",
+		"preparing": "Preparing recording",
+		"preparingSubtitle": "Opening the editor in a moment",
+		"previewUpdateUi": "Preview Update UI"
 	},
 	"sourceSelector": {
 		"loadingSources": "Bronnen laden...",
@@ -76,5 +80,11 @@
 		"microphoneDenied": "Microfoontoegang is geweigerd. De opname gaat verder zonder microfoonaudio.",
 		"failedToStart": "Opname starten mislukt: {{error}}",
 		"failedToStartGeneric": "Opname starten mislukt"
+	},
+	"common": {
+		"dark": "Dark",
+		"light": "Light",
+		"loading": "Refreshing...",
+		"system": "System"
 	}
 }

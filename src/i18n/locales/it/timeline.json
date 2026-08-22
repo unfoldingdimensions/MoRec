@@ -37,5 +37,6 @@
 	},
 	"addSpeed": "Aggiungi velocità (S)",
 	"resizeLeft": "Ridimensiona a sinistra",
-	"resizeRight": "Ridimensiona a destra"
+	"resizeRight": "Ridimensiona a destra",
+	"keyframeTooltip": "{{time}}ms — drag to move, Delete/Backspace to remove"
 }

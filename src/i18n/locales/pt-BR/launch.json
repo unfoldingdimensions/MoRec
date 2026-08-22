@@ -53,7 +53,11 @@
 			"upToDateTitle": "Mo Rec {{version}} está atualizado.",
 			"availableTitle": "Mo Rec {{version}} está disponível.",
 			"availableGenericTitle": "Há uma atualização disponível."
-		}
+		},
+		"appearance": "Appearance",
+		"preparing": "Preparing recording",
+		"preparingSubtitle": "Opening the editor in a moment",
+		"previewUpdateUi": "Preview Update UI"
 	},
 	"sourceSelector": {
 		"loadingSources": "Carregando fontes...",
@@ -76,5 +80,11 @@
 		"microphoneDenied": "O acesso ao microfone foi negado. A gravação continuará sem áudio do microfone.",
 		"failedToStart": "Falha ao iniciar gravação: {{error}}",
 		"failedToStartGeneric": "Falha ao iniciar gravação"
+	},
+	"common": {
+		"dark": "Dark",
+		"light": "Light",
+		"loading": "Refreshing...",
+		"system": "System"
 	}
 }

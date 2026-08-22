@@ -6,7 +6,8 @@
 		"modeAuto": "자동",
 		"modeManual": "수동",
 		"modeManualDescription": "이 확대에 고정 초점을 설정합니다",
-		"modeAutoDescription": "카메라가 커서를 자동으로 따라갑니다"
+		"modeAutoDescription": "카메라가 커서를 자동으로 따라갑니다",
+		"globalSettings": "Animation"
 	},
 	"trim": {
 		"deleteRegion": "트림 구간 삭제"
@@ -154,7 +155,40 @@
 		"paddingBottom": "아래",
 		"paddingLeft": "왼쪽",
 		"paddingRight": "오른쪽",
-		"removeBackground": "배경 제거"
+		"removeBackground": "배경 제거",
+		"cameraDebugTuning": "Camera Debug Tuning",
+		"cameraDebugTuningHint": "Development-only spring tuning controls for camera motion.",
+		"cameraSpringDampingMultiplier": "Camera damping",
+		"cameraSpringMassMultiplier": "Camera mass",
+		"cameraSpringStiffnessMultiplier": "Camera stiffness",
+		"classicZoom": "Classic Animation",
+		"cursorDebugMovedToDev": "Cursor spring tuning is available in Settings > Dev.",
+		"cursorDebugTuning": "Cursor Debug Tuning",
+		"cursorDebugTuningHint": "Development-only spring tuning controls.",
+		"cursorSpringDampingMultiplier": "Spring damping",
+		"cursorSpringMassMultiplier": "Spring mass",
+		"cursorSpringStiffnessMultiplier": "Spring stiffness",
+		"devSection": "Dev",
+		"devSectionHint": "Temporary testing controls for native capture and motion tuning.",
+		"exportBlurMovedToDev": "Export blur tuning is available in Settings > Dev.",
+		"motionBlurDebug": "Motion Blur Debug",
+		"motionBlurDebugHint": "Development-only tuning for the split move-vs-zoom blur path. Pan controls drive the streak filter, and zoom controls drive the focus-centered zoom filter.",
+		"motionBlurPanStrength": "Pan max blur",
+		"motionBlurPanThreshold": "Pan threshold",
+		"motionBlurZoomStrength": "Zoom blur strength",
+		"motionBlurZoomThreshold": "Zoom threshold",
+		"nativeCaptureWarningTester": "Native capture warning",
+		"nativeCaptureWarningTesterAvailable": "This project is not marked as unsupported, but you can still open the modal for UI testing.",
+		"nativeCaptureWarningTesterUnavailable": "This project is currently marked as native capture unavailable.",
+		"openNativeCaptureWarning": "Open warning",
+		"paddingAdvanced": "Advanced",
+		"paddingAdvancedHide": "Hide advanced padding controls",
+		"paddingAdvancedShow": "Show advanced padding controls",
+		"webcamCustomPosition": "Custom position",
+		"webcamHorizontal": "Horizontal",
+		"webcamMargin": "Margin",
+		"webcamPosition": "Position",
+		"webcamVertical": "Vertical"
 	},
 	"sections": {
 		"scene": "장면",
@@ -164,7 +198,9 @@
 		"cursor": "커서",
 		"webcam": "웹캠",
 		"frame": "프레임",
-		"crop": "자르기"
+		"crop": "자르기",
+		"extensions": "Extensions",
+		"settings": "Settings"
 	},
 	"captions": {
 		"selectOnTimeline": "타임라인에서 자막을 선택하여 편집하세요.",
@@ -201,7 +237,10 @@
 			"split": "Split",
 			"merge": "Merge",
 			"delete": "Delete"
-		}
+		},
+		"editSaved": "Caption updated",
+		"generatingStatus": "Generating captions. This can take a moment.",
+		"selectModel": "Select Model"
 	},
 	"crop": {
 		"title": "비디오 자르기",
@@ -225,7 +264,9 @@
 		"uploadVideoSuccess": "비디오 배경이 추가되었습니다",
 		"uploadVideoError": "비디오 배경을 가져오지 못했습니다",
 		"unsupportedVideoFormat": "지원되지 않는 형식",
-		"unsupportedVideoFormatDescription": "비디오 파일(mp4, webm, mov 등)을 선택해 주세요"
+		"unsupportedVideoFormatDescription": "비디오 파일(mp4, webm, mov 등)을 선택해 주세요",
+		"uploadCustomVideo": "Upload Video",
+		"video": "Video"
 	},
 	"annotation": {
 		"delete": "주석 삭제"
@@ -250,7 +291,31 @@
 		"saveProject": "프로젝트 저장",
 		"exportVideo": "{{format}} 내보내기",
 		"reportBug": "버그 신고",
-		"starOnGithub": "GitHub에서 별표 주기"
+		"starOnGithub": "GitHub에서 별표 주기",
+		"captionSidecar": {
+			"hint": "Save .srt and .vtt files next to your exported video.",
+			"title": "Export captions file",
+			"toggle": "Export captions sidecar files"
+		},
+		"encoding": {
+			"balanced": "Balanced",
+			"fast": "Fast",
+			"quality": "Quality"
+		},
+		"encodingTitle": "Encoding",
+		"nvidiaCuda": {
+			"badge": "Experimental",
+			"hint": "Try GPU export on this Windows device.",
+			"title": "NVIDIA CUDA",
+			"toggle": "Enable experimental NVIDIA CUDA export"
+		},
+		"pipeline": {
+			"legacy": "Legacy",
+			"legacyHint": "Legacy uses the current stable WebCodecs export path.",
+			"lightningHint": "Lightning (Beta) automatically uses the fastest compatible backend and falls back when needed.",
+			"modern": "Lightning (Beta)"
+		},
+		"pipelineTitle": "Pipeline"
 	},
 	"audio": {
 		"title": "오디오",
@@ -262,5 +327,13 @@
 		"micLabel": "마이크 소스",
 		"mixedLabel": "소스",
 		"deleteRegion": "오디오 삭제"
+	},
+	"editor": {
+		"theme": {
+			"appearance": "Appearance",
+			"dark": "Dark",
+			"light": "Light",
+			"system": "System"
+		}
 	}
 }

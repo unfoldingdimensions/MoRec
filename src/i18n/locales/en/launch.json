@@ -53,7 +53,11 @@
 			"upToDateTitle": "Mo Rec {{version}} is up to date.",
 			"availableTitle": "Mo Rec {{version}} is available.",
 			"availableGenericTitle": "An update is available."
-		}
+		},
+		"appearance": "Appearance",
+		"preparing": "Preparing recording",
+		"preparingSubtitle": "Opening the editor in a moment",
+		"previewUpdateUi": "Preview Update UI"
 	},
 	"sourceSelector": {
 		"loadingSources": "Loading sources...",
@@ -76,5 +80,11 @@
 		"microphoneDenied": "Microphone access was denied. Recording will continue without microphone audio.",
 		"failedToStart": "Failed to start recording: {{error}}",
 		"failedToStartGeneric": "Failed to start recording"
+	},
+	"common": {
+		"dark": "Dark",
+		"light": "Light",
+		"loading": "Refreshing...",
+		"system": "System"
 	}
 }

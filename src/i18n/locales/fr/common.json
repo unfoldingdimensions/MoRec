@@ -2,7 +2,7 @@
 	"app": {
 		"name": "Mo Rec",
 		"editorTitle": "Mo Rec Editor",
-		"subtitle": "Enregistrement et édition d’écran",
+		"subtitle": "Screen recording and editing",
 		"language": "Langue",
 		"manageRecordings": "Ouvrir le dossier des enregistrements"
 	},

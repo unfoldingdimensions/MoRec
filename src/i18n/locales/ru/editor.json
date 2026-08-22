@@ -42,9 +42,12 @@
 		"imageUploadError": "Загрузите файл JPG, PNG, GIF, или WebP.",
 		"blurStrength": "Сила размытия: {{strength}}",
 		"solidColor": "Сплошной цвет (цензура)",
-		"borderRadius": "Скругление углов"
+		"borderRadius": "Скругление углов",
+		"arrowDirectionOption": "Arrow direction: {{direction}}",
+		"imageUploadErrorDescription": "Only JPG, PNG, GIF, WebP, AVIF, and SVG images are supported.",
+		"imageUploadFailed": "Could not read the image file.",
+		"imageUploadFailedDescription": "The file could not be read. It may be corrupted or unsupported."
 	},
-
 	"fontStyles": {
 		"classic": "Классический",
 		"editor": "Базовый",
@@ -111,7 +114,14 @@
 		"showInFolder": "Показать в папке"
 	},
 	"project": {
-		"untitled": "Без названия"
+		"untitled": "Без названия",
+		"projects": "Open projects",
+		"renameInput": "Project name",
+		"renameTitle": "Rename project",
+		"saveDescription": "Name this project. It will be saved in your Mo Rec Projects folder.",
+		"saveNameLabel": "Project name",
+		"saveTitle": "Save Project",
+		"saving": "Saving..."
 	},
 	"nativeCaptureUnavailable": {
 		"title": "Всё в порядке, но мы не можем отобразить анимированное наложение курсора.",
@@ -125,7 +135,13 @@
 		"completePercent": "Готово: {{percent}}%",
 		"issue": "Ошибка экспорта",
 		"complete": "Экспорт завершён",
-		"savedSuccessfully": "Файл сохранён"
+		"savedSuccessfully": "Файл сохранён",
+		"finalizingPercent": "Finalizing {{percent}}%",
+		"muxingAndSaving": "Muxing audio and saving file...",
+		"muxingAndSavingPercent": "Muxing and saving {{percent}}%",
+		"renderSpeed": "Render speed {{fps}} FPS",
+		"renderingAudio": "Rendering audio {{percent}}%",
+		"saving": "Opening save dialog..."
 	},
 	"export": {
 		"processingAudioEdits": "Обработка звука (скорость, наложения)"
@@ -136,7 +152,40 @@
 	},
 	"timeline": {
 		"expand": "Развернуть таймлайн",
-		"collapse": "Свернуть таймлайн"
+		"collapse": "Свернуть таймлайн",
+		"speedClipOverlap": "Speed change would overlap the next clip. Move or split clips before slowing this section.",
+		"speedZoomOverlap": "Speed change would overlap another zoom. Move or delete the overlapping zoom first."
 	},
-	"openRecordingsFolder": "Открыть папку с записями"
+	"openRecordingsFolder": "Открыть папку с записями",
+	"common": {
+		"app": {
+			"discord": "Join Discord"
+		}
+	},
+	"presets": {
+		"deleteAriaLabel": "Delete preset {{name}}",
+		"empty": "No presets yet.",
+		"errors": {
+			"deleteFailed": "Could not delete that preset. Check your browser storage settings and try again.",
+			"duplicateName": "A preset with that name already exists.",
+			"nameRequired": "Enter a preset name.",
+			"saveFailed": "Could not save that preset. Check your browser storage settings and try again."
+		},
+		"label": "Presets",
+		"namePlaceholder": "Preset name",
+		"open": "Open presets",
+		"saveCurrentAs": "Save current preset as",
+		"savedList": "Saved presets",
+		"toasts": {
+			"applied": "Applied preset \"{{name}}\"",
+			"deleted": "Deleted preset \"{{name}}\"",
+			"saved": "Saved preset \"{{name}}\""
+		}
+	},
+	"theme": {
+		"appearance": "Appearance",
+		"dark": "Dark",
+		"light": "Light",
+		"system": "System"
+	}
 }

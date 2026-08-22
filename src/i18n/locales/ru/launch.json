@@ -53,7 +53,11 @@
 			"upToDateTitle": "У вас актуальная версия Mo Rec {{version}}.",
 			"availableTitle": "Доступна новая версия Mo Rec {{version}}.",
 			"availableGenericTitle": "Доступно обновление."
-		}
+		},
+		"appearance": "Appearance",
+		"preparing": "Preparing recording",
+		"preparingSubtitle": "Opening the editor in a moment",
+		"previewUpdateUi": "Preview Update UI"
 	},
 	"sourceSelector": {
 		"loadingSources": "Загрузка источников...",
@@ -76,5 +80,11 @@
 		"microphoneDenied": "Нет доступа к микрофону. Запись продолжится без вашего голоса.",
 		"failedToStart": "Не удалось начать запись: {{error}}",
 		"failedToStartGeneric": "Не удалось начать запись"
+	},
+	"common": {
+		"dark": "Dark",
+		"light": "Light",
+		"loading": "Refreshing...",
+		"system": "System"
 	}
 }

@@ -6,7 +6,8 @@
 		"modeAuto": "Auto",
 		"modeManual": "Manual",
 		"modeManualDescription": "Defina um ponto de foco fixo para este zoom",
-		"modeAutoDescription": "A câmera segue o cursor automaticamente"
+		"modeAutoDescription": "A câmera segue o cursor automaticamente",
+		"globalSettings": "Animation"
 	},
 	"trim": {
 		"deleteRegion": "Excluir região de corte"
@@ -154,7 +155,40 @@
 		"paddingBottom": "Inferior",
 		"paddingLeft": "Esquerdo",
 		"paddingRight": "Direito",
-		"removeBackground": "Remover fundo"
+		"removeBackground": "Remover fundo",
+		"cameraDebugTuning": "Camera Debug Tuning",
+		"cameraDebugTuningHint": "Development-only spring tuning controls for camera motion.",
+		"cameraSpringDampingMultiplier": "Camera damping",
+		"cameraSpringMassMultiplier": "Camera mass",
+		"cameraSpringStiffnessMultiplier": "Camera stiffness",
+		"classicZoom": "Classic Animation",
+		"cursorDebugMovedToDev": "Cursor spring tuning is available in Settings > Dev.",
+		"cursorDebugTuning": "Cursor Debug Tuning",
+		"cursorDebugTuningHint": "Development-only spring tuning controls.",
+		"cursorSpringDampingMultiplier": "Spring damping",
+		"cursorSpringMassMultiplier": "Spring mass",
+		"cursorSpringStiffnessMultiplier": "Spring stiffness",
+		"devSection": "Dev",
+		"devSectionHint": "Temporary testing controls for native capture and motion tuning.",
+		"exportBlurMovedToDev": "Export blur tuning is available in Settings > Dev.",
+		"motionBlurDebug": "Motion Blur Debug",
+		"motionBlurDebugHint": "Development-only tuning for the split move-vs-zoom blur path. Pan controls drive the streak filter, and zoom controls drive the focus-centered zoom filter.",
+		"motionBlurPanStrength": "Pan max blur",
+		"motionBlurPanThreshold": "Pan threshold",
+		"motionBlurZoomStrength": "Zoom blur strength",
+		"motionBlurZoomThreshold": "Zoom threshold",
+		"nativeCaptureWarningTester": "Native capture warning",
+		"nativeCaptureWarningTesterAvailable": "This project is not marked as unsupported, but you can still open the modal for UI testing.",
+		"nativeCaptureWarningTesterUnavailable": "This project is currently marked as native capture unavailable.",
+		"openNativeCaptureWarning": "Open warning",
+		"paddingAdvanced": "Advanced",
+		"paddingAdvancedHide": "Hide advanced padding controls",
+		"paddingAdvancedShow": "Show advanced padding controls",
+		"webcamCustomPosition": "Custom position",
+		"webcamHorizontal": "Horizontal",
+		"webcamMargin": "Margin",
+		"webcamPosition": "Position",
+		"webcamVertical": "Vertical"
 	},
 	"sections": {
 		"scene": "Cena",
@@ -164,7 +198,9 @@
 		"cursor": "Cursor",
 		"webcam": "Webcam",
 		"frame": "Quadro",
-		"crop": "Corte"
+		"crop": "Corte",
+		"extensions": "Extensions",
+		"settings": "Settings"
 	},
 	"captions": {
 		"selectOnTimeline": "Selecione uma legenda na linha do tempo para editá-la.",
@@ -201,7 +237,10 @@
 			"split": "Split",
 			"merge": "Merge",
 			"delete": "Delete"
-		}
+		},
+		"editSaved": "Caption updated",
+		"generatingStatus": "Generating captions. This can take a moment.",
+		"selectModel": "Select Model"
 	},
 	"crop": {
 		"title": "Cortar vídeo",
@@ -225,7 +264,9 @@
 		"uploadVideoSuccess": "Fundo de vídeo adicionado",
 		"uploadVideoError": "Falha ao importar o fundo de vídeo",
 		"unsupportedVideoFormat": "Formato não suportado",
-		"unsupportedVideoFormatDescription": "Selecione um arquivo de vídeo (mp4, webm, mov, etc.)"
+		"unsupportedVideoFormatDescription": "Selecione um arquivo de vídeo (mp4, webm, mov, etc.)",
+		"uploadCustomVideo": "Upload Video",
+		"video": "Video"
 	},
 	"annotation": {
 		"delete": "Excluir anotação"
@@ -250,7 +291,31 @@
 		"saveProject": "Salvar projeto",
 		"exportVideo": "Exportar {{format}}",
 		"reportBug": "Reportar bug",
-		"starOnGithub": "Dar estrela no GitHub"
+		"starOnGithub": "Dar estrela no GitHub",
+		"captionSidecar": {
+			"hint": "Save .srt and .vtt files next to your exported video.",
+			"title": "Export captions file",
+			"toggle": "Export captions sidecar files"
+		},
+		"encoding": {
+			"balanced": "Balanced",
+			"fast": "Fast",
+			"quality": "Quality"
+		},
+		"encodingTitle": "Encoding",
+		"nvidiaCuda": {
+			"badge": "Experimental",
+			"hint": "Try GPU export on this Windows device.",
+			"title": "NVIDIA CUDA",
+			"toggle": "Enable experimental NVIDIA CUDA export"
+		},
+		"pipeline": {
+			"legacy": "Legacy",
+			"legacyHint": "Legacy uses the current stable WebCodecs export path.",
+			"lightningHint": "Lightning (Beta) automatically uses the fastest compatible backend and falls back when needed.",
+			"modern": "Lightning (Beta)"
+		},
+		"pipelineTitle": "Pipeline"
 	},
 	"audio": {
 		"title": "Áudio",
@@ -262,5 +327,13 @@
 		"micLabel": "Microfone",
 		"mixedLabel": "Fonte",
 		"deleteRegion": "Excluir áudio"
+	},
+	"editor": {
+		"theme": {
+			"appearance": "Appearance",
+			"dark": "Dark",
+			"light": "Light",
+			"system": "System"
+		}
 	}
 }

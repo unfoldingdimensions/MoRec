@@ -1,8 +1,8 @@
 {
 	"app": {
 		"name": "Mo Rec",
-		"editorTitle": "Mo Rec 编辑器",
-		"subtitle": "屏幕录制与编辑",
+		"editorTitle": "Mo Rec Editor",
+		"subtitle": "Screen recording and editing",
 		"language": "语言",
 		"manageRecordings": "打开录制文件夹"
 	},

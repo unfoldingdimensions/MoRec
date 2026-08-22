@@ -2,7 +2,7 @@
 	"app": {
 		"name": "Mo Rec",
 		"editorTitle": "Mo Rec Editor",
-		"subtitle": "Schermopname en bewerking",
+		"subtitle": "Screen recording and editing",
 		"language": "Taal",
 		"manageRecordings": "Opnamemap openen"
 	},

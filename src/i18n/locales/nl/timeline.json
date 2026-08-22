@@ -37,5 +37,6 @@
 	},
 	"addSpeed": "Snelheid toevoegen (S)",
 	"resizeLeft": "Links verkleinen",
-	"resizeRight": "Rechts verkleinen"
+	"resizeRight": "Rechts verkleinen",
+	"keyframeTooltip": "{{time}}ms — drag to move, Delete/Backspace to remove"
 }

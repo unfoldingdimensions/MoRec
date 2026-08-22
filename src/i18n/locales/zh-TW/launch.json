@@ -53,7 +53,11 @@
 			"upToDateTitle": "Mo Rec {{version}} 已是最新版本。",
 			"availableTitle": "Mo Rec {{version}} 已推出新版本。",
 			"availableGenericTitle": "有可用更新。"
-		}
+		},
+		"appearance": "Appearance",
+		"preparing": "Preparing recording",
+		"preparingSubtitle": "Opening the editor in a moment",
+		"previewUpdateUi": "Preview Update UI"
 	},
 	"sourceSelector": {
 		"loadingSources": "正在載入來源...",
@@ -76,5 +80,11 @@
 		"microphoneDenied": "麥克風存取遭拒，將在沒有麥克風音訊的情況下繼續錄製。",
 		"failedToStart": "無法開始錄製：{{error}}",
 		"failedToStartGeneric": "無法開始錄製"
+	},
+	"common": {
+		"dark": "Dark",
+		"light": "Light",
+		"loading": "Refreshing...",
+		"system": "System"
 	}
 }

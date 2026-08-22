@@ -37,5 +37,6 @@
 	},
 	"addSpeed": "Скорость (S)",
 	"resizeLeft": "Изменить размер слева",
-	"resizeRight": "Изменить размер справа"
+	"resizeRight": "Изменить размер справа",
+	"keyframeTooltip": "{{time}}ms — drag to move, Delete/Backspace to remove"
 }
