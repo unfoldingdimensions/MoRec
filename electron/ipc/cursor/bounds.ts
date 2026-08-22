@@ -4,8 +4,6 @@ import type { NativeMacWindowSource, WindowBounds, SelectedSource } from "../typ
 import {
 	selectedSource,
 	setSelectedWindowBounds,
-	interactionCaptureCleanup,
-	setInteractionCaptureCleanup,
 	windowBoundsCaptureInterval,
 	setWindowBoundsCaptureInterval,
 	cachedNativeMacWindowSources,
@@ -215,13 +213,6 @@ export async function resolveWindowsWindowBounds(
 		return bounds && bounds.width > 0 && bounds.height > 0 ? bounds : null;
 	} catch {
 		return null;
-	}
-}
-
-export function stopInteractionCapture() {
-	if (interactionCaptureCleanup) {
-		interactionCaptureCleanup();
-		setInteractionCaptureCleanup(null);
 	}
 }
 

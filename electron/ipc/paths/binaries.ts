@@ -73,10 +73,6 @@ export function resolvePreferredWindowsNativeHelperPath(
 		return prebundledPath;
 	}
 
-	if (existsSync(buildOutputPath)) {
-		return buildOutputPath;
-	}
-
 	return buildOutputPath;
 }
 

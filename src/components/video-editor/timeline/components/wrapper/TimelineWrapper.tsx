@@ -11,6 +11,7 @@ import { TimelineContext } from "dnd-timeline";
 import type { Dispatch, ReactNode, SetStateAction } from "react";
 import { useCallback, useRef } from "react";
 import type { TimelineRegionSpan } from "../../core/timelineTypes";
+import { formatPlayheadTime } from "../../core/time";
 import { clampRange, resolveDragEnd, resolveResizeEnd } from "../../dnd/engine";
 
 interface TimelineWrapperProps {
@@ -99,13 +100,6 @@ export default function TimelineWrapper({
 	// Drag/resize tooltip (direct DOM updates, no re-renders)
 	const tooltipRef = useRef<HTMLDivElement>(null);
 
-	const formatTooltipMs = useCallback((ms: number) => {
-		const s = ms / 1000;
-		const min = Math.floor(s / 60);
-		const sec = s % 60;
-		return min > 0 ? `${min}:${sec.toFixed(1).padStart(4, "0")}` : `${sec.toFixed(1)}s`;
-	}, []);
-
 	const showTooltip = useCallback(
 		(span: { start: number; end: number } | null, screenX?: number) => {
 			const el = tooltipRef.current;
@@ -114,7 +108,7 @@ export default function TimelineWrapper({
 				el.style.opacity = "0";
 				return;
 			}
-			el.textContent = `${formatTooltipMs(span.start)} – ${formatTooltipMs(span.end)}`;
+			el.textContent = `${formatPlayheadTime(span.start)} – ${formatPlayheadTime(span.end)}`;
 			el.style.opacity = "1";
 			if (screenX !== undefined) {
 				const parent = el.parentElement;
@@ -125,7 +119,7 @@ export default function TimelineWrapper({
 				}
 			}
 		},
-		[formatTooltipMs],
+		[],
 	);
 
 	const resolveDragPreviewSpan = useCallback(

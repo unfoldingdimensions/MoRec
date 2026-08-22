@@ -494,7 +494,11 @@ export function createHudOverlayWindow(): BrowserWindow {
 	hudOverlayWindow = win;
 
 	const screen = getScreen();
-	const handleDisplayRemoved = () => {};
+	const handleDisplayRemoved = () => {
+		// A removed display can leave the overlay positioned on a monitor that
+		// no longer exists; re-clamp like the metrics-changed path does.
+		applyHudOverlayBounds();
+	};
 	const handleDisplayMetricsChanged = () => {
 		applyHudOverlayBounds();
 	};
