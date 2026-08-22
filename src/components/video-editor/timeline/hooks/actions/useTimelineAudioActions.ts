@@ -40,28 +40,29 @@ async function defaultProbeAudioDurationMs(audioPath: string): Promise<number> {
 	const resolved = await resolveMediaElementSource(audioPath);
 	return new Promise<number>((resolve) => {
 		const audio = new Audio();
+		let settled = false;
+		const finish = (durationMs: number) => {
+			if (settled) return;
+			settled = true;
+			clearTimeout(timeout);
+			resolve(durationMs);
+			cleanup();
+		};
 		const cleanup = () => {
 			audio.removeAttribute("src");
 			audio.load();
 			resolved.revoke();
 		};
 
-		audio.addEventListener(
-			"loadedmetadata",
-			() => {
-				resolve(Math.round(audio.duration * 1000));
-				cleanup();
-			},
-			{ once: true },
-		);
-		audio.addEventListener(
-			"error",
-			() => {
-				resolve(0);
-				cleanup();
-			},
-			{ once: true },
-		);
+		// A stalled decode (revoked blob URL, unsupported codec probe) never
+		// fires either event; without a timeout the Add Audio action hangs
+		// forever with no feedback and leaks the object URL.
+		const timeout = setTimeout(() => finish(0), 10_000);
+
+		audio.addEventListener("loadedmetadata", () => finish(Math.round(audio.duration * 1000)), {
+			once: true,
+		});
+		audio.addEventListener("error", () => finish(0), { once: true });
 		audio.src = resolved.src;
 	});
 }
