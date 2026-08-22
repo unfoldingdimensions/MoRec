@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-import { type AspectRatio } from "@/utils/aspectRatioUtils";
 
 interface CropRegion {
 	x: number; // 0-1 normalized
@@ -13,7 +12,6 @@ interface CropControlProps {
 	videoElement: HTMLVideoElement | null;
 	cropRegion: CropRegion;
 	onCropChange: (region: CropRegion) => void;
-	aspectRatio: AspectRatio;
 }
 
 type DragHandle = "top" | "right" | "bottom" | "left" | null;

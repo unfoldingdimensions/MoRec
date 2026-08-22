@@ -6985,7 +6985,6 @@ export default function VideoEditor() {
 							videoElement={videoPlaybackRef.current?.video || null}
 							cropRegion={cropRegion}
 							onCropChange={setCropRegion}
-							aspectRatio={aspectRatio}
 						/>
 						<div className="mt-6 flex justify-end">
 							<Button
