@@ -13,7 +13,7 @@ import {
 	systemPreferences,
 } from "electron";
 import { showCursor } from "../../cursorHider";
-import { getMonitorHandles } from "../monitorResolver";
+import { getMonitorHandlesAsync } from "../monitorResolver";
 import { ALLOW_MOREC_WINDOW_CAPTURE } from "../constants";
 import { startWindowBoundsCapture, stopWindowBoundsCapture } from "../cursor/bounds";
 import { startInteractionCapture, stopInteractionCapture } from "../cursor/interaction";
@@ -457,7 +457,7 @@ export function registerRecordingHandlers(
 					} else {
 						// Windows Graphics Capture (WGC) requires a raw HMONITOR handle.
 						// We attempt to resolve the handle by matching the physical coordinates of the target display.
-						const monitors = getMonitorHandles();
+						const monitors = await getMonitorHandlesAsync();
 						const matchedMonitor = monitors.find(
 							(monitor) =>
 								monitor.x === Math.round(captureTarget.bounds.x) &&
