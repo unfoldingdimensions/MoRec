@@ -30,7 +30,12 @@ export default function PlaybackCursor({
 		const handleMouseMove = (e: MouseEvent) => {
 			if (!timelineRef.current || !onSeek) return;
 			const rect = timelineRef.current.getBoundingClientRect();
-			const clickX = e.clientX - rect.left - sidebarWidth;
+			// Mirror TimelineCanvas's RTL hit-testing: in RTL the track grows
+			// from the right edge, so measure from rect.right instead of rect.left.
+			const clickX =
+				direction === "rtl"
+					? rect.right - sidebarWidth - e.clientX
+					: e.clientX - rect.left - sidebarWidth;
 			const relativeMs = pixelsToValue(clickX);
 			let absoluteMs = Math.max(0, Math.min(range.start + relativeMs, videoDurationMs));
 
@@ -65,6 +70,7 @@ export default function PlaybackCursor({
 		onSeek,
 		timelineRef,
 		sidebarWidth,
+		direction,
 		range.start,
 		range.end,
 		videoDurationMs,

@@ -395,7 +395,13 @@ export async function listProjectLibraryEntries() {
 		.filter((entry): entry is ProjectLibraryEntry => entry != null)
 		.sort((left, right) => right.updatedAt - left.updatedAt);
 
-	await saveRecentProjectPaths(entries.map((entry) => entry.path));
+	// Listing the library must not prune recents that are temporarily
+	// unreadable (e.g. on an unmounted drive): keep every known recent path,
+	// with resolved entries first, instead of overwriting with only the
+	// currently readable subset.
+	await saveRecentProjectPaths(
+		Array.from(new Set([...entries.map((entry) => entry.path), ...recentProjectPaths])),
+	);
 
 	return {
 		projectsDir,

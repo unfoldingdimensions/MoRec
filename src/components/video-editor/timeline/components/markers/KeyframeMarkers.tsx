@@ -1,5 +1,6 @@
 import { useTimelineContext } from "dnd-timeline";
 import React, { useEffect, useState } from "react";
+import { useI18n } from "@/contexts/I18nContext";
 
 interface Keyframe {
 	id: string;
@@ -23,7 +24,9 @@ const KeyframeMarkers: React.FC<KeyframeMarkersProps> = ({
 	videoDurationMs,
 	timelineRef,
 }) => {
-	const { sidebarWidth, range, valueToPixels, pixelsToValue } = useTimelineContext();
+	const { sidebarWidth, range, valueToPixels, pixelsToValue, direction } = useTimelineContext();
+	const { t } = useI18n();
+	const sideProperty = direction === "rtl" ? "right" : "left";
 	const [draggingKeyframeId, setDraggingKeyframeId] = useState<string | null>(null);
 
 	useEffect(() => {
@@ -33,7 +36,11 @@ const KeyframeMarkers: React.FC<KeyframeMarkersProps> = ({
 			if (!timelineRef.current) return;
 
 			const rect = timelineRef.current.getBoundingClientRect();
-			const clickX = e.clientX - rect.left - sidebarWidth;
+			// Mirror TimelineCanvas's RTL hit-testing (measure from rect.right).
+			const clickX =
+				direction === "rtl"
+					? rect.right - sidebarWidth - e.clientX
+					: e.clientX - rect.left - sidebarWidth;
 			const relativeMs = pixelsToValue(clickX);
 			const absoluteMs = Math.max(0, Math.min(range.start + relativeMs, videoDurationMs));
 
@@ -60,6 +67,7 @@ const KeyframeMarkers: React.FC<KeyframeMarkersProps> = ({
 		onKeyframeMove,
 		timelineRef,
 		sidebarWidth,
+		direction,
 		range.start,
 		videoDurationMs,
 		pixelsToValue,
@@ -76,11 +84,11 @@ const KeyframeMarkers: React.FC<KeyframeMarkersProps> = ({
 					<div
 						key={kf.id}
 						className={`absolute top-8 cursor-grab active:cursor-grabbing ${isSelected ? "ring-2 ring-[#2563EB]" : ""}`}
-						style={{
-							left: `${sidebarWidth + offset - 8}px`,
-							zIndex: isDragging ? 50 : 40,
-							transition: isDragging ? "none" : "left 0.1s ease-out",
-						}}
+					style={{
+						[sideProperty]: `${sidebarWidth + offset - 8}px`,
+						zIndex: isDragging ? 50 : 40,
+						transition: isDragging ? "none" : `${sideProperty} 0.1s ease-out`,
+					}}
 						onMouseDown={(e) => {
 							e.stopPropagation();
 							setSelectedKeyframeId(kf.id);
@@ -94,7 +102,11 @@ const KeyframeMarkers: React.FC<KeyframeMarkersProps> = ({
 							e.stopPropagation();
 							setSelectedKeyframeId(kf.id);
 						}}
-						title={`Keyframe @ ${Math.round(kf.time)}ms (drag to move, Delete/Backspace to remove)`}
+						title={t(
+							"timeline.keyframeTooltip",
+							undefined,
+							{ time: Math.round(kf.time) },
+						)}
 					>
 						<div
 							style={{

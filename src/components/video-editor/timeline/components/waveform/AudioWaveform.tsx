@@ -67,8 +67,10 @@ function AudioWaveformComponent({
 
 			if (width === 0 || height === 0) return;
 
-			canvas.width = width;
-			canvas.height = height;
+			// Reallocating the backing store also wipes the canvas and resets
+			// context state, so only resize when the dimensions actually change.
+			if (canvas.width !== width) canvas.width = width;
+			if (canvas.height !== height) canvas.height = height;
 
 			ctx.clearRect(0, 0, width, height);
 
