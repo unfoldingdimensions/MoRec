@@ -18,6 +18,11 @@ export function sendWhisperModelDownloadProgress(
 		error?: string;
 	},
 ) {
+	// Progress fires from HTTPS stream handlers; the requesting window can be
+	// closed mid-download and send() on destroyed contents throws uncaught.
+	if (webContents.isDestroyed()) {
+		return;
+	}
 	webContents.send("whisper-small-model-download-progress", payload);
 }
 
