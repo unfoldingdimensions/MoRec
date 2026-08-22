@@ -343,6 +343,9 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 	const startTime = useRef<number>(0);
 	const webcamStartTime = useRef<number | null>(null);
 	const webcamTimeOffsetMs = useRef(0);
+	// Set by discard paths (cancel, window-unavailable) so the webcam onstop
+	// closure never writes a file for a session that will not be finalized.
+	const webcamDiscardRequested = useRef(false);
 	const recordingSessionTimestamp = useRef<number | null>(null);
 	const nativeScreenRecording = useRef(false);
 	const nativeWindowsRecording = useRef(false);
@@ -709,11 +712,24 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 					});
 				} catch (fallbackError) {
 					console.error("Failed to persist fallback video path:", fallbackError);
+					toast.error("Recording saved, but session metadata could not be persisted.", {
+						duration: 10000,
+					});
 				}
 			}
 
 			setFinalizing(false);
-			await window.electronAPI.switchToEditor();
+			try {
+				await window.electronAPI.switchToEditor();
+			} catch (switchError) {
+				// The recording is saved; a failed editor switch must not surface
+				// as "failed to finalize". Guide the user to the recording instead.
+				console.error("Failed to switch to the editor after finalization:", switchError);
+				toast.error(
+					"Recording saved, but the editor could not be opened. Reopen the app and load it from your recordings.",
+					{ duration: 10000 },
+				);
+			}
 			console.log(
 				`[PERF:RENDERER] Finalize Session & Switch to Editor: COMPLETED in ${(performance.now() - start).toFixed(2)}ms`,
 			);
@@ -933,7 +949,16 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 				mediaTrackSettings,
 			);
 			if (isNativeWindows && typeof window.electronAPI?.muxNativeWindowsRecording === "function") {
-				await window.electronAPI.muxNativeWindowsRecording(expectedDurationMs);
+				try {
+					await window.electronAPI.muxNativeWindowsRecording(expectedDurationMs);
+				} catch (muxError) {
+					// Companion audio muxing is best-effort: the recovered video is
+					// already on disk, so finish the session without the mux.
+					console.error("Failed to mux recovered native Windows recording:", muxError);
+					toast.error("Recording recovered, but the audio companion could not be muxed.", {
+						duration: 10000,
+					});
+				}
 			}
 			await finalizeRecordingSession(result.path, webcamPath);
 
@@ -996,6 +1021,13 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 			});
 
 			webcamRecorder.current = recorder;
+			webcamDiscardRequested.current = false;
+			// If the webcam device is unplugged mid-take, resolve the pending
+			// stop promise so finalization cannot hang waiting for a dead track.
+			webcamStream.current?.getVideoTracks()[0]?.addEventListener("ended", () => {
+				console.warn("[useScreenRecorder] Webcam track ended; dropping the webcam layer.");
+				webcamStopResolver.current?.(null);
+			});
 			recorder.ondataavailable = (event) => {
 				if (event.data && event.data.size > 0) {
 					webcamChunks.current.push(event.data);
@@ -1011,7 +1043,7 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 				const webcamFileName = `${RECORDING_FILE_PREFIX}${sessionTimestamp}${WEBCAM_SUFFIX}${getVideoExtensionForMimeType(webcamMimeType)}`;
 
 				try {
-					if (webcamChunks.current.length === 0) {
+					if (webcamDiscardRequested.current || webcamChunks.current.length === 0) {
 						webcamStopResolver.current?.(null);
 						return;
 					}
@@ -1033,6 +1065,11 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 						arrayBuffer,
 						webcamFileName,
 					);
+					if (!result.success && result.path) {
+						// A failed store can leave a partially written file behind;
+						// it will never be part of a finalized session.
+						void window.electronAPI.deleteRecordingFile(result.path);
+					}
 					webcamStopResolver.current?.(result.success ? (result.path ?? null) : null);
 				} catch (error) {
 					console.error("Error saving webcam recording:", error);
@@ -1156,7 +1193,18 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 					);
 
 					if (isNativeWindows) {
-						await window.electronAPI.muxNativeWindowsRecording(expectedDurationMs);
+						try {
+							await window.electronAPI.muxNativeWindowsRecording(expectedDurationMs);
+						} catch (muxError) {
+							// Companion audio muxing is best-effort per the stop
+							// contract: the video is already saved, so finalize the
+							// session instead of failing the whole recording.
+							console.error("Failed to mux native Windows recording audio:", muxError);
+							toast.error(
+								"Recording saved, but the audio companion could not be muxed.",
+								{ duration: 10000 },
+							);
+						}
 					}
 
 					await finalizeRecordingSession(finalPath, webcamPath);
@@ -1380,7 +1428,20 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 							setFinalizing(false);
 							cleanupCapturedMediaRef.current();
 						}
+
+						// Recovery failed without throwing: the webcam companion was
+						// already saved but has no parent session, so remove it.
+						void webcamPathPromise.then((webcamPath) => {
+							if (webcamPath) {
+								void window.electronAPI.deleteRecordingFile(webcamPath);
+							}
+						});
 					} else {
+						// The companion webcam recorder's async onstop can outlive this
+						// handler; mark the session as discarded so it never writes a
+						// webcam file that no recording session will reference.
+						webcamDiscardRequested.current = true;
+						webcamChunks.current = [];
 						cleanupCapturedMediaRef.current();
 						await stopWebcamRecorderRef.current();
 					}
@@ -1582,37 +1643,45 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 							micFallbackRequestedConstraints.current = microphoneConstraints;
 							const micStream =
 								await navigator.mediaDevices.getUserMedia(microphoneConstraints);
-							micFallbackTrackSettings.current =
-								createMicrophoneTrackSettingsSnapshot(micStream);
-							micFallbackAudioInputDevices.current =
-								await createAudioInputDeviceSnapshot().catch(() => null);
-							console.info(
-								"Browser microphone track settings:",
-								micFallbackTrackSettings.current,
-							);
-							console.info(
-								"Browser microphone audio input devices:",
-								micFallbackAudioInputDevices.current,
-							);
-							micFallbackChunks.current = [];
-							const recorder = new MediaRecorder(micStream, {
-								mimeType: "audio/webm;codecs=opus",
-								audioBitsPerSecond: AUDIO_BITRATE_VOICE,
-							});
-							micFallbackRecorderMetadata.current = {
-								mimeType: recorder.mimeType,
-								audioBitsPerSecond: AUDIO_BITRATE_VOICE,
-								timesliceMs: RECORDER_TIMESLICE_MS,
-							};
-							resetMicFallbackTimingDiagnostics();
-							micFallbackRecorderStartedAt.current = performance.now();
-							recorder.ondataavailable = appendMicFallbackChunk;
-							micFallbackStartDelayMs.current = Math.max(
-								0,
-								Date.now() - mainStartedAt,
-							);
-							recorder.start(RECORDER_TIMESLICE_MS);
-							micFallbackRecorder.current = recorder;
+							try {
+								micFallbackTrackSettings.current =
+									createMicrophoneTrackSettingsSnapshot(micStream);
+								micFallbackAudioInputDevices.current =
+									await createAudioInputDeviceSnapshot().catch(() => null);
+								console.info(
+									"Browser microphone track settings:",
+									micFallbackTrackSettings.current,
+								);
+								console.info(
+									"Browser microphone audio input devices:",
+									micFallbackAudioInputDevices.current,
+								);
+								micFallbackChunks.current = [];
+								const recorder = new MediaRecorder(micStream, {
+									mimeType: "audio/webm;codecs=opus",
+									audioBitsPerSecond: AUDIO_BITRATE_VOICE,
+								});
+								micFallbackRecorderMetadata.current = {
+									mimeType: recorder.mimeType,
+									audioBitsPerSecond: AUDIO_BITRATE_VOICE,
+									timesliceMs: RECORDER_TIMESLICE_MS,
+								};
+								resetMicFallbackTimingDiagnostics();
+								micFallbackRecorderStartedAt.current = performance.now();
+								recorder.ondataavailable = appendMicFallbackChunk;
+								micFallbackStartDelayMs.current = Math.max(
+									0,
+									Date.now() - mainStartedAt,
+								);
+								recorder.start(RECORDER_TIMESLICE_MS);
+								micFallbackRecorder.current = recorder;
+							} catch (setupError) {
+								// The mic stream was acquired but recorder setup failed;
+								// stop the tracks or the hardware stays locked for the
+								// rest of the session.
+								micStream.getTracks().forEach((track) => track.stop());
+								throw setupError;
+							}
 						} catch (micError) {
 							micFallbackStartDelayMs.current = null;
 							micFallbackTrackSettings.current = null;
@@ -1770,8 +1839,11 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 						);
 					} catch (audioError) {
 						console.warn("Failed to get microphone access:", audioError);
-						alert(
+						// Non-blocking notice: an alert() here would freeze the renderer
+						// while the capture pipeline is still spinning up.
+						toast.error(
 							"Microphone access was denied. Recording will continue without microphone audio.",
+							{ id: MICROPHONE_FALLBACK_ERROR_TOAST_ID, duration: 10000 },
 						);
 						setMicrophoneEnabled(false);
 					}
@@ -1835,6 +1907,15 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 			if (!stream.current || !videoTrack) {
 				throw new Error("Media stream is not available.");
 			}
+
+			// A device/capture-source loss ends the video track mid-take; stop and
+			// save whatever was captured instead of producing a broken file.
+			videoTrack.addEventListener("ended", () => {
+				console.warn(
+					"[useScreenRecorder] Capture video track ended (device lost); stopping the recording.",
+				);
+				stopRecordingRef.current();
+			});
 
 			try {
 				await videoTrack.applyConstraints({
@@ -2123,6 +2204,7 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 		markRecordingResumed(Date.now());
 
 		// Discard webcam recording regardless of recording mode
+		webcamDiscardRequested.current = true;
 		webcamChunks.current = [];
 		if (webcamRecorder.current && webcamRecorder.current.state !== "inactive") {
 			try {
