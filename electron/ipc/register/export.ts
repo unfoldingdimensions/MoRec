@@ -50,7 +50,11 @@ import {
 	type NativeVideoExportFinishOptions,
 } from "../nativeVideoExport";
 import { isAllowedLocalReadPath, resolveApprovedLocalMediaPath } from "../project/manager";
-import { approveUserPath } from "../utils";
+import {
+	approveUserPath,
+	approveUserWritePath,
+	resolveApprovedUserWritePath,
+} from "../utils";
 
 function getPartialExportDestinationPath(destinationPath: string) {
 	const parsed = path.parse(destinationPath);
@@ -871,6 +875,7 @@ export function registerExportHandlers() {
 				}
 
 				await fs.writeFile(result.filePath, Buffer.from(videoData));
+				approveUserWritePath(result.filePath);
 				const captionSidecarResult = await writeCaptionSidecarsBestEffort(
 					result.filePath,
 					sidecarPayload,
@@ -916,7 +921,19 @@ export function registerExportHandlers() {
 					};
 				}
 
-				const resolvedPath = path.resolve(outputPath);
+				// The renderer is untrusted; only destinations the app itself chose
+				// (save dialog result or registered smoke-export output) may be
+				// written. The target is rebuilt from the approved root + basename.
+				const approvedExportPath = resolveApprovedUserWritePath(outputPath);
+				if (!approvedExportPath) {
+					return {
+						success: false,
+						message: "Export destination was not approved by the app",
+						canceled: false,
+						error: "Export destination was not approved by the app",
+					};
+				}
+				const resolvedPath = approvedExportPath;
 				await fs.mkdir(path.dirname(resolvedPath), { recursive: true });
 				await fs.writeFile(resolvedPath, Buffer.from(videoData));
 				const captionSidecarResult = await writeCaptionSidecarsBestEffort(
@@ -981,8 +998,9 @@ export function registerExportHandlers() {
 
 			try {
 				const sidecarPayload = parseCaptionSidecarPayload(payload.captionSidecar);
-				if (payload.outputPath) {
-					const resolvedPath = path.resolve(payload.outputPath);
+				const approvedOutputPath = resolveApprovedUserWritePath(payload.outputPath);
+				if (approvedOutputPath) {
+					const resolvedPath = approvedOutputPath;
 					await moveExportedTempFile(tempPath, resolvedPath);
 					releaseOwnedExportPath(tempPath);
 					const captionSidecarResult = await writeCaptionSidecarsBestEffort(
@@ -1029,6 +1047,7 @@ export function registerExportHandlers() {
 
 				await moveExportedTempFile(tempPath, result.filePath);
 				releaseOwnedExportPath(tempPath);
+				approveUserWritePath(result.filePath);
 				const captionSidecarResult = await writeCaptionSidecarsBestEffort(
 					result.filePath,
 					sidecarPayload,

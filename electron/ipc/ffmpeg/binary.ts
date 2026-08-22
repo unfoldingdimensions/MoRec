@@ -128,6 +128,15 @@ export function getFfmpegBinaryPath(): string {
 		}
 	}
 
+	// PATH-based lookup is a development convenience. In packaged builds the
+	// environment is untrusted and must not decide which executable media
+	// exports spawn, so require the bundled binary instead.
+	if (app.isPackaged) {
+		throw new Error(
+			"FFmpeg binary is missing from this app build. Reinstall or update the app.",
+		);
+	}
+
 	const systemFfmpeg = resolveSystemFfmpegBinaryPath();
 	if (systemFfmpeg) {
 		return systemFfmpeg;
@@ -148,6 +157,13 @@ export function getFfprobeBinaryPath(): string {
 		if (existsSync(bundledPath)) {
 			return bundledPath;
 		}
+	}
+
+	// See getFfmpegBinaryPath: no PATH fallback in packaged builds.
+	if (app.isPackaged) {
+		throw new Error(
+			"FFprobe binary is missing from this app build. Reinstall or update the app.",
+		);
 	}
 
 	const systemFfprobe = resolveSystemFfprobeBinaryPath();

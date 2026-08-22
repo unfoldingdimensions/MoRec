@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { approveUserWritePath } from "../approvedPaths";
 import {
 	parseCaptionSidecarPayload,
 	serializeSrt,
@@ -59,6 +60,7 @@ describe("exportCaptionSidecars", () => {
 		const writeFileSpy = vi
 			.spyOn(fs, "writeFile")
 			.mockRejectedValueOnce(new Error("disk full"));
+		approveUserWritePath("/tmp/export.mp4");
 
 		await expect(
 			writeCaptionSidecarsBestEffort("/tmp/export.mp4", {
@@ -73,9 +75,22 @@ describe("exportCaptionSidecars", () => {
 		expect(writeFileSpy).toHaveBeenCalledTimes(1);
 	});
 
+	it("returns a warning result instead of throwing when the destination is not approved", async () => {
+		await expect(
+			writeCaptionSidecarsBestEffort("/tmp/unapproved-export.mp4", {
+				format: "srt",
+				cues: [{ startMs: 0, endMs: 1000, text: "Caption" }],
+			}),
+		).resolves.toEqual({
+			wroteAny: false,
+			error: "Caption sidecar destination was not approved by the app",
+		});
+	});
+
 	it("writes requested caption sidecars when the filesystem succeeds", async () => {
 		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "morec-sidecar-test-"));
 		const videoPath = path.join(tempDir, "clip.mp4");
+		approveUserWritePath(videoPath);
 
 		try {
 			await expect(

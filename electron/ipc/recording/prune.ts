@@ -72,6 +72,13 @@ async function loadSavedProjectMediaPaths() {
 			})
 			.map(async (entry) => {
 				const projectPath = path.join(projectsDir, entry.name);
+				// Defensive containment: readdir names cannot normally escape the
+				// directory, but guarantee the joined path stays inside it before
+				// reading and deriving protected paths from its contents.
+				const resolvedProjectsDir = path.resolve(projectsDir);
+				if (!path.resolve(projectPath).startsWith(resolvedProjectsDir + path.sep)) {
+					return;
+				}
 				let rawProject: {
 					videoPath?: unknown;
 					editor?: { webcam?: { sourcePath?: unknown } };

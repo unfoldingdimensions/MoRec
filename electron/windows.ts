@@ -5,6 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { app, BrowserWindow, ipcMain } from "electron";
 import { USER_DATA_PATH } from "./appPaths";
+import { approveUserWritePath } from "./ipc/utils";
 import {
 	getHudOverlayWindowBounds,
 	resizeHudOverlayFallbackBounds,
@@ -62,6 +63,11 @@ function getEditorWindowQuery(): Record<string, string> {
 		}
 		if (process.env.MOREC_SMOKE_EXPORT_OUTPUT) {
 			query.smokeOutput = process.env.MOREC_SMOKE_EXPORT_OUTPUT;
+			// Pre-register the harness-chosen destination (and its derived report
+			// sibling) so the export write IPCs accept them; renderer-supplied
+			// paths are otherwise rejected as untrusted.
+			approveUserWritePath(process.env.MOREC_SMOKE_EXPORT_OUTPUT);
+			approveUserWritePath(`${process.env.MOREC_SMOKE_EXPORT_OUTPUT}.report.json`);
 		}
 		if (process.env.MOREC_SMOKE_EXPORT_USE_NATIVE === "1") {
 			query.smokeUseNativeExport = "1";

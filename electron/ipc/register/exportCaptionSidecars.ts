@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { isApprovedUserWritePath } from "../approvedPaths";
 
 export type CaptionSidecarCue = {
 	startMs: number;
@@ -112,8 +113,21 @@ export async function writeCaptionSidecars(
 		return;
 	}
 
-	const parsed = path.parse(videoPath);
+	// Sidecar files are derived from the renderer-supplied video path; only
+	// write them beside destinations the app itself approved.
+	if (!isApprovedUserWritePath(videoPath)) {
+		throw new Error("Caption sidecar destination was not approved by the app");
+	}
+
+	const parsed = path.parse(path.resolve(videoPath));
 	const basePath = path.join(parsed.dir, parsed.name);
+	const sidecarRoot = parsed.dir;
+	for (const sidecarPath of [`${basePath}.srt`, `${basePath}.vtt`]) {
+		const resolved = path.resolve(sidecarPath);
+		if (!resolved.startsWith(sidecarRoot + path.sep)) {
+			throw new Error("Caption sidecar path escapes the export directory");
+		}
+	}
 
 	if (payload.format === "srt" || payload.format === "both") {
 		await fs.writeFile(`${basePath}.srt`, serializeSrt(payload.cues), "utf8");

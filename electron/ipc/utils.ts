@@ -129,3 +129,9 @@ export function approveUserPath(filePath: string | null | undefined): void {
 		// Ignore invalid paths; later reads will surface the underlying error.
 	}
 }
+
+export {
+	approveUserWritePath,
+	isApprovedUserWritePath,
+	resolveApprovedUserWritePath,
+} from "./approvedPaths";
