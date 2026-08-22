@@ -29,6 +29,7 @@ import {
 } from "@phosphor-icons/react";
 import type { Span } from "dnd-timeline";
 import { motion } from "motion/react";
+import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -4123,20 +4124,27 @@ export default function VideoEditor() {
 
 				if (isMove) {
 					const delta = startDelta;
-					setZoomRegions((prev) =>
-						prev.map((zoom) => {
+					const shiftOverlapping = <T extends { startMs: number; endMs: number }>(
+						items: T[],
+					): T[] =>
+						items.map((item) => {
 							const overlaps =
-								zoom.startMs < oldClip.endMs && zoom.endMs > oldClip.startMs;
+								item.startMs < oldClip.endMs && item.endMs > oldClip.startMs;
 							if (overlaps) {
 								return {
-									...zoom,
-									startMs: zoom.startMs + delta,
-									endMs: zoom.endMs + delta,
+									...item,
+									startMs: item.startMs + delta,
+									endMs: item.endMs + delta,
 								};
 							}
-							return zoom;
-						}),
-					);
+							return item;
+						});
+
+					setZoomRegions((prev) => shiftOverlapping(prev));
+					setAnnotationRegions((prev) => shiftOverlapping(prev));
+					setSpeedRegions((prev) => shiftOverlapping(prev));
+					setAudioRegions((prev) => shiftOverlapping(prev));
+					setAutoCaptions((prev) => shiftOverlapping(prev));
 				}
 			}
 
@@ -4156,6 +4164,7 @@ export default function VideoEditor() {
 				setAnnotationRegions((prev) => removeTrimmedRegions(prev));
 				setSpeedRegions((prev) => removeTrimmedRegions(prev));
 				setAudioRegions((prev) => removeTrimmedRegions(prev));
+				setAutoCaptions((prev) => removeTrimmedRegions(prev));
 			}
 
 			setClipRegions((prev) =>
@@ -4241,6 +4250,9 @@ export default function VideoEditor() {
 				);
 				setAudioRegions((prev) =>
 					prev.filter((region) => region.endMs <= startMs || region.startMs >= endMs),
+				);
+				setAutoCaptions((prev) =>
+					prev.filter((cue) => cue.endMs <= startMs || cue.startMs >= endMs),
 				);
 			}
 			if (selectedClipId === id) {
@@ -6286,19 +6298,25 @@ export default function VideoEditor() {
 				</div>
 			</div>
 
-			<div className="relative flex min-h-0 flex-1 flex-col gap-3 p-4">
-				<div className="flex min-h-0 flex-1 gap-3 relative z-10">
-					{/* Settings sidebar */}
-					<div className="flex flex-shrink-0 gap-1.5">
-						{/* Icon rail */}
-						<div className="flex flex-shrink-0 flex-col items-center gap-0.5 px-2 py-2">
-							{editorSectionButtons.map((section) => {
-								const isActive = activeEffectSection === section.id;
-								return (
-									<div key={section.id} className="flex items-center">
-										<motion.button
-											type="button"
-											onClick={() => setActiveEffectSection(section.id)}
+			<PanelGroup direction="vertical" className="relative flex min-h-0 flex-1 flex-col gap-2 p-4">
+				<Panel defaultSize={82} minSize={40} className="flex min-h-0 flex-1 flex-col">
+					<PanelGroup direction="horizontal" className="flex min-h-0 flex-1 gap-2 relative z-10">
+						{/* Settings sidebar */}
+						<Panel
+							defaultSize={26}
+							minSize={18}
+							maxSize={45}
+							className="flex min-w-[280px] gap-1.5"
+						>
+							{/* Icon rail */}
+							<div className="flex flex-shrink-0 flex-col items-center gap-0.5 px-2 py-2">
+								{editorSectionButtons.map((section) => {
+									const isActive = activeEffectSection === section.id;
+									return (
+										<div key={section.id} className="flex items-center">
+											<motion.button
+												type="button"
+												onClick={() => setActiveEffectSection(section.id)}
 											title={section.label}
 											className="group relative flex h-9 w-9 items-center justify-center rounded-lg outline-none focus:outline-none focus-visible:outline-none"
 											animate={{ opacity: isActive ? 1 : 0.55 }}
@@ -6591,12 +6609,17 @@ export default function VideoEditor() {
 								onAnnotationDelete={handleAnnotationDelete}
 							/>
 						)}
-					</div>
-					{/* Right column: preview + timeline */}
-					<div className="flex min-h-0 flex-1 flex-col gap-3">
-						{/* Preview */}
-						<div className="flex min-h-0 flex-1 flex-col">
-							<div className="relative flex flex-1 min-h-0 flex-col overflow-hidden">
+						</Panel>
+
+						<PanelResizeHandle className="group relative flex w-1.5 items-center justify-center cursor-col-resize rounded-full hover:bg-foreground/10 transition-colors">
+							<div className="h-8 w-0.5 rounded-full bg-foreground/20 group-hover:bg-foreground/40 transition-colors" />
+						</PanelResizeHandle>
+
+						{/* Right column: preview */}
+						<Panel defaultSize={74} minSize={50} className="flex min-h-0 min-w-0 flex-1 flex-col">
+							{/* Preview */}
+							<div className="flex min-h-0 flex-1 flex-col">
+								<div className="relative flex flex-1 min-h-0 flex-col overflow-hidden">
 								{/* Aspect ratio + crop controls above preview */}
 								<div className="flex items-center justify-center gap-2 py-1.5 flex-shrink-0">
 									<DropdownMenu>
@@ -6852,14 +6875,19 @@ export default function VideoEditor() {
 								</div>
 							</div>
 						</div>
-					</div>
-				</div>
-				<div
-					className="flex-shrink-0 flex flex-col"
-					style={{
-						height: "15%",
-						minHeight: 160,
-					}}
+						</Panel>
+					</PanelGroup>
+				</Panel>
+
+				<PanelResizeHandle className="group relative flex h-1.5 items-center justify-center cursor-row-resize rounded-full hover:bg-foreground/10 transition-colors">
+					<div className="h-0.5 w-12 rounded-full bg-foreground/20 group-hover:bg-foreground/40 transition-colors" />
+				</PanelResizeHandle>
+
+				<Panel
+					defaultSize={18}
+					minSize={10}
+					maxSize={50}
+					className="flex min-h-[140px] flex-col"
 				>
 					<TimelineEditor
 						ref={timelineRef}
@@ -6925,9 +6953,9 @@ export default function VideoEditor() {
 							audio.onSourceAudioTracksMetaChange(tracks);
 						}}
 					/>
-				</div>
-			</div>
-
+				</Panel>
+			</PanelGroup>
+			
 			{showCropModal ? (
 				<>
 					<div

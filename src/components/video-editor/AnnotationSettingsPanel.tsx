@@ -8,7 +8,6 @@ import {
 	Info,
 	TextItalic as Italic,
 	BoundingBox as SquareDashed,
-	Trash as Trash2,
 	TextT as Type,
 	TextUnderline as Underline,
 	UploadSimple as Upload,
@@ -43,7 +42,7 @@ interface AnnotationSettingsPanelProps {
 	onFigureDataChange?: (figureData: FigureData) => void;
 	onBlurIntensityChange?: (intensity: number) => void;
 	onBlurColorChange?: (color: string) => void;
-	onDelete: () => void;
+	onDelete?: () => void;
 }
 
 export const FONT_FAMILY_VALUES = [
@@ -67,7 +66,6 @@ export function AnnotationSettingsPanel({
 	onFigureDataChange,
 	onBlurIntensityChange,
 	onBlurColorChange,
-	onDelete,
 }: AnnotationSettingsPanelProps) {
 	const t = useScopedT("editor");
 	const fileInputRef = useRef<HTMLInputElement>(null);
@@ -147,17 +145,16 @@ export function AnnotationSettingsPanel({
 	};
 
 	return (
-		<div className="flex-[2] min-w-0 bg-editor-panel border border-foreground/10 rounded-2xl flex flex-col shadow-xl h-full overflow-hidden">
-			<div className="flex-1 min-h-0 p-4 overflow-y-auto custom-scrollbar">
-				<div className="mb-6">
-					<div className="flex items-center justify-between mb-4">
-						<span className="text-sm font-medium text-foreground">
-							{t("annotations.settings")}
-						</span>
-						<span className="text-[10px] uppercase tracking-wider font-medium text-[#2563EB] bg-[#2563EB]/10 px-2 py-1 rounded-full">
-							{t("annotations.active")}
-						</span>
-					</div>
+		<div className="space-y-4">
+			<div>
+				<div className="flex items-center justify-between mb-4">
+					<span className="text-sm font-medium text-foreground">
+						{t("annotations.settings")}
+					</span>
+					<span className="text-[10px] uppercase tracking-wider font-medium text-[#2563EB] bg-[#2563EB]/10 px-2 py-1 rounded-full">
+						{t("annotations.active")}
+					</span>
+				</div>
 
 					{/* Type Selector */}
 					<Tabs
@@ -810,17 +807,5 @@ export function AnnotationSettingsPanel({
 					</div>
 				</div>
 			</div>
-			<div className="flex-shrink-0 border-t border-foreground/10 bg-editor-panel p-4 pt-3">
-				<Button
-					onClick={onDelete}
-					variant="destructive"
-					size="sm"
-					className="w-full gap-2 bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 hover:border-red-500/30 transition-all"
-				>
-					<Trash2 className="w-4 h-4" />
-					{t("annotations.deleteAnnotation")}
-				</Button>
-			</div>
-		</div>
 	);
 }

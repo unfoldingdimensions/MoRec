@@ -780,7 +780,7 @@ export default function ExtensionManager() {
 	);
 
 	return (
-		<div className="flex-[2] w-[332px] min-w-[280px] max-w-[332px] bg-editor-panel border border-foreground/10 rounded-2xl flex flex-col shadow-xl h-full overflow-hidden">
+		<div className="flex-[2] w-full min-w-0 bg-editor-panel border border-foreground/10 rounded-2xl flex flex-col shadow-xl h-full overflow-hidden">
 			{/* Header */}
 			<div className="flex-shrink-0 p-4 pb-3">
 				<div className="flex items-center justify-between mb-3">
