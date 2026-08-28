@@ -3,7 +3,7 @@
 	"productName": "Mo Rec",
 	"description": "A free, creator-focused screen recorder and editor with auto-zoom, cursor effects, backgrounds, annotations, and more.",
 	"private": true,
-	"version": "1.0.0",
+	"version": "0.2.0",
 	"type": "module",
 	"scripts": {
 		"dev": "vite --config vite.config.ts",
