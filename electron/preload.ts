@@ -184,9 +184,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	hudOverlaySetSourceSelectionActive: (active: boolean) => {
 		ipcRenderer.send("hud-overlay-set-source-selection-active", active);
 	},
-	hudOverlayDrag: (phase: "start" | "move" | "end", screenX: number, screenY: number) => {
-		ipcRenderer.send("hud-overlay-drag", phase, screenX, screenY);
-	},
 	hudOverlayHide: () => {
 		ipcRenderer.send("hud-overlay-hide");
 	},
@@ -586,9 +583,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	setRecordingState: (recording: boolean) => {
 		return ipcRenderer.invoke("set-recording-state", recording);
 	},
-	setCursorScale: (scale: number) => {
-		return ipcRenderer.invoke("set-cursor-scale", scale);
-	},
 	getCursorTelemetry: (videoPath?: string) => {
 		return ipcRenderer.invoke("get-cursor-telemetry", videoPath);
 	},
@@ -920,9 +914,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	},
 	getPlatform: () => {
 		return ipcRenderer.invoke("get-platform");
-	},
-	getLinuxWindowSystem: () => {
-		return ipcRenderer.invoke("get-linux-window-system");
 	},
 	revealInFolder: (filePath: string) => {
 		return ipcRenderer.invoke("reveal-in-folder", filePath);
