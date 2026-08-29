@@ -56,6 +56,17 @@ If you encounter a bug or have a feature request, please open an issue in the [I
 - Write clear, concise, and descriptive commit messages.
 - Include comments where necessary to explain complex code.
 
+## Testing
+
+Run the full suite with `npm test` (vitest). Tests default to a Node environment; DOM-dependent tests opt in per file with a `// @vitest-environment jsdom` docblock at the top.
+
+Shared harnesses:
+- `src/test/electronApiMock.ts` — configurable `window.electronAPI` factory for hook and component tests.
+- `src/test/renderWithProviders.tsx` — renders components wrapped in the providers they expect (I18n).
+- `electron/test/ipcRegistry.ts` — mounts `electron/ipc/register/*` modules with a mocked `electron` module and invokes handlers by channel name (see `register/project.test.ts` for the established pattern).
+
+When fixing a bug, add a test that reproduces it first. New IPC handlers and user-facing features should ship with handler-level or component-level tests.
+
 ## License
 
 By contributing to this project, you agree that your contributions will be licensed under the [MIT License](./LICENSE).
