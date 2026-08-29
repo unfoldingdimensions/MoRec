@@ -138,7 +138,17 @@ describe("register/settings handlers", () => {
 			// Writes are debounced.
 			await vi.advanceTimersByTimeAsync(400);
 
-			const stored = JSON.parse(await fs.readFile(files.appSettings, "utf-8"));
+			// The debounced save writes via real fs; retry-read so a slow disk
+			// completion cannot race the assertion.
+			let stored: { theme?: string } = {};
+			for (let attempt = 0; attempt < 20 && stored.theme !== "dark"; attempt += 1) {
+				await vi.advanceTimersByTimeAsync(50);
+				try {
+					stored = JSON.parse(await fs.readFile(files.appSettings, "utf-8"));
+				} catch {
+					// File not written yet.
+				}
+			}
 			expect(stored.theme).toBe("dark");
 			expect(await registry.invoke("app-settings:get", "theme")).toEqual({
 				success: true,
