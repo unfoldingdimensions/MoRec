@@ -395,13 +395,10 @@ export function registerSettingsHandlers() {
 	});
 
 	ipcMain.handle("cancel-countdown", () => {
+		// Only flag the cancellation: the interval callback owns the cleanup and
+		// resolves the in-flight start-countdown promise on its next tick. Clearing
+		// the interval here would leave that promise pending forever.
 		setCountdownCancelled(true);
-		setCountdownInProgress(false);
-		setCountdownRemaining(null);
-		if (countdownTimer) {
-			clearInterval(countdownTimer);
-			setCountdownTimer(null);
-		}
 		closeCountdownWindow();
 		return { success: true };
 	});
