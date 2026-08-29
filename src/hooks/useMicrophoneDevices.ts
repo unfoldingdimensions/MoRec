@@ -37,8 +37,13 @@ export function useMicrophoneDevices(enabled: boolean = true, preferredDeviceId?
 						groupId: device.groupId,
 					}));
 
+				// Check the RAW enumeration, not the mapped list: the mapping applies
+				// fallback labels, which would make unlabeled devices look labeled
+				// and the permission request would never fire.
+				const rawAudioInputs = allDevices.filter((device) => device.kind === "audioinput");
 				const needsLabelPermission =
-					audioInputs.length > 0 && audioInputs.every((device) => !device.label.trim());
+					rawAudioInputs.length > 0 &&
+					rawAudioInputs.every((device) => !device.label.trim());
 
 				if (needsLabelPermission && !hasRequestedMicrophoneLabels) {
 					hasRequestedMicrophoneLabels = true;

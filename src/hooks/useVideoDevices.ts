@@ -41,8 +41,13 @@ export function useVideoDevices(enabled: boolean = true, preferredDeviceId?: str
 						groupId: device.groupId,
 					}));
 
+				// Check the RAW enumeration, not the mapped list: the mapping applies
+				// fallback labels, which would make unlabeled devices look labeled
+				// and the permission request would never fire.
+				const rawVideoInputs = allDevices.filter((device) => device.kind === "videoinput");
 				const needsLabelPermission =
-					videoInputs.length > 0 && videoInputs.every((device) => !device.label.trim());
+					rawVideoInputs.length > 0 &&
+					rawVideoInputs.every((device) => !device.label.trim());
 
 				if (needsLabelPermission && !hasRequestedVideoLabels) {
 					permissionStream = await navigator.mediaDevices.getUserMedia({
