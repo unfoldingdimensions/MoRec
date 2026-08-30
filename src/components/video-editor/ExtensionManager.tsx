@@ -241,9 +241,11 @@ function MarketplaceCard({
 					</span>
 				</div>
 
-				{extension.tags.length > 0 && (
+				{/* tags comes from the remote marketplace payload and may be absent
+				    on older cached entries; guard so one bad card cannot crash the panel. */}
+				{(extension.tags?.length ?? 0) > 0 && (
 					<div className="flex gap-1 mt-1.5 flex-wrap">
-						{extension.tags.slice(0, 3).map((tag) => (
+						{extension.tags?.slice(0, 3).map((tag) => (
 							<span
 								key={tag}
 								className="text-[8px] px-1 py-[1px] rounded bg-[#2563EB]/10 text-[#2563EB]/70 font-medium"
