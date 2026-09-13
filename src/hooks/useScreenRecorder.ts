@@ -762,7 +762,11 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 		return new Promise((resolve) => {
 			const recorder = micFallbackRecorder.current;
 			if (!recorder || recorder.state === "inactive") {
+				// An errored recorder never reaches its own onstop cleanup; stop
+				// its stream here or the mic capture outlives the session.
+				recorder?.stream.getTracks().forEach((track) => track.stop());
 				micFallbackRecorder.current = null;
+				micFallbackChunks.current = [];
 				resolve(null);
 				return;
 			}
@@ -1682,6 +1686,15 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 								resetMicFallbackTimingDiagnostics();
 								micFallbackRecorderStartedAt.current = performance.now();
 								recorder.ondataavailable = appendMicFallbackChunk;
+								recorder.onerror = (event) => {
+									// After an error the recorder goes inactive without a
+									// predictable onstop; the stop-time inactive path stops
+									// the stream, so this only needs to be observable.
+									console.error(
+										"[useScreenRecorder] Browser microphone fallback recorder error:",
+										event,
+									);
+								};
 								micFallbackStartDelayMs.current = Math.max(
 									0,
 									Date.now() - mainStartedAt,
