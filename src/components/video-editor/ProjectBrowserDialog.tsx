@@ -113,6 +113,23 @@ export default function ProjectBrowserDialog({
 			return;
 		}
 
+		// The dialog is a non-modal panel: it doesn't take focus when opened, so
+		// a focused timeline keeps handling Z/C/F/A/Delete behind it. Blur the
+		// active element while open and restore it on close.
+		const previouslyFocused =
+			document.activeElement instanceof HTMLElement ? document.activeElement : null;
+		previouslyFocused?.blur();
+
+		return () => {
+			previouslyFocused?.focus();
+		};
+	}, [open]);
+
+	useEffect(() => {
+		if (!open) {
+			return;
+		}
+
 		const handlePointerDown = (event: PointerEvent) => {
 			const target = event.target;
 			if (!(target instanceof Node)) {
