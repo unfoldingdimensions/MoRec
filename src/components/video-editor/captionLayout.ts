@@ -187,12 +187,9 @@ export function flattenCaptionWords(cues: CaptionCue[]) {
 				wordIndex === sourceWords.length - 1
 					? cue.endMs
 					: cue.startMs + fallbackWordDuration * (wordIndex + 1);
-			const startsMergedCue =
-				wordIndex === 0 && !word.forcedBreakBefore && !shouldForceCueBreak;
-			const leadingSpace =
-				wordIndex === 0
-					? flattened.length > 0 && startsMergedCue
-					: (word.leadingSpace ?? true);
+			// Cues always start a new line/page (see shouldForceCueBreak), so the
+			// first word of a cue never carries a leading space.
+			const leadingSpace = wordIndex === 0 ? false : (word.leadingSpace ?? true);
 
 			flattened.push({
 				cueId: cue.id,
