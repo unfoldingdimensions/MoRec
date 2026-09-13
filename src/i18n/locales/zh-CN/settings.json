@@ -188,7 +188,12 @@
 		"webcamHorizontal": "Horizontal",
 		"webcamMargin": "Margin",
 		"webcamPosition": "Position",
-		"webcamVertical": "Vertical"
+		"webcamVertical": "Vertical",
+		"temporalBlurTuning": "时间模糊（导出）",
+		"temporalBlurTuningHint": "面向开发的导出时间运动模糊调节控件。",
+		"temporalBlurAmount": "模糊强度",
+		"temporalBlurSamples": "采样数",
+		"temporalBlurShutter": "快门比例"
 	},
 	"sections": {
 		"scene": "场景",
@@ -236,7 +241,8 @@
 			"end": "End",
 			"split": "Split",
 			"merge": "Merge",
-			"delete": "Delete"
+			"delete": "Delete",
+			"cannotBeEmpty": "字幕文本不能为空"
 		},
 		"editSaved": "Caption updated",
 		"generatingStatus": "Generating captions. This can take a moment.",

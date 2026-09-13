@@ -188,7 +188,12 @@
 		"webcamHorizontal": "Horizontal",
 		"webcamMargin": "Margin",
 		"webcamPosition": "Position",
-		"webcamVertical": "Vertical"
+		"webcamVertical": "Vertical",
+		"temporalBlurTuning": "Desfoque temporal (exportação)",
+		"temporalBlurTuningHint": "Controles somente para desenvolvimento do desfoque de movimento temporal na exportação.",
+		"temporalBlurAmount": "Intensidade do desfoque",
+		"temporalBlurSamples": "Número de amostras",
+		"temporalBlurShutter": "Fração do obturador"
 	},
 	"sections": {
 		"scene": "Cena",
@@ -236,7 +241,8 @@
 			"end": "End",
 			"split": "Split",
 			"merge": "Merge",
-			"delete": "Delete"
+			"delete": "Delete",
+			"cannotBeEmpty": "O texto da legenda não pode ficar vazio"
 		},
 		"editSaved": "Caption updated",
 		"generatingStatus": "Generating captions. This can take a moment.",

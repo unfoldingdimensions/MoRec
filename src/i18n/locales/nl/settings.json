@@ -188,7 +188,12 @@
 		"webcamHorizontal": "Horizontal",
 		"webcamMargin": "Margin",
 		"webcamPosition": "Position",
-		"webcamVertical": "Vertical"
+		"webcamVertical": "Vertical",
+		"temporalBlurTuning": "Temporele vervaging (export)",
+		"temporalBlurTuningHint": "Alleen voor ontwikkeling: instellingen voor temporele bewegingsonscherpte bij export.",
+		"temporalBlurAmount": "Vervagingssterkte",
+		"temporalBlurSamples": "Aantal samples",
+		"temporalBlurShutter": "Sluiterfractie"
 	},
 	"sections": {
 		"scene": "Scène",
@@ -236,7 +241,8 @@
 			"end": "End",
 			"split": "Split",
 			"merge": "Merge",
-			"delete": "Delete"
+			"delete": "Delete",
+			"cannotBeEmpty": "Ondertiteltekst mag niet leeg zijn"
 		},
 		"editSaved": "Caption updated",
 		"generatingStatus": "Generating captions. This can take a moment.",

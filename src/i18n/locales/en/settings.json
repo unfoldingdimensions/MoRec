@@ -188,7 +188,12 @@
 		"webcamHorizontal": "Horizontal",
 		"webcamMargin": "Margin",
 		"webcamPosition": "Position",
-		"webcamVertical": "Vertical"
+		"webcamVertical": "Vertical",
+		"temporalBlurTuning": "Temporal Blur (Export)",
+		"temporalBlurTuningHint": "Development-only controls for the export-time temporal motion blur.",
+		"temporalBlurAmount": "Blur amount",
+		"temporalBlurSamples": "Sample count",
+		"temporalBlurShutter": "Shutter fraction"
 	},
 	"sections": {
 		"scene": "Scene",
@@ -236,7 +241,8 @@
 			"end": "End",
 			"split": "Split",
 			"merge": "Merge",
-			"delete": "Delete"
+			"delete": "Delete",
+			"cannotBeEmpty": "Caption text can't be empty"
 		},
 		"editSaved": "Caption updated",
 		"generatingStatus": "Generating captions. This can take a moment.",

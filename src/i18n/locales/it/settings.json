@@ -188,7 +188,12 @@
 		"webcamHorizontal": "Horizontal",
 		"webcamMargin": "Margin",
 		"webcamPosition": "Position",
-		"webcamVertical": "Vertical"
+		"webcamVertical": "Vertical",
+		"temporalBlurTuning": "Sfocatura temporale (export)",
+		"temporalBlurTuningHint": "Controlli di sviluppo per la sfocatura temporale del movimento in esportazione.",
+		"temporalBlurAmount": "Intensità della sfocatura",
+		"temporalBlurSamples": "Numero di campioni",
+		"temporalBlurShutter": "Frazione di otturatore"
 	},
 	"sections": {
 		"scene": "Scena",
@@ -236,7 +241,8 @@
 			"end": "End",
 			"split": "Split",
 			"merge": "Merge",
-			"delete": "Delete"
+			"delete": "Delete",
+			"cannotBeEmpty": "Il testo del sottotitolo non può essere vuoto"
 		},
 		"editSaved": "Caption updated",
 		"generatingStatus": "Generating captions. This can take a moment.",

@@ -188,7 +188,12 @@
 		"webcamHorizontal": "Horizontal",
 		"webcamMargin": "Margin",
 		"webcamPosition": "Position",
-		"webcamVertical": "Vertical"
+		"webcamVertical": "Vertical",
+		"temporalBlurTuning": "Temporalweichzeichnung (Export)",
+		"temporalBlurTuningHint": "Entwicklerseitige Steuerung der temporalen Bewegungsunschärfe beim Export.",
+		"temporalBlurAmount": "Weichzeichnungsstärke",
+		"temporalBlurSamples": "Anzahl der Samples",
+		"temporalBlurShutter": "Verschlussanteil"
 	},
 	"sections": {
 		"scene": "Szene",
@@ -236,7 +241,8 @@
 			"end": "Ende",
 			"split": "Teilen",
 			"merge": "Zusammenführen",
-			"delete": "Löschen"
+			"delete": "Löschen",
+			"cannotBeEmpty": "Untertiteltext darf nicht leer sein"
 		},
 		"editSaved": "Caption updated",
 		"generatingStatus": "Generating captions. This can take a moment.",
