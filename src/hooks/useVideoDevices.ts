@@ -50,10 +50,21 @@ export function useVideoDevices(enabled: boolean = true, preferredDeviceId?: str
 					rawVideoInputs.every((device) => !device.label.trim());
 
 				if (needsLabelPermission && !hasRequestedVideoLabels) {
-					permissionStream = await navigator.mediaDevices.getUserMedia({
-						video: true,
-						audio: false,
-					});
+					try {
+						permissionStream = await navigator.mediaDevices.getUserMedia({
+							video: true,
+							audio: false,
+						});
+					} catch (error) {
+						if (error instanceof DOMException && error.name === "NotAllowedError") {
+							// A denial is final for this session; transient failures
+							// stay retryable on the next devicechange. This also stops
+							// the hook from re-prompting on every devicechange.
+							hasRequestedVideoLabels = true;
+						}
+						throw error;
+					}
+					hasRequestedVideoLabels = true;
 					allDevices = await navigator.mediaDevices.enumerateDevices();
 					videoInputs = allDevices
 						.filter((device) => device.kind === "videoinput")
@@ -62,7 +73,6 @@ export function useVideoDevices(enabled: boolean = true, preferredDeviceId?: str
 							label: device.label || `Camera ${index + 1}`,
 							groupId: device.groupId,
 						}));
-					hasRequestedVideoLabels = true;
 				}
 
 				if (mounted && loadId === activeLoadId) {

@@ -52,8 +52,17 @@ export function useMicrophoneDevices(enabled: boolean = true, preferredDeviceId?
 					rawAudioInputs.every((device) => !device.label.trim());
 
 				if (needsLabelPermission && !hasRequestedMicrophoneLabels) {
+					try {
+						permissionStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+					} catch (error) {
+						if (error instanceof DOMException && error.name === "NotAllowedError") {
+							// A denial is final for this session; transient failures
+							// stay retryable on the next devicechange.
+							hasRequestedMicrophoneLabels = true;
+						}
+						throw error;
+					}
 					hasRequestedMicrophoneLabels = true;
-					permissionStream = await navigator.mediaDevices.getUserMedia({ audio: true });
 					allDevices = await navigator.mediaDevices.enumerateDevices();
 					audioInputs = allDevices
 						.filter((device) => device.kind === "audioinput")
