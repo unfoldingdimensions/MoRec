@@ -32,6 +32,13 @@ describe("PlaybackControls", () => {
 		expect(screen.getByText("10:00")).toBeInTheDocument();
 	});
 
+	it("formats hour-long recordings with an hours tier", () => {
+		renderControls({ currentTime: 45 * 60 + 30, duration: 75 * 60 + 5 });
+
+		expect(screen.getByText("45:30")).toBeInTheDocument();
+		expect(screen.getByText("1:15:05")).toBeInTheDocument();
+	});
+
 	it("formats invalid durations as 0:00", () => {
 		renderControls({ duration: Number.NaN });
 
@@ -62,6 +69,16 @@ describe("PlaybackControls", () => {
 
 		fireEvent.change(sliders[0], { target: { value: "30.5" } });
 		expect(props.onSeek).toHaveBeenCalledWith(30.5);
+	});
+
+	it("keeps the seek slider inert while the duration is unknown", () => {
+		const { container, props } = renderControls({ duration: 0, currentTime: 0 });
+
+		const seek = container.querySelectorAll('input[type="range"]')[0];
+		expect(seek).toHaveAttribute("max", "0");
+
+		fireEvent.change(seek, { target: { value: "42" } });
+		expect(props.onSeek).not.toHaveBeenCalled();
 	});
 
 	it("changes volume from the volume slider", async () => {
