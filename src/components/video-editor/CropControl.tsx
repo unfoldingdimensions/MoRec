@@ -14,7 +14,7 @@ interface CropControlProps {
 	onCropChange: (region: CropRegion) => void;
 }
 
-type DragHandle = "top" | "right" | "bottom" | "left" | null;
+type DragHandle = "top" | "right" | "bottom" | "left" | "move" | null;
 
 export function CropControl({ videoElement, cropRegion, onCropChange }: CropControlProps) {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -81,7 +81,7 @@ export function CropControl({ videoElement, cropRegion, onCropChange }: CropCont
 		});
 		setInitialCrop(cropRegion);
 
-		e.currentTarget.setPointerCapture(e.pointerId);
+		e.currentTarget.setPointerCapture?.(e.pointerId);
 	};
 
 	const handlePointerMove = (e: React.PointerEvent) => {
@@ -100,6 +100,17 @@ export function CropControl({ videoElement, cropRegion, onCropChange }: CropCont
 		let newCrop = { ...initialCrop };
 
 		switch (isDragging) {
+			case "move": {
+				newCrop.x = Math.max(
+					0,
+					Math.min(initialCrop.x + deltaX, 1 - initialCrop.width),
+				);
+				newCrop.y = Math.max(
+					0,
+					Math.min(initialCrop.y + deltaY, 1 - initialCrop.height),
+				);
+				break;
+			}
 			case "top": {
 				const newY = Math.max(0, initialCrop.y + deltaY);
 				const bottom = initialCrop.y + initialCrop.height;
@@ -207,6 +218,18 @@ export function CropControl({ videoElement, cropRegion, onCropChange }: CropCont
 						/>
 					</svg>
 				</div>
+
+				<div
+					data-testid="crop-move-surface"
+					className="absolute z-10 pointer-events-auto cursor-move"
+					style={{
+						left: `${cropPixelX}%`,
+						top: `${cropPixelY}%`,
+						width: `${cropPixelWidth}%`,
+						height: `${cropPixelHeight}%`,
+					}}
+					onPointerDown={(e) => handlePointerDown(e, "move")}
+				/>
 
 				<div
 					className={cn(
