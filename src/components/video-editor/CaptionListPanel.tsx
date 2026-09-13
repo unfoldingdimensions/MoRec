@@ -40,6 +40,15 @@ function parseTimecode(value: string): number | null {
 	return (minutes * 60 + seconds) * 1_000 + millis;
 }
 
+// Mirrors splitCue's word source: explicit words when present, otherwise tokens
+// derived from the text. A cue with fewer than two words cannot be split.
+function getCueSplitWordCount(cue: CaptionCue): number {
+	if (Array.isArray(cue.words) && cue.words.length > 0) {
+		return cue.words.filter((word) => word.text.trim().length > 0).length;
+	}
+	return cue.text.trim().match(/\S+/g)?.length ?? 0;
+}
+
 interface CaptionEditorProps {
 	cue: CaptionCue;
 	canMerge: boolean;
@@ -67,6 +76,7 @@ function CaptionEditor({
 	const [draftText, setDraftText] = useState(cue.text);
 	const [startValue, setStartValue] = useState(formatTimecode(cue.startMs));
 	const [endValue, setEndValue] = useState(formatTimecode(cue.endMs));
+	const canSplit = getCueSplitWordCount(cue) >= 2;
 	// Escape resets the draft and blurs, but `setDraftText` is batched so the blur-driven
 	// `commitText` would still see the stale (edited) draft and save it. This flag lets the
 	// cancel path tell the next blur to discard instead of commit.
@@ -173,10 +183,11 @@ function CaptionEditor({
 			<div className="grid grid-cols-3 gap-2">
 				<button
 					type="button"
+					disabled={!canSplit}
 					onClick={() =>
 						onSplit(cue.id, clampNumber(currentTimeMs, cue.startMs, cue.endMs))
 					}
-					className="flex h-9 items-center justify-center gap-1.5 rounded-lg border border-foreground/10 bg-foreground/5 text-xs font-medium text-foreground transition-colors hover:bg-foreground/10"
+					className="flex h-9 items-center justify-center gap-1.5 rounded-lg border border-foreground/10 bg-foreground/5 text-xs font-medium text-foreground transition-colors hover:bg-foreground/10 disabled:opacity-40"
 				>
 					<Scissors className="h-4 w-4" />
 					{t("captions.editor.split", "Split")}

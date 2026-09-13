@@ -64,6 +64,38 @@ describe("CaptionListPanel", () => {
 		expect(screen.getByDisplayValue("0:02.500")).toBeInTheDocument();
 	});
 
+	it("disables Split for a single-word cue", () => {
+		renderPanel({
+			cues: [cue({ id: "cue-1", text: "Exactly", startMs: 1000, endMs: 2500 })],
+		});
+
+		expect(screen.getByRole("button", { name: /Split/i })).toBeDisabled();
+	});
+
+	it("keeps Split enabled for multi-word cues", () => {
+		renderPanel({
+			cues: [cue({ id: "cue-1", text: "Two words", startMs: 1000, endMs: 2500 })],
+		});
+
+		expect(screen.getByRole("button", { name: /Split/i })).toBeEnabled();
+	});
+
+	it("disables Split when explicit word timings hold a single word", () => {
+		renderPanel({
+			cues: [
+				cue({
+					id: "cue-1",
+					text: "Exactly",
+					startMs: 1000,
+					endMs: 2500,
+					words: [{ text: "Exactly", startMs: 1000, endMs: 2500 }],
+				}),
+			],
+		});
+
+		expect(screen.getByRole("button", { name: /Split/i })).toBeDisabled();
+	});
+
 	it("commits trimmed text edits on blur and skips empty edits", async () => {
 		const user = userEvent.setup();
 		const props = renderPanel();
