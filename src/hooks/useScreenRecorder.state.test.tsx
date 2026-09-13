@@ -133,7 +133,8 @@ class MockAudioContext {
 
 class MockMediaRecorder {
 	static instances: MockMediaRecorder[] = [];
-	static isTypeSupported = (type: string) => type.startsWith("video/");
+	static isTypeSupported = (type: string) =>
+		type.startsWith("video/") || type.startsWith("audio/");
 
 	mimeType: string;
 	state: RecordingState = "inactive";
