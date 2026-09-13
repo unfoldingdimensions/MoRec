@@ -27,6 +27,10 @@ export default function PlaybackControls({
 		if (!isFinite(seconds) || isNaN(seconds) || seconds < 0) return "0:00";
 		const mins = Math.floor(seconds / 60);
 		const secs = Math.floor(seconds % 60);
+		if (mins >= 60) {
+			const hours = Math.floor(mins / 60);
+			return `${hours}:${String(mins % 60).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+		}
 		return `${mins}:${secs.toString().padStart(2, "0")}`;
 	}
 
@@ -73,14 +77,16 @@ export default function PlaybackControls({
 					/>
 				</div>
 
-				{/* Interactive Input */}
+				{/* Interactive Input — inert until the duration is known, so a click
+				    on the invisible slider can't seek into unknown-duration media */}
 				<input
 					type="range"
 					min="0"
-					max={duration || 100}
+					max={duration > 0 ? duration : 0}
 					value={currentTime}
 					onChange={handleSeekChange}
 					step="0.01"
+					aria-disabled={duration <= 0}
 					className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
 				/>
 
