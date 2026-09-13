@@ -37,8 +37,12 @@ export function useAudioLevelMeter(options: AudioLevelMeterOptions) {
 		}
 
 		let mounted = true;
+		// Overlapping restarts (rapid devicechange bursts): only the latest
+		// monitoring session may adopt its freshly acquired stream.
+		let session = 0;
 
 		const startMonitoring = async () => {
+			const currentSession = ++session;
 			try {
 				const constraints: MediaStreamConstraints = {
 					audio: options.deviceId ? { deviceId: { exact: options.deviceId } } : true,
@@ -46,7 +50,7 @@ export function useAudioLevelMeter(options: AudioLevelMeterOptions) {
 				};
 
 				const stream = await navigator.mediaDevices.getUserMedia(constraints);
-				if (!mounted) {
+				if (!mounted || currentSession !== session) {
 					stream.getTracks().forEach((track) => track.stop());
 					return;
 				}
@@ -96,9 +100,22 @@ export function useAudioLevelMeter(options: AudioLevelMeterOptions) {
 
 		void startMonitoring();
 
+		const handleDeviceChange = () => {
+			if (!mounted || !options.enabled) {
+				return;
+			}
+			// Hot-unplug leaves the current capture graph dead with the meter
+			// stuck at 0; tear it down and open a fresh one.
+			cleanup();
+			void startMonitoring();
+		};
+
+		navigator.mediaDevices.addEventListener("devicechange", handleDeviceChange);
+
 		return () => {
 			mounted = false;
 			cleanup();
+			navigator.mediaDevices.removeEventListener("devicechange", handleDeviceChange);
 		};
 	}, [options.deviceId, options.enabled, options.smoothingFactor]);
 

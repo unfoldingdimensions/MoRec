@@ -37,6 +37,8 @@ const rafCallbacks: Array<() => void> = [];
 describe("useAudioLevelMeter", () => {
 	let getUserMedia: ReturnType<typeof vi.fn>;
 	let trackStop: ReturnType<typeof vi.fn>;
+	let addEventListener: ReturnType<typeof vi.fn>;
+	let removeEventListener: ReturnType<typeof vi.fn>;
 
 	beforeEach(() => {
 		// A class stub: `new AudioContext()` requires a constructible target.
@@ -49,9 +51,11 @@ describe("useAudioLevelMeter", () => {
 
 		trackStop = vi.fn();
 		getUserMedia = vi.fn(async () => ({ getTracks: () => [{ stop: trackStop }] }) as unknown as MediaStream);
+		addEventListener = vi.fn();
+		removeEventListener = vi.fn();
 		Object.defineProperty(navigator, "mediaDevices", {
 			configurable: true,
-			value: { getUserMedia },
+			value: { getUserMedia, addEventListener, removeEventListener },
 		});
 	});
 
@@ -125,5 +129,55 @@ describe("useAudioLevelMeter", () => {
 			frame();
 		});
 		expect(rafCallbacks.length).toBe(2);
+	});
+
+	it("restarts monitoring when a devicechange fires while enabled", async () => {
+		const { result, unmount } = renderHook(() => useAudioLevelMeter({ enabled: true }));
+		await waitFor(() => {
+			expect(result.current.level).toBeGreaterThan(0);
+		});
+		const contextCountBefore = MockAudioContext.instances.length;
+
+		const handler = addEventListener.mock.calls.find((call) => call[0] === "devicechange")?.[1] as (() => void) | undefined;
+		expect(handler).toBeTypeOf("function");
+
+		// Hot-unplug: tear down the dead graph and open a fresh capture.
+		act(() => {
+			handler?.();
+		});
+		await waitFor(() => {
+			expect(MockAudioContext.instances.length).toBe(contextCountBefore + 1);
+		});
+		// The old stream's track was released by the cleanup.
+		expect(trackStop).toHaveBeenCalledTimes(1);
+		expect(getUserMedia).toHaveBeenCalledTimes(2);
+
+		// Unmount removes the listener and stops the replacement graph too.
+		unmount();
+		expect(removeEventListener).toHaveBeenCalledWith("devicechange", expect.any(Function));
+		expect(trackStop).toHaveBeenCalledTimes(2);
+	});
+
+	it("stops replacing the capture graph once disabled", async () => {
+		const { rerender } = renderHook(
+			({ enabled }) => useAudioLevelMeter({ enabled }),
+			{ initialProps: { enabled: true } },
+		);
+		await waitFor(() => {
+			expect(getUserMedia).toHaveBeenCalledTimes(1);
+		});
+
+		const handler = addEventListener.mock.calls.find((call) => call[0] === "devicechange")?.[1] as (() => void) | undefined;
+		rerender({ enabled: false });
+		await waitFor(() => {
+			expect(trackStop).toHaveBeenCalledTimes(1);
+		});
+
+		act(() => {
+			handler?.();
+		});
+		await new Promise((resolve) => setTimeout(resolve, 10));
+		expect(getUserMedia).toHaveBeenCalledTimes(1);
+		expect(removeEventListener).toHaveBeenCalledWith("devicechange", expect.any(Function));
 	});
 });
