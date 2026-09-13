@@ -10,6 +10,7 @@
 		"countdownDelay": "Aftelvertraging",
 		"noDelay": "Geen vertraging",
 		"record": "Opnemen",
+		"starting": "Bezig met starten…",
 		"recordingFolder": "Opnamepad: {{path}}",
 		"chooseRecordingsFolder": "Kies opnamepad",
 		"folderPath": "Pad: /{{name}}/",

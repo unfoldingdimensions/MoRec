@@ -59,6 +59,7 @@ function LaunchWindowContent() {
 	const {
 		recording,
 		paused,
+		starting,
 		finalizing,
 		countdownActive,
 		toggleRecording,
@@ -359,10 +360,15 @@ function LaunchWindowContent() {
 								requestOpen("sources");
 							}
 				}
-				disabled={countdownActive}
-				title={t("recording.record")}
+				disabled={countdownActive || starting}
+				aria-busy={starting || undefined}
+				title={starting ? t("recording.starting", "Starting…") : t("recording.record")}
 			>
-				<div className={styles.recDot} />
+				{starting ? (
+					<ArrowClockwiseIcon size={16} className={styles.finalizingSpin} />
+				) : (
+					<div className={styles.recDot} />
+				)}
 			</button>
 
 			<Separator orientation="vertical" className="mx-[5px] h-6" />
