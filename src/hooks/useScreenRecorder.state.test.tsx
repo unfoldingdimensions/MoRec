@@ -690,6 +690,36 @@ describe("useScreenRecorder state machine (real hook, native Windows)", () => {
 		await harness.unmount();
 	});
 
+	it("deletes the stored webcam companion when stop and recovery both fail", async () => {
+		electronAPI.stopNativeScreenRecording = vi.fn(async () => ({
+			success: false,
+			error: "helper exited",
+		}));
+		electronAPI.recoverNativeScreenRecording = vi.fn(async () => ({ success: false }));
+		electronAPI.storeRecordedVideo = vi.fn(async () => ({
+			success: true,
+			path: WEBCAM_PATH,
+		}));
+
+		const harness = await renderRecorderHook();
+		await startNativeSession(harness, { webcam: true });
+		MockMediaRecorder.instances[0].requestData();
+
+		await act(async () => {
+			harness.current.stopRecording();
+		});
+		await flushRecordingPipeline();
+
+		// The webcam companion was stored, but no session will ever reference
+		// it: the failed-stop path must remove it.
+		expect(electronAPI.storeRecordedVideo).toHaveBeenCalledTimes(1);
+		expect(electronAPI.deleteRecordingFile).toHaveBeenCalledWith(WEBCAM_PATH);
+		expect(electronAPI.switchToEditor).not.toHaveBeenCalled();
+		expect(harness.current.finalizing).toBe(false);
+
+		await harness.unmount();
+	});
+
 	it("survives session-metadata persistence failure and still closes the HUD", async () => {
 		electronAPI.setCurrentVideoPath = vi.fn(async () => {
 			throw new Error("persist failed");
