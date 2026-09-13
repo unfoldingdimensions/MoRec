@@ -155,6 +155,43 @@ describe("useMicrophoneDevices", () => {
 		);
 	});
 
+	it("ignores a stale enumeration that resolves after a newer one", async () => {
+		let resolveStaleEnumeration!: () => void;
+		installMediaDevices({
+			enumerateDevices: vi
+				.fn()
+				.mockImplementationOnce(async () => {
+					// First run (device unplug/replug burst) stalls mid-enumeration.
+					await new Promise<void>((resolve) => {
+						resolveStaleEnumeration = resolve;
+					});
+					return [device({ kind: "audioinput", deviceId: "mic-a" })];
+				})
+				.mockImplementationOnce(async () => [
+					device({ kind: "audioinput", deviceId: "mic-a" }),
+					device({ kind: "audioinput", deviceId: "mic-b", label: "Blue Yeti" }),
+				]),
+		});
+		const useMicrophoneDevices = await loadHook();
+
+		const { result } = renderHook(() => useMicrophoneDevices(true));
+		// A second devicechange fires while the first enumeration is pending.
+		const deviceChangeHandler = mediaDevicesGlobal.addEventListener.mock.calls.find(
+			(call) => call[0] === "devicechange",
+		)?.[1] as () => void;
+		deviceChangeHandler();
+
+		await waitFor(() => {
+			expect(result.current.devices).toHaveLength(2);
+		});
+
+		// The stale enumeration resolves late: it must not clobber the result.
+		resolveStaleEnumeration();
+		await new Promise((resolve) => setTimeout(resolve, 10));
+		expect(result.current.devices).toHaveLength(2);
+		expect(result.current.devices.map((d) => d.deviceId)).toEqual(["mic-a", "mic-b"]);
+	});
+
 	it("does not re-request label permission on subsequent mounts in the same session", async () => {
 		// The first test in this file consumed the once-per-session flag for
 		// this module instance; later mounts must enumerate (with labels)
