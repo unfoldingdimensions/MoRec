@@ -5,6 +5,7 @@ import { createInitialRange, normalizeWheelDeltaToPixels } from "../core/time";
 interface UseTimelineRangeParams {
 	totalMs: number;
 	timelineContainerRef: RefObject<HTMLDivElement>;
+	minVisibleRangeMs?: number;
 }
 
 export interface TimelineWheelPanDeltaInput {
@@ -15,6 +16,49 @@ export interface TimelineWheelPanDeltaInput {
 	ctrlKey?: boolean;
 	metaKey?: boolean;
 	canScrollVertically?: boolean;
+}
+
+export interface TimelineWheelZoomInput {
+	previous: { start: number; end: number };
+	deltaPx: number;
+	pivotRatio: number;
+	totalMs: number;
+	minVisibleRangeMs: number;
+}
+
+// ~17% visible-span change per standard 100px wheel notch.
+const ZOOM_WHEEL_SCALE = 1 / 600;
+
+export function resolveTimelineWheelZoomRange({
+	previous,
+	deltaPx,
+	pivotRatio,
+	totalMs,
+	minVisibleRangeMs,
+}: TimelineWheelZoomInput): Range | null {
+	if (!Number.isFinite(deltaPx) || deltaPx === 0 || totalMs <= 0) {
+		return null;
+	}
+
+	const prevStart = Math.max(0, Math.min(previous.start, totalMs));
+	const prevEnd = Math.min(previous.end, totalMs);
+	const visibleSpan = Math.max(1, prevEnd - prevStart);
+	const minSpan = Math.min(Math.max(minVisibleRangeMs, 1), totalMs);
+
+	// Scroll up (negative delta) zooms in around the cursor; scroll down zooms out.
+	const scale = Math.exp(deltaPx * ZOOM_WHEEL_SCALE);
+	const nextSpan = Math.min(totalMs, Math.max(minSpan, visibleSpan * scale));
+	if (nextSpan === visibleSpan) {
+		return null;
+	}
+
+	const safePivotRatio = Number.isFinite(pivotRatio)
+		? Math.min(1, Math.max(0, pivotRatio))
+		: 0.5;
+	const pivotMs = prevStart + safePivotRatio * visibleSpan;
+	const maxStart = Math.max(0, totalMs - nextSpan);
+	const nextStart = Math.max(0, Math.min(pivotMs - safePivotRatio * nextSpan, maxStart));
+	return { start: nextStart, end: nextStart + nextSpan };
 }
 
 export function resolveTimelineWheelPanDeltaPx({
@@ -41,7 +85,11 @@ export function resolveTimelineWheelPanDeltaPx({
 	return 0;
 }
 
-export function useTimelineRange({ totalMs, timelineContainerRef }: UseTimelineRangeParams) {
+export function useTimelineRange({
+	totalMs,
+	timelineContainerRef,
+	minVisibleRangeMs = 1_000,
+}: UseTimelineRangeParams) {
 	const [range, setRange] = useState<Range>(() => createInitialRange(totalMs));
 
 	useEffect(() => {
@@ -73,6 +121,53 @@ export function useTimelineRange({ totalMs, timelineContainerRef }: UseTimelineR
 		},
 		[totalMs],
 	);
+
+	const zoomTimelineRange = useCallback(
+		(deltaPx: number, pivotRatio: number) => {
+			if (totalMs <= 0 || !Number.isFinite(deltaPx) || deltaPx === 0) {
+				return;
+			}
+			setRange(
+				(previous) =>
+					resolveTimelineWheelZoomRange({
+						previous,
+						deltaPx,
+						pivotRatio,
+						totalMs,
+						minVisibleRangeMs,
+					}) ?? previous,
+			);
+		},
+		[minVisibleRangeMs, totalMs],
+	);
+
+	// Ctrl+Scroll zoom needs a native non-passive listener: React attaches root
+	// wheel listeners passively, so preventDefault there cannot stop Chromium's
+	// page zoom. (Plain/Shift+Scroll panning stays on the React handler below.)
+	useEffect(() => {
+		const container = timelineContainerRef.current;
+		if (!container) {
+			return;
+		}
+
+		const handleWheel = (event: globalThis.WheelEvent) => {
+			if (!(event.ctrlKey || event.metaKey) || event.shiftKey || totalMs <= 0) {
+				return;
+			}
+			const rect = container.getBoundingClientRect();
+			if (rect.width <= 0) {
+				return;
+			}
+			event.preventDefault();
+			zoomTimelineRange(
+				normalizeWheelDeltaToPixels(event.deltaY, event.deltaMode),
+				(event.clientX - rect.left) / rect.width,
+			);
+		};
+
+		container.addEventListener("wheel", handleWheel, { passive: false });
+		return () => container.removeEventListener("wheel", handleWheel);
+	}, [timelineContainerRef, totalMs, zoomTimelineRange]);
 
 	const handleTimelineWheel = useCallback(
 		(event: WheelEvent<HTMLDivElement>) => {
