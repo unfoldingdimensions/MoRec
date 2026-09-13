@@ -918,6 +918,32 @@ describe("useScreenRecorder state machine (real hook, native Windows)", () => {
 		await harness.unmount();
 	});
 
+	it("does not store the webcam companion after the webcam track ends mid-take", async () => {
+		const harness = await renderRecorderHook();
+		await startNativeSession(harness, { webcam: true });
+
+		// Unplug the webcam: the track's ended listener fires mid-take.
+		const webcamTrack = gumStreams[0].getVideoTracks()[0];
+		webcamTrack.fire("ended");
+		await flushRecordingPipeline();
+
+		// Keep recording without webcam, then stop normally.
+		MockMediaRecorder.instances[0].requestData();
+		await act(async () => {
+			harness.current.stopRecording();
+		});
+		await flushRecordingPipeline();
+
+		// The session finalizes without a webcam layer and no orphan file.
+		expect(electronAPI.storeRecordedVideo).not.toHaveBeenCalled();
+		expect(electronAPI.setCurrentVideoPath).toHaveBeenCalledWith(NATIVE_PATH, expect.anything());
+		expect(electronAPI.setCurrentRecordingSession).not.toHaveBeenCalled();
+		expect(electronAPI.switchToEditor).toHaveBeenCalledTimes(1);
+		expect(electronAPI.hudOverlayClose).toHaveBeenCalledTimes(1);
+
+		await harness.unmount();
+	});
+
 	it("recovers with full R3 ordering when the recording is interrupted", async () => {
 		electronAPI.onRecordingInterrupted = vi.fn((handler: InterruptedHandler) => {
 			interruptedHandler = handler;
