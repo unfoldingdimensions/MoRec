@@ -1022,10 +1022,14 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 
 			webcamRecorder.current = recorder;
 			webcamDiscardRequested.current = false;
-			// If the webcam device is unplugged mid-take, resolve the pending
-			// stop promise so finalization cannot hang waiting for a dead track.
+			// If the webcam device is unplugged mid-take, mark the companion as
+			// discarded and resolve the pending stop promise so finalization
+			// cannot hang waiting for a dead track, and the later stop never
+			// persists an orphaned webcam file.
 			webcamStream.current?.getVideoTracks()[0]?.addEventListener("ended", () => {
 				console.warn("[useScreenRecorder] Webcam track ended; dropping the webcam layer.");
+				webcamDiscardRequested.current = true;
+				webcamChunks.current = [];
 				webcamStopResolver.current?.(null);
 			});
 			recorder.ondataavailable = (event) => {
