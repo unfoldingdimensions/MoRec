@@ -73,6 +73,7 @@ export interface TimelineEditorProps {
 	onCaptionSpanChange?: (id: string, span: Span) => void;
 	onCaptionDelete?: (id: string) => void;
 	onCaptionAdded?: (span: Span) => void;
+	onInteractionChange?: (active: boolean) => void;
 	captionsEnabled?: boolean;
 	captionQuickAddEnabled?: boolean;
 	selectedCaptionId?: string | null;
@@ -169,6 +170,7 @@ const TimelineEditor = forwardRef<TimelineEditorHandle, TimelineEditorProps>(
 			sourceAudioTrackSettings = {},
 			getSourceAudioTrackSettingsForClip,
 			onSourceAudioTracksMetaChange,
+			onInteractionChange,
 		},
 		ref,
 	) {
@@ -199,6 +201,10 @@ const TimelineEditor = forwardRef<TimelineEditorHandle, TimelineEditorProps>(
 
 		const [liveSpanPreviewById, setLiveSpanPreviewById] = useState<Record<string, Span>>({});
 		const [isDragging, setIsDragging] = useState(false);
+
+		useEffect(() => {
+			onInteractionChange?.(isDragging);
+		}, [isDragging, onInteractionChange]);
 		const liveZoomPreview = useMemo(() => {
 			const previewSpans: Record<string, Span> = { ...liveSpanPreviewById };
 			const hiddenZoomIds = new Set<string>();

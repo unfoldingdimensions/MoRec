@@ -2356,7 +2356,22 @@ export default function VideoEditor() {
 		toast.success(t("settings.effects.webcamFootageRemoved"));
 	}, [syncRecordingSessionWebcam, t]);
 
+	// While a timeline drag/resize gesture is in progress the snapshot changes on
+	// every pointermove; recording each one would flood the capped undo stack.
+	// Skip recording during the gesture and record once when it ends.
+	const timelineInteractionActiveRef = useRef(false);
+	const [timelineInteractionVersion, setTimelineInteractionVersion] = useState(0);
+	const handleTimelineInteractionChange = useCallback((active: boolean) => {
+		timelineInteractionActiveRef.current = active;
+		if (!active) {
+			setTimelineInteractionVersion((version) => version + 1);
+		}
+	}, []);
+
 	useEffect(() => {
+		if (timelineInteractionActiveRef.current) {
+			return;
+		}
 		const snapshot = buildHistorySnapshot();
 		const result = recordEditorHistorySnapshot(editorHistoryRef.current, snapshot, {
 			applyingHistory: applyingHistoryRef.current,
@@ -2369,7 +2384,7 @@ export default function VideoEditor() {
 		if (result !== "unchanged") {
 			syncHistoryButtons();
 		}
-	}, [buildHistorySnapshot, syncHistoryButtons]);
+	}, [buildHistorySnapshot, syncHistoryButtons, timelineInteractionVersion]);
 
 	const hasUnsavedChanges = useMemo(
 		() => hasUnsavedProjectChanges(currentProjectSnapshot, lastSavedSnapshot),
@@ -6911,6 +6926,7 @@ export default function VideoEditor() {
 				>
 					<TimelineEditor
 						ref={timelineRef}
+						onInteractionChange={handleTimelineInteractionChange}
 						videoDuration={timelineDuration}
 						currentTime={currentTime}
 						playheadTime={timelinePlayheadTime}
