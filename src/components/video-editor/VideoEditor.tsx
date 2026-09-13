@@ -1952,6 +1952,7 @@ export default function VideoEditor() {
 		return {
 			zoomRegions,
 			clipRegions,
+			trimRegions,
 			speedRegions,
 			annotationRegions,
 			audioRegions,
@@ -1964,6 +1965,7 @@ export default function VideoEditor() {
 	}, [
 		zoomRegions,
 		clipRegions,
+		trimRegions,
 		speedRegions,
 		annotationRegions,
 		audioRegions,
@@ -1979,6 +1981,7 @@ export default function VideoEditor() {
 		const cloned = cloneStructured(snapshot);
 		setZoomRegions(cloned.zoomRegions);
 		setClipRegions(cloned.clipRegions);
+		setTrimRegions(cloned.trimRegions);
 		setSpeedRegions(cloned.speedRegions);
 		setAnnotationRegions(cloned.annotationRegions);
 		setAudioRegions(cloned.audioRegions);

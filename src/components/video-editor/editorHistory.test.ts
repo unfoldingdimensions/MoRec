@@ -15,6 +15,7 @@ function createSnapshot(id: string | null): EditorHistorySnapshot {
 	return {
 		zoomRegions: [],
 		clipRegions: [],
+		trimRegions: [],
 		speedRegions: [],
 		annotationRegions: [],
 		audioRegions: [],
@@ -124,5 +125,24 @@ describe("editorHistory", () => {
 
 		expect(snapshot.selectedZoomId).toBe("first");
 		expect(areEditorHistorySnapshotsEqual(snapshot, createSnapshot("first"))).toBe(true);
+	});
+
+	it("round-trips trim regions through undo and redo", () => {
+		const stack = createEditorHistoryStack();
+		const beforeTrim = createSnapshot("a");
+		const afterTrim = {
+			...createSnapshot("b"),
+			trimRegions: [{ id: "trim-1", startMs: 500, endMs: 1_000 }],
+		};
+
+		recordEditorHistorySnapshot(stack, beforeTrim);
+		recordEditorHistorySnapshot(stack, afterTrim);
+
+		const undone = undoEditorHistoryStack(stack, afterTrim);
+		expect(undone?.trimRegions).toEqual([]);
+		expect(areEditorHistorySnapshotsEqual(undone!, beforeTrim)).toBe(true);
+
+		const redone = redoEditorHistoryStack(stack, undone!);
+		expect(redone?.trimRegions).toEqual([{ id: "trim-1", startMs: 500, endMs: 1_000 }]);
 	});
 });
