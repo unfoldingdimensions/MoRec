@@ -508,7 +508,6 @@ export default function VideoEditor() {
 	const [sessionNativeCaptureUnavailable, setSessionNativeCaptureUnavailable] = useState(false);
 	const [nativeCaptureUnavailableModalOpen, setNativeCaptureUnavailableModalOpen] =
 		useState(false);
-	const [zoomSmoothness, setZoomSmoothness] = useState(0.5);
 	const [zoomClassicMode, setZoomClassicMode] = useState(false);
 	const [cursorMotionBlur, setCursorMotionBlur] = useState(
 		initialEditorPreferences.cursorMotionBlur,
@@ -1220,7 +1219,6 @@ export default function VideoEditor() {
 					cameraSpringStiffnessMultiplier,
 					cameraSpringDampingMultiplier,
 					cameraSpringMassMultiplier,
-					zoomSmoothness,
 					zoomClassicMode,
 					cursorMotionBlur,
 					cursorClickEffect,
@@ -1311,7 +1309,6 @@ export default function VideoEditor() {
 		cameraSpringStiffnessMultiplier,
 		cameraSpringDampingMultiplier,
 		cameraSpringMassMultiplier,
-		zoomSmoothness,
 		cursorStyle,
 		cursorSway,
 		cursorTelemetry,
@@ -1718,7 +1715,6 @@ export default function VideoEditor() {
 				cameraSpringStiffnessMultiplier: number;
 				cameraSpringDampingMultiplier: number;
 				cameraSpringMassMultiplier: number;
-				zoomSmoothness: number;
 				zoomClassicMode: boolean;
 				cursorMotionBlur: number;
 				cursorClickEffect: CursorClickEffectStyle;
@@ -1843,7 +1839,6 @@ export default function VideoEditor() {
 				cameraSpringStiffnessMultiplier,
 				cameraSpringDampingMultiplier,
 				cameraSpringMassMultiplier,
-				zoomSmoothness,
 				zoomClassicMode,
 				cursorMotionBlur,
 				cursorClickEffect,
@@ -1910,7 +1905,6 @@ export default function VideoEditor() {
 			cameraSpringStiffnessMultiplier,
 			cameraSpringDampingMultiplier,
 			cameraSpringMassMultiplier,
-			zoomSmoothness,
 			zoomClassicMode,
 			cursorMotionBlur,
 			cursorClickEffect,
@@ -2107,7 +2101,6 @@ export default function VideoEditor() {
 			setCursorClickEffectScale(normalizedEditor.cursorClickEffectScale);
 			setCursorClickEffectOpacity(normalizedEditor.cursorClickEffectOpacity);
 			setCursorClickEffectDurationMs(normalizedEditor.cursorClickEffectDurationMs);
-			setZoomSmoothness(normalizedEditor.zoomSmoothness);
 			setZoomClassicMode(normalizedEditor.zoomClassicMode);
 			setCursorMotionBlur(normalizedEditor.cursorMotionBlur);
 			setCursorClickBounce(normalizedEditor.cursorClickBounce);
@@ -4768,7 +4761,6 @@ export default function VideoEditor() {
 						cameraSpringStiffnessMultiplier,
 						cameraSpringDampingMultiplier,
 						cameraSpringMassMultiplier,
-						zoomSmoothness,
 						zoomClassicMode,
 						cursorMotionBlur,
 						cursorClickEffect,
@@ -4951,7 +4943,6 @@ export default function VideoEditor() {
 						cameraSpringStiffnessMultiplier,
 						cameraSpringDampingMultiplier,
 						cameraSpringMassMultiplier,
-						zoomSmoothness,
 						zoomClassicMode,
 						cursorMotionBlur,
 						cursorClickEffect,
@@ -5218,7 +5209,6 @@ export default function VideoEditor() {
 			cameraSpringStiffnessMultiplier,
 			cameraSpringDampingMultiplier,
 			cameraSpringMassMultiplier,
-			zoomSmoothness,
 			zoomClassicMode,
 			cursorMotionBlur,
 			cursorClickEffect,
@@ -5689,7 +5679,6 @@ export default function VideoEditor() {
 			cameraSpringStiffnessMultiplier={cameraSpringStiffnessMultiplier}
 			cameraSpringDampingMultiplier={cameraSpringDampingMultiplier}
 			cameraSpringMassMultiplier={cameraSpringMassMultiplier}
-			zoomSmoothness={zoomSmoothness}
 			zoomClassicMode={zoomClassicMode}
 			zoomMotionBlur={zoomMotionBlur}
 			zoomMotionBlurTuning={zoomMotionBlurTuning}
