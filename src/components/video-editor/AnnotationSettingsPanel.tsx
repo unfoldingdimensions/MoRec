@@ -42,7 +42,6 @@ interface AnnotationSettingsPanelProps {
 	onFigureDataChange?: (figureData: FigureData) => void;
 	onBlurIntensityChange?: (intensity: number) => void;
 	onBlurColorChange?: (color: string) => void;
-	onDelete?: () => void;
 }
 
 export const FONT_FAMILY_VALUES = [
@@ -75,6 +74,21 @@ export function AnnotationSettingsPanel({
 		() => FONT_FAMILY_VALUES.map((f) => ({ value: f.value, label: t(f.labelKey) })),
 		[t],
 	);
+
+	// Radix ToggleGroup is fully controlled: the pressed set derives from the
+	// annotation style so a loaded annotation shows the correct toggle state.
+	const formattingToggles = [
+		...(annotation.style.fontWeight === "bold" ? (["bold"] as const) : []),
+		...(annotation.style.fontStyle === "italic" ? (["italic"] as const) : []),
+		...(annotation.style.textDecoration === "underline" ? (["underline"] as const) : []),
+	];
+	const handleFormattingToggle = (values: string[]) => {
+		onStyleChange({
+			fontWeight: values.includes("bold") ? "bold" : "normal",
+			fontStyle: values.includes("italic") ? "italic" : "normal",
+			textDecoration: values.includes("underline") ? "underline" : "none",
+		});
+	};
 
 	// Load custom fonts on mount
 	useEffect(() => {
@@ -308,24 +322,13 @@ export function AnnotationSettingsPanel({
 								<div className="flex items-center justify-between gap-2">
 									<ToggleGroup
 										type="multiple"
+										value={formattingToggles}
+										onValueChange={handleFormattingToggle}
 										className="justify-start bg-foreground/5 p-1 rounded-lg border border-foreground/5"
 									>
 										<ToggleGroupItem
 											value="bold"
 											aria-label={t("annotations.toggleBold")}
-											data-state={
-												annotation.style.fontWeight === "bold"
-													? "on"
-													: "off"
-											}
-											onClick={() =>
-												onStyleChange({
-													fontWeight:
-														annotation.style.fontWeight === "bold"
-															? "normal"
-															: "bold",
-												})
-											}
 											className="h-8 w-8 data-[state=on]:bg-[#2563EB] data-[state=on]:text-white text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
 										>
 											<Bold className="h-4 w-4" />
@@ -333,19 +336,6 @@ export function AnnotationSettingsPanel({
 										<ToggleGroupItem
 											value="italic"
 											aria-label={t("annotations.toggleItalic")}
-											data-state={
-												annotation.style.fontStyle === "italic"
-													? "on"
-													: "off"
-											}
-											onClick={() =>
-												onStyleChange({
-													fontStyle:
-														annotation.style.fontStyle === "italic"
-															? "normal"
-															: "italic",
-												})
-											}
 											className="h-8 w-8 data-[state=on]:bg-[#2563EB] data-[state=on]:text-white text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
 										>
 											<Italic className="h-4 w-4" />
@@ -353,20 +343,6 @@ export function AnnotationSettingsPanel({
 										<ToggleGroupItem
 											value="underline"
 											aria-label={t("annotations.toggleUnderline")}
-											data-state={
-												annotation.style.textDecoration === "underline"
-													? "on"
-													: "off"
-											}
-											onClick={() =>
-												onStyleChange({
-													textDecoration:
-														annotation.style.textDecoration ===
-														"underline"
-															? "none"
-															: "underline",
-												})
-											}
 											className="h-8 w-8 data-[state=on]:bg-[#2563EB] data-[state=on]:text-white text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
 										>
 											<Underline className="h-4 w-4" />
@@ -376,12 +352,16 @@ export function AnnotationSettingsPanel({
 									<ToggleGroup
 										type="single"
 										value={annotation.style.textAlign}
+										onValueChange={(value) => {
+											if (value) {
+												onStyleChange({ textAlign: value as AnnotationRegion["style"]["textAlign"] });
+											}
+										}}
 										className="justify-start bg-foreground/5 p-1 rounded-lg border border-foreground/5"
 									>
 										<ToggleGroupItem
 											value="left"
 											aria-label={t("annotations.alignLeft")}
-											onClick={() => onStyleChange({ textAlign: "left" })}
 											className="h-8 w-8 data-[state=on]:bg-[#2563EB] data-[state=on]:text-white text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
 										>
 											<AlignLeft className="h-4 w-4" />
@@ -389,7 +369,6 @@ export function AnnotationSettingsPanel({
 										<ToggleGroupItem
 											value="center"
 											aria-label={t("annotations.alignCenter")}
-											onClick={() => onStyleChange({ textAlign: "center" })}
 											className="h-8 w-8 data-[state=on]:bg-[#2563EB] data-[state=on]:text-white text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
 										>
 											<AlignCenter className="h-4 w-4" />
@@ -397,7 +376,6 @@ export function AnnotationSettingsPanel({
 										<ToggleGroupItem
 											value="right"
 											aria-label={t("annotations.alignRight")}
-											onClick={() => onStyleChange({ textAlign: "right" })}
 											className="h-8 w-8 data-[state=on]:bg-[#2563EB] data-[state=on]:text-white text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
 										>
 											<AlignRight className="h-4 w-4" />

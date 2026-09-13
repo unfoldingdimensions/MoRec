@@ -2458,7 +2458,6 @@ export function SettingsPanel({
 						? (color) => onAnnotationBlurColorChange(selectedAnnotation.id, color)
 						: undefined
 				}
-				onDelete={() => onAnnotationDelete(selectedAnnotation.id)}
 			/>
 		);
 	}

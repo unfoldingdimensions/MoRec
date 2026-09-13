@@ -84,6 +84,28 @@ describe("AnnotationSettingsPanel", () => {
 		);
 	});
 
+	it("reflects the loaded font weight in the bold toggle state", () => {
+		renderPanel(makeAnnotation({ style: { ...makeAnnotation().style, fontWeight: "bold" } }));
+
+		const boldToggle = screen.getByRole("button", { name: /bold/i });
+		expect(boldToggle).toHaveAttribute("data-state", "on");
+	});
+
+	it("un-bolds via the controlled toggle and reports the full formatting set", async () => {
+		const user = userEvent.setup();
+		const props = renderPanel(
+			makeAnnotation({ style: { ...makeAnnotation().style, fontWeight: "bold" } }),
+		);
+
+		await user.click(screen.getByRole("button", { name: /bold/i }));
+
+		expect(props.onStyleChange).toHaveBeenCalledWith({
+			fontWeight: "normal",
+			fontStyle: "normal",
+			textDecoration: "none",
+		});
+	});
+
 	it("commits text edits", async () => {
 		const user = userEvent.setup();
 		const props = renderPanel(makeAnnotation());
