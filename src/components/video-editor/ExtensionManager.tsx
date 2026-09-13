@@ -374,7 +374,11 @@ function ExtensionDetailModal({
 		? detail.ext.manifest.description || t("detail.noDescription")
 		: detail.ext.description || t("detail.noDescription");
 	const author = isInstalled ? detail.ext.manifest.author : detail.ext.author;
-	const permissions = isInstalled ? detail.ext.manifest.permissions : detail.ext.permissions;
+	// Marketplace payloads come from the remote marketplace and may omit arrays
+	// (older cached entries) — same guard rationale as the MarketplaceCard tags.
+	const permissions =
+		(isInstalled ? detail.ext.manifest.permissions : detail.ext.permissions) ?? [];
+	const tags = (detail.source === "marketplace" ? detail.ext.tags : undefined) ?? [];
 	const homepage = isInstalled ? detail.ext.manifest.homepage : detail.ext.homepage;
 	const homepageUrl = toSafeHttpUrl(homepage);
 	const screenshots = detail.source === "marketplace" ? (detail.ext.screenshots ?? []) : [];
@@ -463,13 +467,13 @@ function ExtensionDetailModal({
 					</div>
 
 					{/* Tags */}
-					{detail.source === "marketplace" && detail.ext.tags.length > 0 && (
+					{tags.length > 0 && (
 						<div>
 							<p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70 mb-1.5">
 								{t("detail.tags")}
 							</p>
 							<div className="flex flex-wrap gap-1.5">
-								{detail.ext.tags.map((tag) => (
+								{tags.map((tag) => (
 									<span
 										key={tag}
 										className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-[#2563EB]/10 text-[#2563EB]/70 font-medium"

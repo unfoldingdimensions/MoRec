@@ -196,4 +196,26 @@ describe("ExtensionManager", () => {
 		await user.click(screen.getByText(/Installed/i));
 		expect(await screen.findByText("Local Extension")).toBeInTheDocument();
 	});
+
+	it("opens the detail modal for a marketplace entry without tags or permissions", async () => {
+		const user = userEvent.setup();
+		// Older cached marketplace payloads can omit the array fields entirely;
+		// the modal must tolerate them instead of crashing (same as the card).
+		extensionsFacade.marketplaceSearch.mockResolvedValue({
+			extensions: [
+				makeMarketplaceExtension({
+					tags: undefined,
+					permissions: undefined,
+				} as Partial<MarketplaceExtension>),
+			],
+			total: 1,
+		});
+		await renderManager();
+
+		const card = await screen.findByText("Cool Extension");
+		await user.click(card);
+
+		expect(await screen.findByRole("dialog")).toBeInTheDocument();
+		expect(screen.getAllByText("Cool Extension").length).toBeGreaterThan(0);
+	});
 });
