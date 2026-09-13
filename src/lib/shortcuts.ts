@@ -116,15 +116,19 @@ export const SHORTCUT_LABELS: Record<ShortcutAction, string> = {
 	playPause: "Play / Pause",
 };
 
-export function matchesShortcut(
-	e: KeyboardEvent,
-	binding: ShortcutBinding,
-	isMacPlatform: boolean,
-): boolean {
+export function matchesShortcut(e: KeyboardEvent, binding: ShortcutBinding): boolean {
 	if (e.key.toLowerCase() !== binding.key.toLowerCase()) return false;
 
-	const primaryMod = isMacPlatform ? e.metaKey : e.ctrlKey;
-	if (primaryMod !== !!binding.ctrl) return false;
+	// A binding's ctrl flag means "the primary modifier chord". Capture records
+	// either physical modifier (ctrlKey || metaKey), so matching accepts both —
+	// the chord the user pressed is always the chord that fires, on every
+	// platform. Bindings without the flag require no modifier at all.
+	if (binding.ctrl) {
+		if (!e.ctrlKey && !e.metaKey) return false;
+	} else if (e.ctrlKey || e.metaKey) {
+		return false;
+	}
+
 	if (e.shiftKey !== !!binding.shift) return false;
 	if (e.altKey !== !!binding.alt) return false;
 

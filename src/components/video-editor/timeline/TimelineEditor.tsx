@@ -253,7 +253,7 @@ const TimelineEditor = forwardRef<TimelineEditorHandle, TimelineEditorProps>(
 
 			return { previewSpans, hiddenZoomIds };
 		}, [clipRegions, liveSpanPreviewById, zoomRegions]);
-		const { shortcuts: keyShortcuts, isMac } = useShortcuts();
+		const { shortcuts: keyShortcuts } = useShortcuts();
 		const { peaks: sourceAudioPeaks, loading: sourceAudioLoading } = useTimelineAudioPeaks(
 			videoPath,
 			{ resourceVersion: sourceAudioResourceVersion },
@@ -404,7 +404,6 @@ const TimelineEditor = forwardRef<TimelineEditorHandle, TimelineEditorProps>(
 			onCaptionAdded,
 			selectedCaptionId,
 			onSelectCaption,
-			isMac,
 			keyShortcuts,
 			isTimelineFocusedRef,
 		});
