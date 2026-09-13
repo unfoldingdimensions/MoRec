@@ -221,6 +221,22 @@ export function shouldUseNativeWindowsCaptureForSource(
 	return source?.id?.startsWith("screen:") === true || source?.id?.startsWith("window:") === true;
 }
 
+function computeBitrate(width: number, height: number) {
+	const pixels = width * height;
+	const highFrameRateBoost =
+		TARGET_FRAME_RATE >= HIGH_FRAME_RATE_THRESHOLD ? HIGH_FRAME_RATE_BOOST : 1;
+
+	if (pixels >= FOUR_K_PIXELS) {
+		return Math.round(BITRATE_4K * highFrameRateBoost);
+	}
+
+	if (pixels >= QHD_PIXELS) {
+		return Math.round(BITRATE_QHD * highFrameRateBoost);
+	}
+
+	return Math.round(BITRATE_BASE * highFrameRateBoost);
+}
+
 export function createProcessedMicrophoneConstraints(
 	microphoneDeviceId?: string,
 	profile: BrowserMicrophoneProfile = DEFAULT_BROWSER_MICROPHONE_PROFILE,
@@ -564,22 +580,6 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 	const selectWebcamMimeType = useCallback(() => {
 		return selectWebcamRecordingMimeType();
 	}, []);
-
-	const computeBitrate = (width: number, height: number) => {
-		const pixels = width * height;
-		const highFrameRateBoost =
-			TARGET_FRAME_RATE >= HIGH_FRAME_RATE_THRESHOLD ? HIGH_FRAME_RATE_BOOST : 1;
-
-		if (pixels >= FOUR_K_PIXELS) {
-			return Math.round(BITRATE_4K * highFrameRateBoost);
-		}
-
-		if (pixels >= QHD_PIXELS) {
-			return Math.round(BITRATE_QHD * highFrameRateBoost);
-		}
-
-		return Math.round(BITRATE_BASE * highFrameRateBoost);
-	};
 
 	const cleanupCapturedMedia = useCallback(() => {
 		if (stream.current) {
@@ -1542,7 +1542,7 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 		};
 	}, []);
 
-	const startRecording = async () => {
+	const startRecording = useCallback(async () => {
 		if (startInFlight.current) {
 			return;
 		}
@@ -2175,7 +2175,25 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 			startInFlight.current = false;
 			setStarting(false);
 		}
-	};
+	}, [
+		appendMicFallbackChunk,
+		beginWebcamCapture,
+		cleanupCapturedMedia,
+		finalizeRecordingSession,
+		getRecordingDurationMs,
+		logNativeCaptureDiagnostics,
+		microphoneDeviceId,
+		microphoneEnabled,
+		notifyRecordingFinalizationFailure,
+		preparePermissions,
+		prepareWebcamRecorder,
+		resetMicFallbackTimingDiagnostics,
+		resetRecordingClock,
+		resolveBrowserCaptureSource,
+		selectMimeType,
+		stopWebcamRecorder,
+		systemAudioEnabled,
+	]);
 
 	const pauseRecording = useCallback(() => {
 		if (!recording || paused) return;
