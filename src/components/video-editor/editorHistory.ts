@@ -5,12 +5,14 @@ import type {
 	CaptionCue,
 	ClipRegion,
 	SpeedRegion,
+	TrimRegion,
 	ZoomRegion,
 } from "./types";
 
 export type EditorHistorySnapshot = {
 	zoomRegions: ZoomRegion[];
 	clipRegions: ClipRegion[];
+	trimRegions: TrimRegion[];
 	speedRegions: SpeedRegion[];
 	annotationRegions: AnnotationRegion[];
 	audioRegions: AudioRegion[];
