@@ -690,6 +690,33 @@ describe("useScreenRecorder state machine (real hook, native Windows)", () => {
 		await harness.unmount();
 	});
 
+	it("stops the mic stream at stop time when the fallback recorder errored to inactive", async () => {
+		const harness = await renderRecorderHook();
+		await startNativeSession(harness, { micFallback: true });
+
+		// Simulate a UA recorder error that left the recorder inactive without
+		// ever firing onstop (so its own cleanup never ran).
+		const mic = MockMediaRecorder.instances[0];
+		const micTrack = mic.stream.getTracks()[0];
+		mic.state = "inactive";
+		mic.onerror?.(new Event("error"));
+
+		await act(async () => {
+			harness.current.stopRecording();
+		});
+		await flushRecordingPipeline();
+
+		// The inactive-recorder stop path released the mic hardware and no
+		// sidecar was produced; the session still finalizes.
+		expect(micTrack.stop).toHaveBeenCalled();
+		expect(micTrack.readyState).toBe("ended");
+		expect(electronAPI.storeMicrophoneSidecar).not.toHaveBeenCalled();
+		expect(electronAPI.setCurrentVideoPath).toHaveBeenCalledWith(NATIVE_PATH, expect.anything());
+		expect(electronAPI.hudOverlayClose).toHaveBeenCalledTimes(1);
+
+		await harness.unmount();
+	});
+
 	it("deletes the stored webcam companion when stop and recovery both fail", async () => {
 		electronAPI.stopNativeScreenRecording = vi.fn(async () => ({
 			success: false,
