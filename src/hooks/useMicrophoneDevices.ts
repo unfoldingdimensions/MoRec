@@ -20,13 +20,19 @@ export function useMicrophoneDevices(enabled: boolean = true, preferredDeviceId?
 		}
 
 		let mounted = true;
+		// Overlapping runs (hot-plug bursts fire devicechange repeatedly): only
+		// the latest enumeration may write state, mirroring useVideoDevices.
+		let activeLoadId = 0;
 
 		const loadDevices = async () => {
+			const loadId = ++activeLoadId;
 			let permissionStream: MediaStream | null = null;
 
 			try {
-				setIsLoading(true);
-				setError(null);
+				if (mounted && loadId === activeLoadId) {
+					setIsLoading(true);
+					setError(null);
+				}
 
 				let allDevices = await navigator.mediaDevices.enumerateDevices();
 				let audioInputs = allDevices
@@ -58,7 +64,7 @@ export function useMicrophoneDevices(enabled: boolean = true, preferredDeviceId?
 						}));
 				}
 
-				if (mounted) {
+				if (mounted && loadId === activeLoadId) {
 					setDevices(audioInputs);
 					setSelectedDeviceId((currentDeviceId) => {
 						const normalizedPreferredDeviceId = preferredDeviceId ?? "default";
@@ -86,7 +92,7 @@ export function useMicrophoneDevices(enabled: boolean = true, preferredDeviceId?
 					setIsLoading(false);
 				}
 			} catch (error) {
-				if (mounted) {
+				if (mounted && loadId === activeLoadId) {
 					const message =
 						error instanceof Error
 							? error.message
