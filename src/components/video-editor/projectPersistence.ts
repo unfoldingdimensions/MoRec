@@ -70,7 +70,6 @@ import {
 	DEFAULT_ZOOM_MOTION_BLUR,
 	DEFAULT_ZOOM_MOTION_BLUR_TUNING,
 	DEFAULT_ZOOM_OUT_EASING,
-	DEFAULT_ZOOM_SMOOTHNESS,
 	getDefaultCaptionFontFamily,
 	normalizeCursorClickEffectColor,
 	normalizeCursorClickEffectStyle,
@@ -122,7 +121,6 @@ export interface ProjectEditorState {
 	cameraSpringStiffnessMultiplier: number;
 	cameraSpringDampingMultiplier: number;
 	cameraSpringMassMultiplier: number;
-	zoomSmoothness: number;
 	zoomClassicMode: boolean;
 	cursorMotionBlur: number;
 	cursorClickBounce: number;
@@ -910,7 +908,6 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 		cameraSpringMassMultiplier: isFiniteNumber(editor.cameraSpringMassMultiplier)
 			? clamp(editor.cameraSpringMassMultiplier, 0.25, 3)
 			: 1.12,
-		zoomSmoothness: DEFAULT_ZOOM_SMOOTHNESS,
 		zoomClassicMode:
 			typeof editor.zoomClassicMode === "boolean" ? editor.zoomClassicMode : false,
 		cursorMotionBlur: normalizedMotionValues.cursorMotionBlur,

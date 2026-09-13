@@ -5,7 +5,6 @@ export type CursorMotionPresetId = "focused" | "smooth";
 export interface CursorMotionPreset {
 	id: CursorMotionPresetId;
 	label: string;
-	zoomSmoothness: number;
 	zoomInDurationMs: number;
 	zoomOutDurationMs: number;
 	cursorSize: number;
@@ -44,7 +43,6 @@ export const CURSOR_MOTION_PRESETS: Record<CursorMotionPresetId, CursorMotionPre
 	focused: {
 		id: "focused",
 		label: "Focused",
-		zoomSmoothness: 0.5,
 		zoomInDurationMs: 200,
 		zoomOutDurationMs: 200,
 		...SHARED_CURSOR_PRESET_VALUES,
@@ -54,7 +52,6 @@ export const CURSOR_MOTION_PRESETS: Record<CursorMotionPresetId, CursorMotionPre
 	smooth: {
 		id: "smooth",
 		label: "Smooth",
-		zoomSmoothness: 0.5,
 		zoomInDurationMs: DEFAULT_ZOOM_IN_DURATION_MS,
 		zoomOutDurationMs: DEFAULT_ZOOM_OUT_DURATION_MS,
 		...SHARED_CURSOR_PRESET_VALUES,
