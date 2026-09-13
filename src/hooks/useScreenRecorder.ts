@@ -1166,6 +1166,15 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 						console.error("Failed to recover native screen recording:", recoveryError);
 					}
 
+					// Recovery failed: the webcam companion may already be stored with
+					// no parent session to reference it, so remove it (mirrors the
+					// interrupted-handler cleanup).
+					void webcamPathPromise.then((webcamPath) => {
+						if (webcamPath) {
+							void window.electronAPI.deleteRecordingFile(webcamPath);
+						}
+					});
+
 					const failureMessage = await buildNativeCaptureFailureMessage(
 						"stop-native-screen-recording",
 						isMacOS
