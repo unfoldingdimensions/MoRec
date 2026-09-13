@@ -81,10 +81,20 @@ export function useTimelineKeyboardShortcuts({
 				return;
 			}
 
-			if (matchesShortcut(e, keyShortcuts.addKeyframe, isMac)) addKeyframe();
-			if (matchesShortcut(e, keyShortcuts.addZoom, isMac)) handleAddZoom();
-			if (matchesShortcut(e, keyShortcuts.splitClip, isMac)) handleSplitClip();
+			if (matchesShortcut(e, keyShortcuts.addKeyframe, isMac)) {
+				e.preventDefault();
+				addKeyframe();
+			}
+			if (matchesShortcut(e, keyShortcuts.addZoom, isMac)) {
+				e.preventDefault();
+				handleAddZoom();
+			}
+			if (matchesShortcut(e, keyShortcuts.splitClip, isMac)) {
+				e.preventDefault();
+				handleSplitClip();
+			}
 			if (matchesShortcut(e, keyShortcuts.addAnnotation, isMac)) {
+				e.preventDefault();
 				handleAddAnnotation();
 			}
 
