@@ -141,4 +141,60 @@ describe("captionEditing", () => {
 		expect(updated[0].text).toBe("coughs");
 		expect(updated[0].words).toEqual([{ text: "coughs", startMs: 1_000, endMs: 2_000 }]);
 	});
+
+	it("drops edited cues that receive no tokens instead of leaving empty text", () => {
+		// Three fully-targeted cues; replacement text has one token, which is
+		// distributed to the largest segment. The other two cues would previously
+		// be left with empty text and vanish on the next save/load.
+		const cues: CaptionCue[] = [
+			{
+				id: "a",
+				startMs: 1_000,
+				endMs: 2_000,
+				text: "one two",
+				words: [
+					{ text: "one", startMs: 1_000, endMs: 1_500 },
+					{ text: "two", startMs: 1_500, endMs: 2_000, leadingSpace: true },
+				],
+			},
+			{
+				id: "b",
+				startMs: 3_000,
+				endMs: 4_000,
+				text: "three",
+				words: [{ text: "three", startMs: 3_000, endMs: 4_000 }],
+			},
+			{
+				id: "c",
+				startMs: 5_000,
+				endMs: 6_500,
+				text: "four five",
+				words: [
+					{ text: "four", startMs: 5_000, endMs: 5_750 },
+					{ text: "five", startMs: 5_750, endMs: 6_500, leadingSpace: true },
+				],
+			},
+		];
+		const target: CaptionEditTarget = {
+			id: "page",
+			startMs: 1_000,
+			endMs: 6_500,
+			text: "one two three four five",
+			words: [
+				{ cueId: "a", cueWordIndex: 0, startMs: 1_000, endMs: 1_500, text: "one", leadingSpace: false },
+				{ cueId: "a", cueWordIndex: 1, startMs: 1_500, endMs: 2_000, text: "two", leadingSpace: true },
+				{ cueId: "b", cueWordIndex: 0, startMs: 3_000, endMs: 4_000, text: "three", leadingSpace: true },
+				{ cueId: "c", cueWordIndex: 0, startMs: 5_000, endMs: 5_750, text: "four", leadingSpace: true },
+				{ cueId: "c", cueWordIndex: 1, startMs: 5_750, endMs: 6_500, text: "five", leadingSpace: true },
+			],
+		};
+
+		const updated = updateCaptionCuesForEditedTarget(cues, target, "replacement");
+
+		expect(updated.map((caption) => caption.id)).toEqual(["c"]);
+		expect(updated[0].text).toBe("replacement");
+		expect(updated[0].words).toEqual([
+			{ text: "replacement", startMs: 5_000, endMs: 6_500 },
+		]);
+	});
 });

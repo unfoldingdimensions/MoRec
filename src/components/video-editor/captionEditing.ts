@@ -158,10 +158,13 @@ export function updateCaptionCuesForEditedTarget(
 		);
 	}
 
-	return cues.map((cue) => {
+	// An edited cue that receives no tokens and keeps none of its own words
+	// would end up with empty text — the project loader drops empty cues on
+	// load, so drop it here instead and keep the session state consistent.
+	return cues.flatMap((cue) => {
 		const targetWords = targetWordsByCue.get(cue.id);
 		if (!targetWords) {
-			return cue;
+			return [cue];
 		}
 
 		const targetIndexes = new Set(targetWords.map((word) => word.cueWordIndex));
@@ -171,15 +174,20 @@ export function updateCaptionCuesForEditedTarget(
 			...keptWords,
 			...(editedWordsByCue.get(cue.id) ?? []),
 		]);
+		if (nextWords.length === 0) {
+			return [];
+		}
 		const shouldKeepWords = shouldPreserveCaptionWords(cue);
 
-		return {
-			id: cue.id,
-			startMs: cue.startMs,
-			endMs: cue.endMs,
-			text: captionWordsToText(nextWords),
-			...(shouldKeepWords && nextWords.length > 0 ? { words: nextWords } : {}),
-		};
+		return [
+			{
+				id: cue.id,
+				startMs: cue.startMs,
+				endMs: cue.endMs,
+				text: captionWordsToText(nextWords),
+				...(shouldKeepWords ? { words: nextWords } : {}),
+			},
+		];
 	});
 }
 
