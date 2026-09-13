@@ -1318,6 +1318,60 @@ describe("useScreenRecorder state machine (real hook, browser capture)", () => {
 		await harness.unmount();
 	});
 
+	it("exposes starting and times out a wedged webcam request, continuing without webcam", async () => {
+		vi.useFakeTimers();
+		try {
+			gumImpl = async (constraints: MediaStreamConstraints) => {
+				// A wedged UVC driver: the webcam request never settles.
+				if (constraints?.video && !constraints?.audio) {
+					return new Promise<MockStream>(() => {});
+				}
+				return createMockStream(constraints?.audio ? ["video", "audio"] : ["video"]);
+			};
+
+			const harness = await renderRecorderHook();
+			await enablePreference(harness, (h) => {
+				h.current.setWebcamEnabled(true);
+			});
+
+			await act(async () => {
+				await harness.current.toggleRecording();
+			});
+			await flushRecordingPipeline(6);
+
+			// The start sequence is visible (starting) and parked on the webcam.
+			expect(harness.current.starting).toBe(true);
+			expect(harness.current.recording).toBe(false);
+
+			await act(async () => {
+				await vi.advanceTimersByTimeAsync(10_000);
+			});
+			await flushRecordingPipeline();
+
+			// The start continued without the webcam layer.
+			expect(harness.current.starting).toBe(false);
+			expect(harness.current.recording).toBe(true);
+			expect(MockMediaRecorder.instances).toHaveLength(0);
+
+			await act(async () => {
+				harness.current.stopRecording();
+			});
+			await flushRecordingPipeline();
+
+			expect(electronAPI.storeRecordedVideo).not.toHaveBeenCalled();
+			expect(electronAPI.setCurrentVideoPath).toHaveBeenCalledWith(
+				NATIVE_PATH,
+				expect.anything(),
+			);
+			expect(electronAPI.switchToEditor).toHaveBeenCalledTimes(1);
+			expect(electronAPI.hudOverlayClose).toHaveBeenCalledTimes(1);
+
+			await harness.unmount();
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
 	it("cancel (R1): tears down mic stream, mixing context, and all tracks without storing", async () => {
 		useBrowserCapture();
 

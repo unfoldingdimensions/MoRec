@@ -25,6 +25,7 @@ const DEFAULT_WIDTH = 1920;
 const DEFAULT_HEIGHT = 1080;
 const CODEC_ALIGNMENT = 2;
 const RECORDER_TIMESLICE_MS = 250;
+const WEBCAM_CAPTURE_TIMEOUT_MS = 10_000;
 const BITS_PER_MEGABIT = 1_000_000;
 const MIN_FRAME_RATE = 30;
 const CHROME_MEDIA_SOURCE = "desktop";
@@ -130,6 +131,7 @@ type DesktopCaptureMediaDevices = {
 type UseScreenRecorderReturn = {
 	recording: boolean;
 	paused: boolean;
+	starting: boolean;
 	finalizing: boolean;
 	countdownActive: boolean;
 	toggleRecording: () => void;
@@ -316,6 +318,29 @@ async function createAudioInputDeviceSnapshot(): Promise<
 		}));
 
 	return audioInputs.length > 0 ? audioInputs : null;
+}
+
+/**
+ * Reject if a device request never settles: a wedged UVC driver would
+ * otherwise hold the start sequence open (and `startInFlight` latched) until
+ * the app restarts. Late resolutions release the hardware at the call site.
+ */
+function withDeviceRequestTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+	return new Promise<T>((resolve, reject) => {
+		const timer = setTimeout(() => {
+			reject(new Error("Device request timed out"));
+		}, timeoutMs);
+		promise.then(
+			(value) => {
+				clearTimeout(timer);
+				resolve(value);
+			},
+			(error) => {
+				clearTimeout(timer);
+				reject(error);
+			},
+		);
+	});
 }
 
 export function useScreenRecorder(): UseScreenRecorderReturn {
@@ -994,8 +1019,9 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 			return;
 		}
 
+		let webcamStreamRequest: Promise<MediaStream> | null = null;
 		try {
-			webcamStream.current = await navigator.mediaDevices.getUserMedia({
+			webcamStreamRequest = navigator.mediaDevices.getUserMedia({
 				video: webcamDeviceId
 					? {
 							deviceId: { exact: webcamDeviceId },
@@ -1010,6 +1036,10 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 						},
 				audio: false,
 			});
+			webcamStream.current = await withDeviceRequestTimeout(
+				webcamStreamRequest,
+				WEBCAM_CAPTURE_TIMEOUT_MS,
+			);
 
 			const mimeType = selectWebcamMimeType();
 			webcamChunks.current = [];
@@ -1097,6 +1127,15 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 				"Failed to start webcam recording; continuing without webcam layer:",
 				error,
 			);
+			// A wedged request can still resolve after the timeout; release the
+			// hardware immediately unless the stream was adopted as the capture.
+			void webcamStreamRequest
+				?.then((lateStream) => {
+					if (lateStream !== webcamStream.current) {
+						lateStream.getTracks().forEach((track) => track.stop());
+					}
+				})
+				.catch(() => undefined);
 			resolvedWebcamPath.current = null;
 			pendingWebcamPathPromise.current = Promise.resolve(null);
 			webcamStopPromise.current = Promise.resolve(null);
@@ -2327,6 +2366,7 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 	return {
 		recording,
 		paused,
+		starting,
 		finalizing,
 		countdownActive,
 		toggleRecording,
