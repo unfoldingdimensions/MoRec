@@ -192,6 +192,69 @@ describe("useMicrophoneDevices", () => {
 		expect(result.current.devices.map((d) => d.deviceId)).toEqual(["mic-a", "mic-b"]);
 	});
 
+	it("retries the label probe after a transient failure", async () => {
+		let probeAttempts = 0;
+		installMediaDevices({
+			enumerateDevices: vi.fn(async () => {
+				return probeAttempts >= 2
+					? [device({ kind: "audioinput", deviceId: "mic-a", label: "Blue Yeti" })]
+					: [device({ kind: "audioinput", deviceId: "mic-a" })];
+			}),
+			getUserMedia: vi.fn(async () => {
+				probeAttempts += 1;
+				if (probeAttempts === 1) {
+					const error = new Error("Device is busy");
+					error.name = "NotReadableError";
+					throw error;
+				}
+				const track = { stop: vi.fn() };
+				return { getTracks: () => [track] } as unknown as MediaStream;
+			}),
+		});
+		const useMicrophoneDevices = await loadHook();
+
+		const { result } = renderHook(() => useMicrophoneDevices(true));
+		await waitFor(() => {
+			expect(result.current.error).toBe("Device is busy");
+		});
+
+		const deviceChangeHandler = mediaDevicesGlobal.addEventListener.mock.calls.find(
+			(call) => call[0] === "devicechange",
+		)?.[1] as () => void;
+		deviceChangeHandler();
+
+		await waitFor(() => {
+			expect(result.current.devices.map((d) => d.label)).toEqual(["Blue Yeti"]);
+		});
+		expect(probeAttempts).toBe(2);
+	});
+
+	it("does not re-request the label probe after a denial", async () => {
+		installMediaDevices({
+			enumerateDevices: vi.fn(async () => [
+				device({ kind: "audioinput", deviceId: "mic-a" }),
+			]),
+			getUserMedia: vi.fn(async () => {
+				throw new DOMException("Permission denied", "NotAllowedError");
+			}),
+		});
+		const useMicrophoneDevices = await loadHook();
+
+		const { result } = renderHook(() => useMicrophoneDevices(true));
+		await waitFor(() => {
+			expect(result.current.error).not.toBeNull();
+		});
+		expect(mediaDevicesGlobal.getUserMedia).toHaveBeenCalledTimes(1);
+
+		const deviceChangeHandler = mediaDevicesGlobal.addEventListener.mock.calls.find(
+			(call) => call[0] === "devicechange",
+		)?.[1] as () => void;
+		deviceChangeHandler();
+		await new Promise((resolve) => setTimeout(resolve, 10));
+
+		expect(mediaDevicesGlobal.getUserMedia).toHaveBeenCalledTimes(1);
+	});
+
 	it("does not re-request label permission on subsequent mounts in the same session", async () => {
 		// The first test in this file consumed the once-per-session flag for
 		// this module instance; later mounts must enumerate (with labels)
