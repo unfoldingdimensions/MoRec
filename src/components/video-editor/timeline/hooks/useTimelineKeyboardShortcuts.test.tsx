@@ -14,7 +14,6 @@ const BINDINGS = {
 
 function createParams(overrides: Partial<Record<string, unknown>> = {}) {
 	return {
-		isMac: false,
 		keyShortcuts: BINDINGS,
 		isTimelineFocusedRef: { current: true },
 		hasAnyZoomBlocks: true,

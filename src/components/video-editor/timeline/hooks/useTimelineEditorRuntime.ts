@@ -67,7 +67,6 @@ interface UseTimelineEditorRuntimeParams {
 	onCaptionAdded?: (span: Span) => void;
 	selectedCaptionId?: string | null;
 	onSelectCaption?: (id: string | null) => void;
-	isMac: boolean;
 	keyShortcuts: TimelineShortcutBindings;
 	isTimelineFocusedRef: RefObject<boolean>;
 }
@@ -117,7 +116,6 @@ export function useTimelineEditorRuntime({
 	onCaptionAdded,
 	selectedCaptionId,
 	onSelectCaption,
-	isMac,
 	keyShortcuts,
 	isTimelineFocusedRef,
 }: UseTimelineEditorRuntimeParams) {
@@ -261,7 +259,6 @@ export function useTimelineEditorRuntime({
 	);
 
 	useTimelineKeyboardShortcuts({
-		isMac,
 		keyShortcuts,
 		isTimelineFocusedRef,
 		hasAnyZoomBlocks,

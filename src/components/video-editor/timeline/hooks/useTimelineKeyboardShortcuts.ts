@@ -4,7 +4,6 @@ import type { TimelineShortcutBindings } from "../core/timelineTypes";
 import { resolveDeleteSelectionTarget } from "./utils/timelineSelectionUtils";
 
 interface UseTimelineKeyboardShortcutsParams {
-	isMac: boolean;
 	keyShortcuts: TimelineShortcutBindings;
 	isTimelineFocusedRef: RefObject<boolean>;
 	hasAnyZoomBlocks: boolean;
@@ -31,7 +30,6 @@ interface UseTimelineKeyboardShortcutsParams {
 }
 
 export function useTimelineKeyboardShortcuts({
-	isMac,
 	keyShortcuts,
 	isTimelineFocusedRef,
 	hasAnyZoomBlocks,
@@ -72,7 +70,7 @@ export function useTimelineKeyboardShortcuts({
 				return;
 			}
 
-			if (matchesShortcut(e, { key: "a", ctrl: true }, isMac)) {
+			if (matchesShortcut(e, { key: "a", ctrl: true })) {
 				if (!hasAnyZoomBlocks) {
 					return;
 				}
@@ -81,19 +79,19 @@ export function useTimelineKeyboardShortcuts({
 				return;
 			}
 
-			if (matchesShortcut(e, keyShortcuts.addKeyframe, isMac)) {
+			if (matchesShortcut(e, keyShortcuts.addKeyframe)) {
 				e.preventDefault();
 				addKeyframe();
 			}
-			if (matchesShortcut(e, keyShortcuts.addZoom, isMac)) {
+			if (matchesShortcut(e, keyShortcuts.addZoom)) {
 				e.preventDefault();
 				handleAddZoom();
 			}
-			if (matchesShortcut(e, keyShortcuts.splitClip, isMac)) {
+			if (matchesShortcut(e, keyShortcuts.splitClip)) {
 				e.preventDefault();
 				handleSplitClip();
 			}
-			if (matchesShortcut(e, keyShortcuts.addAnnotation, isMac)) {
+			if (matchesShortcut(e, keyShortcuts.addAnnotation)) {
 				e.preventDefault();
 				handleAddAnnotation();
 			}
@@ -107,7 +105,7 @@ export function useTimelineKeyboardShortcuts({
 			if (
 				e.key === "Delete" ||
 				e.key === "Backspace" ||
-				matchesShortcut(e, keyShortcuts.deleteSelected, isMac)
+				matchesShortcut(e, keyShortcuts.deleteSelected)
 			) {
 				const target = resolveDeleteSelectionTarget({
 					selectAllBlocksActive,
@@ -154,7 +152,6 @@ export function useTimelineKeyboardShortcuts({
 		handleAddZoom,
 		handleSplitClip,
 		hasAnyZoomBlocks,
-		isMac,
 		isTimelineFocusedRef,
 		keyShortcuts,
 		selectAllBlocksActive,

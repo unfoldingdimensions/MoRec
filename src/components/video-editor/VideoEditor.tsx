@@ -4605,7 +4605,7 @@ export default function VideoEditor() {
 				e.preventDefault();
 			}
 
-			if (matchesShortcut(e, shortcuts.playPause, isMac)) {
+			if (matchesShortcut(e, shortcuts.playPause)) {
 				// Allow space only in inputs/textareas
 				if (isEditableTarget) {
 					return;
