@@ -160,6 +160,7 @@ import {
 	serializeEditorPresetSnapshot,
 } from "./editorPreferences";
 import ProjectBrowserDialog, { type ProjectLibraryEntry } from "./ProjectBrowserDialog";
+import { isShortcutCaptureActive } from "@/lib/shortcutCaptureState";
 import { hasUnsavedProjectChanges } from "./projectDirtyState";
 import {
 	createProjectData,
@@ -2360,13 +2361,29 @@ export default function VideoEditor() {
 	// every pointermove; recording each one would flood the capped undo stack.
 	// Skip recording during the gesture and record once when it ends.
 	const timelineInteractionActiveRef = useRef(false);
-	const [timelineInteractionVersion, setTimelineInteractionVersion] = useState(0);
-	const handleTimelineInteractionChange = useCallback((active: boolean) => {
-		timelineInteractionActiveRef.current = active;
-		if (!active) {
-			setTimelineInteractionVersion((version) => version + 1);
-		}
-	}, []);
+	const handleTimelineInteractionChange = useCallback(
+		(active: boolean) => {
+			timelineInteractionActiveRef.current = active;
+			if (active) {
+				return;
+			}
+
+			const result = recordEditorHistorySnapshot(
+				editorHistoryRef.current,
+				buildHistorySnapshot(),
+				{
+					applyingHistory: applyingHistoryRef.current,
+				},
+			);
+			if (result === "applied") {
+				applyingHistoryRef.current = false;
+			}
+			if (result !== "unchanged") {
+				syncHistoryButtons();
+			}
+		},
+		[buildHistorySnapshot, syncHistoryButtons],
+	);
 
 	useEffect(() => {
 		if (timelineInteractionActiveRef.current) {
@@ -2384,7 +2401,7 @@ export default function VideoEditor() {
 		if (result !== "unchanged") {
 			syncHistoryButtons();
 		}
-	}, [buildHistorySnapshot, syncHistoryButtons, timelineInteractionVersion]);
+	}, [buildHistorySnapshot, syncHistoryButtons]);
 
 	const hasUnsavedChanges = useMemo(
 		() => hasUnsavedProjectChanges(currentProjectSnapshot, lastSavedSnapshot),
@@ -4545,6 +4562,12 @@ export default function VideoEditor() {
 	// Global Tab prevention
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
+			if (isShortcutCaptureActive()) {
+				// The shortcuts dialog is recording a chord; acting on this event
+				// would both fire the action and capture the binding.
+				return;
+			}
+
 			const target = e.target as HTMLElement | null;
 			const isEditableTarget =
 				target instanceof HTMLInputElement ||
@@ -4603,7 +4626,6 @@ export default function VideoEditor() {
 		window.addEventListener("keydown", handleKeyDown, { capture: true });
 		return () => window.removeEventListener("keydown", handleKeyDown, { capture: true });
 	}, [shortcuts, isMac, handleUndo, handleRedo, startPlayback]);
-
 	useEffect(() => {
 		if (selectedZoomId && !zoomRegions.some((region) => region.id === selectedZoomId)) {
 			setSelectedZoomId(null);

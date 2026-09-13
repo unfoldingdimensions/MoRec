@@ -10,6 +10,7 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { useShortcuts } from "@/contexts/ShortcutsContext";
+import { setShortcutCaptureActive } from "@/lib/shortcutCaptureState";
 import {
 	DEFAULT_SHORTCUTS,
 	FIXED_SHORTCUTS,
@@ -51,6 +52,11 @@ export function ShortcutsConfigDialog() {
 	useEffect(() => {
 		if (!captureFor) return;
 
+		// The editor's window-capture shortcut handler was registered before this
+		// dialog's, so stopping propagation here cannot keep it inert — it checks
+		// this shared flag instead (see shortcutCaptureState.ts).
+		setShortcutCaptureActive(true);
+
 		const handleCapture = (e: KeyboardEvent) => {
 			e.preventDefault();
 			e.stopPropagation();
@@ -90,7 +96,10 @@ export function ShortcutsConfigDialog() {
 		};
 
 		window.addEventListener("keydown", handleCapture, { capture: true });
-		return () => window.removeEventListener("keydown", handleCapture, { capture: true });
+		return () => {
+			window.removeEventListener("keydown", handleCapture, { capture: true });
+			setShortcutCaptureActive(false);
+		};
 	}, [captureFor, draft, t, tShortcuts]);
 
 	const handleSwap = useCallback(() => {
