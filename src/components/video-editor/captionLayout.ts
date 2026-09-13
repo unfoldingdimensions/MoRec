@@ -540,10 +540,16 @@ export function buildActiveCaptionLayout(options: {
 		enterProgress,
 		exitProgress,
 	);
-	// On a real disappearance the per-style opacity only eases to its readability
-	// floor (~0.3) before the element unmounts, which reads as a snap. Fade fully
-	// to 0 across the exit window so the caption leaves smoothly.
-	const opacity = willDisappear ? animation.opacity * exitProgress : animation.opacity;
+	// On any page end the per-style opacity only eases to its readability floor
+	// (~0.3) before the element unmounts — for a cue followed within the
+	// gap-break window, or whose end overshoots its last word, that floor is
+	// where the caption snaps off. Fade fully to 0 across the exit window so
+	// every page leaves smoothly; consecutive pages cross-fade instead of
+	// flickering. "none" keeps constant opacity by definition.
+	const opacity =
+		options.settings.animationStyle === "none"
+			? animation.opacity
+			: animation.opacity * exitProgress;
 
 	return {
 		cue: activeCue,
