@@ -40,6 +40,29 @@ export const FIXED_SHORTCUTS: FixedShortcut[] = [
 		display: "Del / ⌫",
 		bindings: [{ key: "delete" }, { key: "backspace" }],
 	},
+	// Hardcoded in the editor's global/timeline key handlers; listed here so the
+	// config dialog treats the chords as reserved instead of allowing double-fire.
+	{
+		id: "undo",
+		label: "Undo",
+		display: "Ctrl + Z",
+		bindings: [{ key: "z", ctrl: true }],
+	},
+	{
+		id: "redo",
+		label: "Redo",
+		display: "Ctrl + Shift + Z / Ctrl + Y",
+		bindings: [
+			{ key: "z", ctrl: true, shift: true },
+			{ key: "y", ctrl: true },
+		],
+	},
+	{
+		id: "selectAllZooms",
+		label: "Select All Zooms",
+		display: "Ctrl + A",
+		bindings: [{ key: "a", ctrl: true }],
+	},
 	{ id: "panTimeline", label: "Pan Timeline", display: "Shift + Scroll", bindings: [] },
 	{ id: "zoomTimeline", label: "Zoom Timeline", display: "Ctrl + Scroll", bindings: [] },
 ];
