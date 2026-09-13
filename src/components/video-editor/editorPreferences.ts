@@ -291,6 +291,12 @@ function normalizeEditorControls(
 		shadowIntensity: sanitizedRaw.shadowIntensity ?? fallback.shadowIntensity,
 		backgroundBlur: sanitizedRaw.backgroundBlur ?? fallback.backgroundBlur,
 		zoomMotionBlur: sanitizedRaw.zoomMotionBlur ?? fallback.zoomMotionBlur,
+		zoomTemporalMotionBlur:
+			sanitizedRaw.zoomTemporalMotionBlur ?? fallback.zoomTemporalMotionBlur,
+		zoomMotionBlurSampleCount:
+			sanitizedRaw.zoomMotionBlurSampleCount ?? fallback.zoomMotionBlurSampleCount,
+		zoomMotionBlurShutterFraction:
+			sanitizedRaw.zoomMotionBlurShutterFraction ?? fallback.zoomMotionBlurShutterFraction,
 		connectZooms: sanitizedRaw.connectZooms ?? fallback.connectZooms,
 		zoomInDurationMs: sanitizedRaw.zoomInDurationMs ?? fallback.zoomInDurationMs,
 		zoomInOverlapMs: sanitizedRaw.zoomInOverlapMs ?? fallback.zoomInOverlapMs,
