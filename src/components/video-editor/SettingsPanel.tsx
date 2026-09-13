@@ -30,6 +30,10 @@ import {
 import {
 	TEMPORAL_MOTION_BLUR_DEFAULT_SAMPLE_COUNT,
 	TEMPORAL_MOTION_BLUR_DEFAULT_SHUTTER_FRACTION,
+	TEMPORAL_MOTION_BLUR_MAX_SAMPLE_COUNT,
+	TEMPORAL_MOTION_BLUR_MAX_SHUTTER_FRACTION,
+	TEMPORAL_MOTION_BLUR_MIN_SAMPLE_COUNT,
+	TEMPORAL_MOTION_BLUR_MIN_SHUTTER_FRACTION,
 } from "@/lib/exporter/temporalMotionBlur";
 import type { ExtensionSettingField } from "@/lib/extensions";
 import { extensionHost, type FrameInstance } from "@/lib/extensions";
@@ -1249,6 +1253,12 @@ export function SettingsPanel({
 	onBackgroundBlurChange,
 	zoomMotionBlurTuning = DEFAULT_ZOOM_MOTION_BLUR_TUNING,
 	onZoomMotionBlurTuningChange,
+	zoomTemporalMotionBlur = 0,
+	onZoomTemporalMotionBlurChange,
+	zoomMotionBlurSampleCount = null,
+	onZoomMotionBlurSampleCountChange,
+	zoomMotionBlurShutterFraction = null,
+	onZoomMotionBlurShutterFractionChange,
 	connectZooms = true,
 	onConnectZoomsChange,
 	autoApplyFreshRecordingAutoZooms = true,
@@ -3233,6 +3243,58 @@ export function SettingsPanel({
 						<div className="space-y-1.5 rounded-lg border border-foreground/10 bg-background/60 px-3 py-3">
 							<div>
 								<div className="text-[11px] font-medium text-foreground">
+									{tSettings("effects.temporalBlurTuning", "Temporal Blur (Export)")}
+								</div>
+								<div className="mt-0.5 text-[10px] text-muted-foreground">
+									{tSettings(
+										"effects.temporalBlurTuningHint",
+										"Development-only controls for the export-time temporal motion blur.",
+									)}
+								</div>
+							</div>
+							<SliderControl
+								label={tSettings("effects.temporalBlurAmount", "Blur amount")}
+								value={zoomTemporalMotionBlur}
+								defaultValue={initialEditorPreferences.zoomTemporalMotionBlur}
+								min={0}
+								max={2}
+								step={0.05}
+								onChange={(value) => onZoomTemporalMotionBlurChange?.(value)}
+								formatValue={(value) => `${value.toFixed(2)}×`}
+								parseInput={(text) => parseFloat(text.replace(/×$/, ""))}
+							/>
+							<SliderControl
+								label={tSettings("effects.temporalBlurSamples", "Sample count")}
+								value={
+									zoomMotionBlurSampleCount ?? TEMPORAL_MOTION_BLUR_DEFAULT_SAMPLE_COUNT
+								}
+								defaultValue={TEMPORAL_MOTION_BLUR_DEFAULT_SAMPLE_COUNT}
+								min={TEMPORAL_MOTION_BLUR_MIN_SAMPLE_COUNT}
+								max={TEMPORAL_MOTION_BLUR_MAX_SAMPLE_COUNT}
+								step={2}
+								onChange={(value) => onZoomMotionBlurSampleCountChange?.(Math.round(value))}
+								formatValue={(value) => `${Math.round(value)}`}
+								parseInput={(text) => parseFloat(text)}
+							/>
+							<SliderControl
+								label={tSettings("effects.temporalBlurShutter", "Shutter fraction")}
+								value={
+									zoomMotionBlurShutterFraction ??
+									TEMPORAL_MOTION_BLUR_DEFAULT_SHUTTER_FRACTION
+								}
+								defaultValue={TEMPORAL_MOTION_BLUR_DEFAULT_SHUTTER_FRACTION}
+								min={TEMPORAL_MOTION_BLUR_MIN_SHUTTER_FRACTION}
+								max={TEMPORAL_MOTION_BLUR_MAX_SHUTTER_FRACTION}
+								step={0.01}
+								onChange={(value) => onZoomMotionBlurShutterFractionChange?.(value)}
+								formatValue={(value) => `${Math.round(value * 100)}%`}
+								parseInput={(text) => parseFloat(text.replace(/%$/, "")) / 100}
+							/>
+						</div>
+
+						<div className="space-y-1.5 rounded-lg border border-foreground/10 bg-background/60 px-3 py-3">
+							<div>
+								<div className="text-[11px] font-medium text-foreground">
 									{tSettings("effects.cameraDebugTuning", "Camera Debug Tuning")}
 								</div>
 								<div className="mt-0.5 text-[10px] text-muted-foreground">
@@ -3484,7 +3546,7 @@ export function SettingsPanel({
 							)}
 						</div>
 						<div className="mt-1 text-[12px] font-medium text-foreground">
-							{`${TEMPORAL_MOTION_BLUR_DEFAULT_SAMPLE_COUNT} samples · ${Math.round(TEMPORAL_MOTION_BLUR_DEFAULT_SHUTTER_FRACTION * 100)}% shutter`}
+							{`${zoomMotionBlurSampleCount ?? TEMPORAL_MOTION_BLUR_DEFAULT_SAMPLE_COUNT} samples · ${Math.round((zoomMotionBlurShutterFraction ?? TEMPORAL_MOTION_BLUR_DEFAULT_SHUTTER_FRACTION) * 100)}% shutter`}
 						</div>
 					</div>
 				) : null}
