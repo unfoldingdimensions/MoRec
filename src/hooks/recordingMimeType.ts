@@ -1,9 +1,12 @@
+// Keep the generic "video/webm" entry last: it reports "maybe" playable in
+// Chromium and would otherwise shadow the vp8/av1 fallbacks whenever neither
+// h264 nor vp9 pass the playback gate.
 const RECORDING_MIME_TYPE_PREFERENCES = [
 	"video/webm;codecs=h264",
 	"video/webm;codecs=vp9",
-	"video/webm",
 	"video/webm;codecs=vp8",
 	"video/webm;codecs=av1",
+	"video/webm",
 ] as const;
 
 const WEBCAM_RECORDING_MIME_TYPE_PREFERENCES = [

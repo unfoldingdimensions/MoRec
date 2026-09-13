@@ -47,6 +47,25 @@ describe("selectRecordingMimeType", () => {
 		expect(mimeType).toBe("video/webm;codecs=h264");
 	});
 
+	it("prefers a playable specific codec over the always-playable generic WebM entry", () => {
+		const mimeType = selectRecordingMimeType({
+			isTypeSupported: () => true,
+			canPlayType: (type) =>
+				type === "video/webm;codecs=vp8" ? "probably" : type === "video/webm" ? "maybe" : "",
+		});
+
+		expect(mimeType).toBe("video/webm;codecs=vp8");
+	});
+
+	it("still selects generic WebM when no specific codec is playable", () => {
+		const mimeType = selectRecordingMimeType({
+			isTypeSupported: () => true,
+			canPlayType: (type) => (type === "video/webm" ? "maybe" : ""),
+		});
+
+		expect(mimeType).toBe("video/webm");
+	});
+
 	it("returns undefined when no preferred mime type is supported", () => {
 		const mimeType = selectRecordingMimeType({
 			isTypeSupported: () => false,
