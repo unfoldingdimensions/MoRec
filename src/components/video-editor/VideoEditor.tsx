@@ -4597,13 +4597,9 @@ export default function VideoEditor() {
 				return;
 			}
 
-			if (e.key === "Tab") {
-				// Allow tab only in inputs/textareas
-				if (isEditableTarget) {
-					return;
-				}
-				e.preventDefault();
-			}
+			// Tab is intentionally not swallowed here: the timeline's annotation
+			// cycle (useTimelineKeyboardShortcuts) preventDefaults it when it
+			// handles it, and otherwise Tab must keep its normal focus behavior.
 
 			if (matchesShortcut(e, shortcuts.playPause)) {
 				// Allow space only in inputs/textareas
