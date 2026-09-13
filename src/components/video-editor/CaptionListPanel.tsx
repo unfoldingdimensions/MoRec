@@ -1,5 +1,6 @@
 import { ArrowsMerge, Scissors, Trash } from "@phosphor-icons/react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useScopedT } from "@/contexts/I18nContext";
 import type { CaptionRetimeSpan } from "./captionOps";
@@ -98,9 +99,14 @@ function CaptionEditor({
 		if (normalized && normalized !== cue.text) {
 			onTextEdit(cue.id, normalized);
 		} else {
+			if (!normalized && cue.text) {
+				// Empty cues are dropped by the project loader, so clearing is not
+				// allowed — tell the user instead of silently reverting.
+				toast.info(t("captions.editor.cannotBeEmpty", "Caption text can't be empty"));
+			}
 			setDraftText(cue.text);
 		}
-	}, [cue.id, cue.text, draftText, onTextEdit]);
+	}, [cue.id, cue.text, draftText, onTextEdit, t]);
 
 	const commitTiming = useCallback(() => {
 		const parsedStart = parseTimecode(startValue);
