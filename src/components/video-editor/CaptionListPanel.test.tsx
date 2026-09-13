@@ -1,10 +1,18 @@
 // @vitest-environment jsdom
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { I18nProvider } from "@/contexts/I18nContext";
 import type { CaptionCue } from "./types";
 import CaptionListPanel from "./CaptionListPanel";
+
+const toast = vi.hoisted(() => ({
+	info: vi.fn(),
+	error: vi.fn(),
+	success: vi.fn(),
+}));
+
+vi.mock("sonner", () => ({ toast }));
 
 function cue(partial: Partial<CaptionCue>): CaptionCue {
 	return { id: "cue-1", text: "Hello world", startMs: 1000, endMs: 2000, ...partial };
@@ -37,6 +45,12 @@ function renderPanel(overrides: Partial<Parameters<typeof CaptionListPanel>[0]> 
 }
 
 describe("CaptionListPanel", () => {
+	beforeEach(() => {
+		toast.info.mockClear();
+		toast.error.mockClear();
+		toast.success.mockClear();
+	});
+
 	it("renders nothing when no caption is selected", () => {
 		const { container } = render(
 			<I18nProvider>
@@ -105,10 +119,21 @@ describe("CaptionListPanel", () => {
 		await user.type(textarea, "  Edited caption  ");
 		await user.tab();
 		expect(props.onCaptionTextEdit).toHaveBeenCalledWith("cue-1", "Edited caption");
-
 		await user.clear(textarea);
 		await user.tab();
 		expect(props.onCaptionTextEdit).toHaveBeenCalledTimes(1);
+	});
+
+	it("toasts when a cleared caption reverts instead of saving silently", async () => {
+		const user = userEvent.setup();
+		renderPanel();
+
+		const textarea = screen.getByDisplayValue("Hello world");
+		await user.clear(textarea);
+		await user.tab();
+
+		expect(toast.info).toHaveBeenCalledTimes(1);
+		expect(screen.getByDisplayValue("Hello world")).toBeInTheDocument();
 	});
 
 	it("discards text edits on Escape", async () => {
