@@ -10,6 +10,7 @@
 		"countdownDelay": "Обратный отсчёт",
 		"noDelay": "Без задержки",
 		"record": "Запись",
+		"starting": "Запуск…",
 		"recordingFolder": "Место сохранения: {{path}}",
 		"chooseRecordingsFolder": "Изменить место сохранения",
 		"folderPath": "Папка: /{{name}}/",

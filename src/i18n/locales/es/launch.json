@@ -10,6 +10,7 @@
 		"countdownDelay": "Retraso de cuenta regresiva",
 		"noDelay": "Sin retraso",
 		"record": "Grabar",
+		"starting": "Iniciando…",
 		"recordingFolder": "Carpeta de grabaciones: {{path}}",
 		"chooseRecordingsFolder": "Elegir carpeta de grabaciones",
 		"folderPath": "Ruta: /{{name}}/",

@@ -10,6 +10,7 @@
 		"countdownDelay": "倒计时延迟",
 		"noDelay": "无延迟",
 		"record": "录制",
+		"starting": "正在启动…",
 		"recordingFolder": "录制文件夹：{{path}}",
 		"chooseRecordingsFolder": "选择录制文件夹",
 		"folderPath": "路径：/{{name}}/",

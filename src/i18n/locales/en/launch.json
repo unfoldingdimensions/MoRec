@@ -10,6 +10,7 @@
 		"countdownDelay": "Countdown delay",
 		"noDelay": "No delay",
 		"record": "Record",
+		"starting": "Starting…",
 		"recordingFolder": "Recordings Path: {{path}}",
 		"chooseRecordingsFolder": "Choose recordings path",
 		"folderPath": "Path: /{{name}}/",

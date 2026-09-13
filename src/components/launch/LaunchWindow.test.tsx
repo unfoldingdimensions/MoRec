@@ -10,6 +10,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 const recorder = vi.hoisted(() => ({
 	recording: false,
 	paused: false,
+	starting: false,
 	finalizing: false,
 	countdownActive: false,
 	toggleRecording: vi.fn(),
@@ -150,6 +151,7 @@ describe("LaunchWindow (idle HUD)", () => {
 		// Reset mutable mock-hook state; clearAllMocks does not touch it.
 		recorder.recording = false;
 		recorder.paused = false;
+		recorder.starting = false;
 		actions.selectedSource = null;
 		actions.hasSelectedSource = false;
 		installElectronApi();
@@ -187,6 +189,20 @@ describe("LaunchWindow (idle HUD)", () => {
 
 		expect(recorder.toggleRecording).not.toHaveBeenCalled();
 		expect(noopFns.beginInteractiveHudAction).toHaveBeenCalledTimes(1);
+	});
+
+	it("disables the record button while a start is in flight", async () => {
+		actions.selectedSource = "Screen 1";
+		actions.hasSelectedSource = true;
+		recorder.starting = true;
+		const user = userEvent.setup();
+		renderWindow();
+
+		const button = await screen.findByTitle(/Starting/i);
+		expect(button).toBeDisabled();
+		expect(button).toHaveAttribute("aria-busy", "true");
+		await user.click(button);
+		expect(recorder.toggleRecording).not.toHaveBeenCalled();
 	});
 
 	it("swaps to the recording controls while recording", async () => {

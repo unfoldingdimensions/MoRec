@@ -10,6 +10,7 @@
 		"countdownDelay": "Ritardo conto alla rovescia",
 		"noDelay": "Nessun ritardo",
 		"record": "Registra",
+		"starting": "Avvio…",
 		"recordingFolder": "Percorso registrazioni: {{path}}",
 		"chooseRecordingsFolder": "Scegli percorso registrazioni",
 		"folderPath": "Percorso: /{{name}}/",

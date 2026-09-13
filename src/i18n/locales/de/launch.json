@@ -10,6 +10,7 @@
 		"countdownDelay": "Countdown-Verzögerung",
 		"noDelay": "Keine Verzögerung",
 		"record": "Aufnehmen",
+		"starting": "Startet…",
 		"recordingFolder": "Pfad zu den Aufzeichnungen: {{path}}",
 		"chooseRecordingsFolder": "Pfad zu den Aufzeichnungen auswählen",
 		"folderPath": "Pfad: /{{name}}/",
