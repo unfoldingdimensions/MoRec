@@ -1,5 +1,7 @@
 # Recording Lifecycle Review — Windows (hooks scope)
 
+> **Status update (2026-09-14): all findings fixed.** The fix series lives on the same branch as this report (PR #1), one commit per finding, each verified by the real-hook test coverage introduced in the M1 fix. See [Fix status](#fix-status) at the end.
+
 - **Date:** 2026-09-13 · **Reviewed at:** `e6e7aee` (main)
 - **Scope:** `src/hooks/useScreenRecorder.ts`, `useScreenRecorder.test.ts`, `useScreenRecorder.lifecycle.test.tsx`, `recordingMimeType.ts`, `useMicrophoneDevices.ts`, `useVideoDevices.ts`, `useAudioLevelMeter.ts`
 - **Focus:** start/pause/resume/cancel/stop sequences; R1 (mic-stream cleanup on cancel); R3 finalization ordering (webcam encode → mic sidecar → `muxNativeWindowsRecording` → finalize → `hudOverlayClose`); track leaks; MediaRecorder MIME fallbacks; device hot-plug.
@@ -100,3 +102,23 @@ Test Files  6 passed (6)
      Tests  96 passed (96)
 ```
 `useScreenRecorder.test.ts` · `useScreenRecorder.lifecycle.test.tsx` · `recordingMimeType.test.ts` · `useMicrophoneDevices.test.tsx` · `useVideoDevices.test.tsx` · `useAudioLevelMeter.test.tsx`
+
+## Fix status
+
+All findings fixed on this branch, one commit each, verified per fix (scoped test runs + `tsc --noEmit` + biome lint per commit; full suite run at the end: 143 files, 1248 passed — the single failure is the author's own untracked `electron/ipc/register/export.stream.test.ts`, unrelated to the hooks).
+
+| Finding | Fix commit | What changed |
+| --- | --- | --- |
+| M1 replica tests | `38e5215` | `useScreenRecorder.state.test.tsx` drives the real hook through native-Windows/browser paths; replica suites deleted from `useScreenRecorder.test.ts` (pure-helper tests kept) |
+| m1 orphaned webcam on stop failure | `bf76bd3` | stop-failure path deletes the stored webcam companion, mirroring the interrupted handler |
+| m2 webcam `ended` orphan file | `278be13` | `ended` handler sets `webcamDiscardRequested` and clears chunks |
+| m3 mic-fallback leak on errored recorder | `429f99d` | inactive-recorder early return stops its stream and clears chunks; `onerror` added for observability |
+| m4 pause/resume IPC rejections | `e4ac977` | try/catch around native pause/resume IPC; guarded fire-and-forget `setRecordingState(false)` in the browser stop branch |
+| m5 start-window wedge | `2da2ca6` | `starting` exposed on the hook contract; 10 s device-request timeout on webcam `getUserMedia` with late-resolution hardware release |
+| m6 hardcoded mic MIME | `77c24d6` | `selectMicrophoneRecordingMimeType` probe (opus → generic WebM audio → recorder default) |
+| m7 unreachable vp8/av1 fallbacks | `5fc56a6` | generic `video/webm` ranked last in the preference list |
+| m8 stale mic enumerations | `f3f7fe0` | `activeLoadId` guard mirrored from the video hook |
+| m9 label-permission retry divergence | `b18317f` | unified contract in both device hooks: denial consumes the session flag, transient failures stay retryable, success consumes it after the probe |
+| m10 meter dies on unplug | `d43b7e5` | devicechange teardown/reopen of the capture graph, with a session token guarding overlapping acquisitions |
+
+Known follow-ups left open deliberately: exposing `starting` to the UI (the hook contract now carries it; HUD/LaunchWindow wiring belongs to the renderer UI/UX fix pass), and the pre-existing `useExhaustiveDependencies` warning on `toggleRecording` (present before this series; wrapping `startRecording` in `useCallback` is a small refactor beyond this scope).
