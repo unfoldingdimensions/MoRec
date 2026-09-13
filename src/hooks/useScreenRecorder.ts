@@ -5,6 +5,7 @@ import { getEffectiveRecordingDurationMs } from "@/lib/mediaTiming";
 import {
 	getVideoExtensionForMimeType,
 	isWebmMimeType,
+	selectMicrophoneRecordingMimeType,
 	selectRecordingMimeType,
 	selectWebcamRecordingMimeType,
 } from "./recordingMimeType";
@@ -1715,8 +1716,11 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 									micFallbackAudioInputDevices.current,
 								);
 								micFallbackChunks.current = [];
+								// Probe before constructing: an unsupported hardcoded
+								// type throws and aborts the whole fallback.
+								const micMimeType = selectMicrophoneRecordingMimeType();
 								const recorder = new MediaRecorder(micStream, {
-									mimeType: "audio/webm;codecs=opus",
+									...(micMimeType ? { mimeType: micMimeType } : {}),
 									audioBitsPerSecond: AUDIO_BITRATE_VOICE,
 								});
 								micFallbackRecorderMetadata.current = {

@@ -17,6 +17,11 @@ const WEBCAM_RECORDING_MIME_TYPE_PREFERENCES = [
 	"video/webm;codecs=vp8",
 ] as const;
 
+const MICROPHONE_RECORDING_MIME_TYPE_PREFERENCES = [
+	"audio/webm;codecs=opus",
+	"audio/webm",
+] as const;
+
 type MimeTypeSelectorOptions = {
 	isTypeSupported?: (type: string) => boolean;
 	canPlayType?: (type: string) => string;
@@ -46,6 +51,12 @@ export function selectWebcamRecordingMimeType(
 	options: MimeTypeSelectorOptions = {},
 ): string | undefined {
 	return selectMimeTypeFromPreferences(WEBCAM_RECORDING_MIME_TYPE_PREFERENCES, options);
+}
+
+export function selectMicrophoneRecordingMimeType(
+	options: MimeTypeSelectorOptions = {},
+): string | undefined {
+	return selectMimeTypeFromPreferences(MICROPHONE_RECORDING_MIME_TYPE_PREFERENCES, options);
 }
 
 export function isWebmMimeType(mimeType: string | undefined | null): boolean {

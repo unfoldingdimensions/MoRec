@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
 	getVideoExtensionForMimeType,
 	isWebmMimeType,
+	selectMicrophoneRecordingMimeType,
 	selectRecordingMimeType,
 	selectWebcamRecordingMimeType,
 } from "./recordingMimeType";
@@ -72,6 +73,33 @@ describe("selectRecordingMimeType", () => {
 		});
 
 		expect(mimeType).toBe("video/webm;codecs=vp9");
+	});
+
+	it("prefers Opus in WebM for the microphone fallback recorder", () => {
+		const mimeType = selectMicrophoneRecordingMimeType({
+			isTypeSupported: () => true,
+			canPlayType: () => "",
+		});
+
+		expect(mimeType).toBe("audio/webm;codecs=opus");
+	});
+
+	it("degrades the microphone fallback to generic WebM audio when Opus is unsupported", () => {
+		const mimeType = selectMicrophoneRecordingMimeType({
+			isTypeSupported: (type) => type === "audio/webm",
+			canPlayType: () => "",
+		});
+
+		expect(mimeType).toBe("audio/webm");
+	});
+
+	it("lets the microphone fallback recorder use its default when nothing is supported", () => {
+		const mimeType = selectMicrophoneRecordingMimeType({
+			isTypeSupported: () => false,
+			canPlayType: () => "",
+		});
+
+		expect(mimeType).toBeUndefined();
 	});
 
 	it("maps recording MIME types to the saved file extension", () => {
