@@ -188,6 +188,25 @@ describe("ExtensionManager", () => {
 		});
 	});
 
+	it("reports marketplace installs that throw with a toast instead of failing silently", async () => {
+		const user = userEvent.setup();
+		extensionsFacade.marketplaceSearch.mockResolvedValue({
+			extensions: [makeMarketplaceExtension()],
+			total: 1,
+		});
+		extensionsFacade.marketplaceInstall.mockRejectedValue(new Error("IPC gone"));
+		await renderManager();
+
+		const installButton = await screen.findByRole("button", { name: "Install" });
+		await user.click(installButton);
+		await waitFor(() => {
+			expect(toast.error).toHaveBeenCalledWith(
+				expect.stringContaining("Cool Extension"),
+				{ description: "IPC gone" },
+			);
+		});
+	});
+
 	it("lists installed extensions on the installed tab", async () => {
 		const user = userEvent.setup();
 		extensionsFacade.extensions = [makeInstalledExtension()];

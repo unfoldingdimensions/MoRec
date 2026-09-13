@@ -774,6 +774,15 @@ export default function ExtensionManager() {
 						},
 					);
 				}
+			} catch (error) {
+				// An IPC/network throw would otherwise clear the spinner silently
+				// and leave the rejection unhandled.
+				toast.error(
+					t("toast.marketplaceInstallFailed", undefined, { name: ext.name }),
+					{
+						description: error instanceof Error ? error.message : String(error),
+					},
+				);
 			} finally {
 				setInstallingIds((prev) => {
 					const next = new Set(prev);
