@@ -121,4 +121,4 @@ All findings fixed on this branch, one commit each, verified per fix (scoped tes
 | m9 label-permission retry divergence | `b18317f` | unified contract in both device hooks: denial consumes the session flag, transient failures stay retryable, success consumes it after the probe |
 | m10 meter dies on unplug | `d43b7e5` | devicechange teardown/reopen of the capture graph, with a session token guarding overlapping acquisitions |
 
-Known follow-ups left open deliberately: exposing `starting` to the UI (the hook contract now carries it; HUD/LaunchWindow wiring belongs to the renderer UI/UX fix pass), and the pre-existing `useExhaustiveDependencies` warning on `toggleRecording` (present before this series; wrapping `startRecording` in `useCallback` is a small refactor beyond this scope).
+Known follow-ups left open deliberately: ~~exposing `starting` to the UI~~ (done — `651c4f5` wires it into the HUD record button with a spinner, disabled state, aria-busy, and a localized Starting label) and ~~the pre-existing `useExhaustiveDependencies` warning on `toggleRecording`~~ (done — `d64c8d7` memoizes `startRecording` with a biome-verified dependency list).
