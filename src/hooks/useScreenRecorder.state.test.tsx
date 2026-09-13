@@ -1226,6 +1226,98 @@ describe("useScreenRecorder state machine (real hook, browser capture)", () => {
 		await harness.unmount();
 	});
 
+	it("keeps recording and remains stoppable when the native pause IPC rejects", async () => {
+		electronAPI.pauseNativeScreenRecording = vi.fn(
+			async () => Promise.reject(new Error("ipc bridge down")) as never,
+		);
+
+		const harness = await renderRecorderHook();
+		await startNativeSession(harness, { webcam: true, micFallback: true });
+		const webcam = MockMediaRecorder.instances[0];
+		const mic = MockMediaRecorder.instances[1];
+
+		await act(async () => {
+			harness.current.pauseRecording();
+		});
+		await flushRecordingPipeline();
+
+		expect(harness.current.paused).toBe(false);
+		expect(webcam.state).toBe("recording");
+		expect(mic.state).toBe("recording");
+
+		// The session must still be stoppable after the failed pause.
+		await act(async () => {
+			harness.current.stopRecording();
+		});
+		await flushRecordingPipeline();
+
+		expect(electronAPI.stopNativeScreenRecording).toHaveBeenCalledTimes(1);
+		expect(electronAPI.setCurrentVideoPath).toHaveBeenCalledWith(NATIVE_PATH, expect.anything());
+		expect(electronAPI.hudOverlayClose).toHaveBeenCalledTimes(1);
+
+		await harness.unmount();
+	});
+
+	it("remains paused and stoppable when the native resume IPC rejects", async () => {
+		electronAPI.resumeNativeScreenRecording = vi.fn(
+			async () => Promise.reject(new Error("ipc bridge down")) as never,
+		);
+
+		const harness = await renderRecorderHook();
+		await startNativeSession(harness, { micFallback: true });
+		const mic = MockMediaRecorder.instances[0];
+
+		await act(async () => {
+			harness.current.pauseRecording();
+		});
+		await flushRecordingPipeline();
+		expect(harness.current.paused).toBe(true);
+
+		await act(async () => {
+			harness.current.resumeRecording();
+		});
+		await flushRecordingPipeline();
+
+		expect(harness.current.paused).toBe(true);
+		expect(mic.state).toBe("paused");
+
+		await act(async () => {
+			harness.current.stopRecording();
+		});
+		await flushRecordingPipeline();
+
+		expect(electronAPI.stopNativeScreenRecording).toHaveBeenCalledTimes(1);
+		expect(electronAPI.hudOverlayClose).toHaveBeenCalledTimes(1);
+		expect(harness.current.recording).toBe(false);
+
+		await harness.unmount();
+	});
+
+	it("completes the browser stop flow even when setRecordingState rejects", async () => {
+		useBrowserCapture();
+		electronAPI.setRecordingState = vi.fn(
+			async () => Promise.reject(new Error("ipc bridge down")) as never,
+		);
+
+		const harness = await renderRecorderHook();
+		await startBrowserSession(harness);
+		const recorder = MockMediaRecorder.instances[0];
+		recorder.requestData();
+
+		await act(async () => {
+			harness.current.stopRecording();
+		});
+		await flushRecordingPipeline();
+
+		expect(electronAPI.storeRecordedVideo).toHaveBeenCalledTimes(1);
+		expect(electronAPI.setCurrentVideoPath).toHaveBeenCalledTimes(1);
+		expect(electronAPI.switchToEditor).toHaveBeenCalledTimes(1);
+		expect(electronAPI.hudOverlayClose).toHaveBeenCalledTimes(1);
+		expect(harness.current.finalizing).toBe(false);
+
+		await harness.unmount();
+	});
+
 	it("cancel (R1): tears down mic stream, mixing context, and all tracks without storing", async () => {
 		useBrowserCapture();
 

@@ -1266,7 +1266,9 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 			recorder.stop();
 			setRecording(false);
 			setFinalizing(true);
-			window.electronAPI?.setRecordingState(false);
+			void Promise.resolve(window.electronAPI?.setRecordingState(false)).catch((error) => {
+				console.warn("Failed to reset main-process recording state:", error);
+			});
 		}
 	}, [
 		buildNativeCaptureFailureMessage,
@@ -2136,7 +2138,13 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 		if (!recording || paused) return;
 		if (nativeScreenRecording.current) {
 			void (async () => {
-				const result = await window.electronAPI.pauseNativeScreenRecording();
+				let result: Awaited<ReturnType<typeof window.electronAPI.pauseNativeScreenRecording>>;
+				try {
+					result = await window.electronAPI.pauseNativeScreenRecording();
+				} catch (error) {
+					console.error("Failed to pause native screen recording:", error);
+					return;
+				}
 				if (!result.success) {
 					console.error(
 						"Failed to pause native screen recording:",
@@ -2182,7 +2190,13 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 		if (!recording || !paused) return;
 		if (nativeScreenRecording.current) {
 			void (async () => {
-				const result = await window.electronAPI.resumeNativeScreenRecording();
+				let result: Awaited<ReturnType<typeof window.electronAPI.resumeNativeScreenRecording>>;
+				try {
+					result = await window.electronAPI.resumeNativeScreenRecording();
+				} catch (error) {
+					console.error("Failed to resume native screen recording:", error);
+					return;
+				}
 				if (!result.success) {
 					console.error(
 						"Failed to resume native screen recording:",
