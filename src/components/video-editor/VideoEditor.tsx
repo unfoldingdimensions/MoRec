@@ -4185,6 +4185,10 @@ export default function VideoEditor() {
 			const plan = planClipSpeedChange({
 				clipRegions,
 				zoomRegions,
+				audioRegions,
+				annotationRegions,
+				speedRegions,
+				captions: autoCaptions,
 				selectedClipId,
 				speed,
 			});
@@ -4207,8 +4211,21 @@ export default function VideoEditor() {
 
 			setClipRegions(plan.clipRegions);
 			setZoomRegions(plan.zoomRegions);
+			setAudioRegions(plan.audioRegions);
+			setAnnotationRegions(plan.annotationRegions);
+			setSpeedRegions(plan.speedRegions);
+			setAutoCaptions(plan.captionCues);
 		},
-		[selectedClipId, clipRegions, zoomRegions, t],
+		[
+			selectedClipId,
+			clipRegions,
+			zoomRegions,
+			audioRegions,
+			annotationRegions,
+			speedRegions,
+			autoCaptions,
+			t,
+		],
 	);
 
 	const handleClipMutedChange = useCallback(

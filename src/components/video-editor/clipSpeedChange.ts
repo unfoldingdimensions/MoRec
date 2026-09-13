@@ -1,10 +1,22 @@
-import type { ClipRegion, ZoomRegion } from "./types";
+import { retimeCue } from "./captionOps";
+import type {
+	AnnotationRegion,
+	AudioRegion,
+	CaptionCue,
+	ClipRegion,
+	SpeedRegion,
+	ZoomRegion,
+} from "./types";
 
 export type ClipSpeedChangeBlockReason = "clip-overlap" | "zoom-overlap";
 
 export interface ClipSpeedChangePlan {
 	clipRegions: ClipRegion[];
 	zoomRegions: ZoomRegion[];
+	audioRegions: AudioRegion[];
+	annotationRegions: AnnotationRegion[];
+	speedRegions: SpeedRegion[];
+	captionCues: CaptionCue[];
 }
 
 export interface BlockedClipSpeedChange {
@@ -26,13 +38,96 @@ function spansOverlap(
 	return left.startMs < right.endMs && left.endMs > right.startMs;
 }
 
+interface ClipSpan {
+	startMs: number;
+	endMs: number;
+}
+
+interface CaptionRetimeMapping {
+	id: string;
+	startMs: number;
+	endMs: number;
+}
+
+function mapClipLocalMs(value: number, clip: ClipSpan, scaleFactor: number): number {
+	return Math.round(clip.startMs + (value - clip.startMs) * scaleFactor);
+}
+
+/**
+ * Remap regions whose start falls inside the clip being re-timed. Ends are
+ * clamped to the clip's new end so a region that straddled the old clip
+ * boundary cannot hang over the content that follows the clip. (Zoom regions
+ * keep their own unclamped remap below — that behavior predates this helper.)
+ */
+function remapRegionsStartingInsideClip<T extends { startMs: number; endMs: number }>(
+	regions: T[],
+	clip: ClipSpan,
+	scaleFactor: number,
+	newEndMs: number,
+): T[] {
+	return regions.map((region) => {
+		if (region.startMs < clip.startMs || region.startMs >= clip.endMs) {
+			return region;
+		}
+
+		const startMs = mapClipLocalMs(region.startMs, clip, scaleFactor);
+		return {
+			...region,
+			startMs,
+			endMs: Math.min(
+				newEndMs,
+				Math.max(startMs + 1, mapClipLocalMs(region.endMs, clip, scaleFactor)),
+			),
+		};
+	});
+}
+
+/**
+ * Retime cues whose start falls inside the clip. Goes through retimeCue so
+ * per-word timings are rescaled along with the cue span, not just the edges.
+ */
+function remapCaptionsStartingInsideClip(
+	cues: CaptionCue[],
+	clip: ClipSpan,
+	scaleFactor: number,
+	newEndMs: number,
+): CaptionCue[] {
+	const remappings: CaptionRetimeMapping[] = [];
+	for (const cue of cues) {
+		if (cue.startMs < clip.startMs || cue.startMs >= clip.endMs) {
+			continue;
+		}
+
+		const startMs = mapClipLocalMs(cue.startMs, clip, scaleFactor);
+		const endMs = Math.min(newEndMs, mapClipLocalMs(cue.endMs, clip, scaleFactor));
+		if (endMs > startMs) {
+			remappings.push({ id: cue.id, startMs, endMs });
+		}
+	}
+
+	return remappings.reduce((next, mapping) => retimeCue(next, mapping.id, mapping), cues);
+}
+
 export function planClipSpeedChange(params: {
 	clipRegions: ClipRegion[];
 	zoomRegions: ZoomRegion[];
+	audioRegions: AudioRegion[];
+	annotationRegions: AnnotationRegion[];
+	speedRegions: SpeedRegion[];
+	captions: CaptionCue[];
 	selectedClipId: string;
 	speed: number;
 }): ClipSpeedChangePlan | BlockedClipSpeedChange | null {
-	const { clipRegions, zoomRegions, selectedClipId, speed } = params;
+	const {
+		clipRegions,
+		zoomRegions,
+		audioRegions,
+		annotationRegions,
+		speedRegions,
+		captions,
+		selectedClipId,
+		speed,
+	} = params;
 	if (!selectedClipId || !Number.isFinite(speed) || speed <= 0) {
 		return null;
 	}
@@ -93,5 +188,14 @@ export function planClipSpeedChange(params: {
 			candidate.id === selectedClipId ? { ...candidate, speed, endMs: newEndMs } : candidate,
 		),
 		zoomRegions: nextZoomRegions,
+		audioRegions: remapRegionsStartingInsideClip(audioRegions, clip, scaleFactor, newEndMs),
+		annotationRegions: remapRegionsStartingInsideClip(
+			annotationRegions,
+			clip,
+			scaleFactor,
+			newEndMs,
+		),
+		speedRegions: remapRegionsStartingInsideClip(speedRegions, clip, scaleFactor, newEndMs),
+		captionCues: remapCaptionsStartingInsideClip(captions, clip, scaleFactor, newEndMs),
 	};
 }
