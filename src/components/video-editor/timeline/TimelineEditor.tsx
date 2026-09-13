@@ -197,6 +197,7 @@ const TimelineEditor = forwardRef<TimelineEditorHandle, TimelineEditorProps>(
 		const { setRange, clampedRange, handleTimelineWheel } = useTimelineRange({
 			totalMs,
 			timelineContainerRef,
+			minVisibleRangeMs: timelineScale.minVisibleRangeMs,
 		});
 
 		const [liveSpanPreviewById, setLiveSpanPreviewById] = useState<Record<string, Span>>({});
