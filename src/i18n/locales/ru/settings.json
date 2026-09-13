@@ -188,7 +188,12 @@
 		"webcamHorizontal": "Horizontal",
 		"webcamMargin": "Margin",
 		"webcamPosition": "Position",
-		"webcamVertical": "Vertical"
+		"webcamVertical": "Vertical",
+		"temporalBlurTuning": "Временное размытие (экспорт)",
+		"temporalBlurTuningHint": "Элементы управления только для разработки временного размытия движения при экспорте.",
+		"temporalBlurAmount": "Сила размытия",
+		"temporalBlurSamples": "Количество сэмплов",
+		"temporalBlurShutter": "Доля затвора"
 	},
 	"sections": {
 		"scene": "Сцена",
@@ -236,7 +241,8 @@
 			"end": "End",
 			"split": "Split",
 			"merge": "Merge",
-			"delete": "Delete"
+			"delete": "Delete",
+			"cannotBeEmpty": "Текст субтитра не может быть пустым"
 		},
 		"editSaved": "Caption updated",
 		"generatingStatus": "Generating captions. This can take a moment.",

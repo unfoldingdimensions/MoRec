@@ -188,7 +188,12 @@
 		"webcamHorizontal": "Horizontal",
 		"webcamMargin": "Margin",
 		"webcamPosition": "Position",
-		"webcamVertical": "Vertical"
+		"webcamVertical": "Vertical",
+		"temporalBlurTuning": "시간적 블러 (내보내기)",
+		"temporalBlurTuningHint": "내보내기 시 시간적 모션 블러에 대한 개발 전용 컨트롤입니다.",
+		"temporalBlurAmount": "블러 강도",
+		"temporalBlurSamples": "샘플 수",
+		"temporalBlurShutter": "셔터 비율"
 	},
 	"sections": {
 		"scene": "장면",
@@ -236,7 +241,8 @@
 			"end": "End",
 			"split": "Split",
 			"merge": "Merge",
-			"delete": "Delete"
+			"delete": "Delete",
+			"cannotBeEmpty": "자막 텍스트는 비워 둘 수 없습니다"
 		},
 		"editSaved": "Caption updated",
 		"generatingStatus": "Generating captions. This can take a moment.",

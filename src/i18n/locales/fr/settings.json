@@ -188,7 +188,12 @@
 		"webcamHorizontal": "Horizontal",
 		"webcamMargin": "Margin",
 		"webcamPosition": "Position",
-		"webcamVertical": "Vertical"
+		"webcamVertical": "Vertical",
+		"temporalBlurTuning": "Flou temporel (export)",
+		"temporalBlurTuningHint": "Commandes réservées au développement pour le flou de mouvement temporel à l'export.",
+		"temporalBlurAmount": "Intensité du flou",
+		"temporalBlurSamples": "Nombre d'échantillons",
+		"temporalBlurShutter": "Fraction d'obturation"
 	},
 	"sections": {
 		"scene": "Scène",
@@ -236,7 +241,8 @@
 			"end": "End",
 			"split": "Split",
 			"merge": "Merge",
-			"delete": "Delete"
+			"delete": "Delete",
+			"cannotBeEmpty": "Le texte du sous-titre ne peut pas être vide"
 		},
 		"editSaved": "Caption updated",
 		"generatingStatus": "Generating captions. This can take a moment.",
