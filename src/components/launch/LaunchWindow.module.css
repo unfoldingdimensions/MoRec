@@ -11,7 +11,9 @@
 	align-items: center;
 	gap: 10px;
 	width: max-content;
-	max-width: 1200px;
+	/* The non-passthrough fallback window is 860 DIP wide; cap the bar to the
+	 * viewport so locale strings can't push it past the window edge. */
+	max-width: min(1200px, calc(100vw - 32px));
 	background: var(--launch-bar-bg);
 	border: 1px solid var(--launch-bar-border);
 	border-radius: 20px;

@@ -170,6 +170,10 @@ export function UpdateToastWindow() {
 	const cardStyle = {
 		width: "100%",
 		maxWidth: 440,
+		// The toast window is a fixed 456x252; without a bounded, scrollable card
+		// a long detail plus the download block gets sliced at the window edge.
+		maxHeight: 232,
+		overflowY: "auto",
 		display: "flex",
 		gap: 14,
 		alignItems: "flex-start",
