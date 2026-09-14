@@ -461,9 +461,6 @@ async function main() {
 			await stageRuntimeArtifacts(target, candidateDir, runtimeEntries);
 			console.log(`[build-whisper-runtime] Staged whisper runtime -> ${target.outputDir}`);
 		} catch (error) {
-			const isPostinstall = process.env.npm_lifecycle_event === "postinstall";
-			const isCI = process.env.CI === "true";
-			const allowMissing = process.env.WHISPER_RUNTIME_ALLOW_MISSING === "1";
 			console.warn(
 				`[build-whisper-runtime] Failed to build whisper runtime for ${target.archTag} (${error.message}). Continuing with bundled/available binaries.`,
 			);
