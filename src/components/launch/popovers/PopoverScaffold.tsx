@@ -1,4 +1,4 @@
-import { Check, MicrophoneIcon, MicrophoneSlashIcon } from "@phosphor-icons/react";
+import { Check, MicrophoneIcon } from "@phosphor-icons/react";
 import type { ReactElement, ReactNode } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAudioLevelMeter } from "@/hooks/useAudioLevelMeter";
@@ -60,7 +60,9 @@ export function MicDeviceRow({
 			aria-pressed={selected}
 		>
 			<span className="shrink-0">
-				{selected ? <MicrophoneIcon size={16} /> : <MicrophoneSlashIcon size={16} />}
+				{/* Same icon for every row: a slashed mic here reads as "unavailable",
+					not "not selected" — selection is shown by the check + tint. */}
+				<MicrophoneIcon size={16} />
 			</span>
 			<span className="truncate flex-1">{device.label}</span>
 			{selected ? (
