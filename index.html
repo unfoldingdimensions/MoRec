@@ -8,6 +8,25 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      // Apply the persisted theme before React mounts so dark-mode users don't
+      // get a white flash. Mirrors ThemeContext's resolution order (localStorage
+      // is the cross-window mirror of the app setting; "system" defers to the OS).
+      (function () {
+        let dark = false;
+        try {
+          const theme = localStorage.getItem("morec.theme");
+          dark =
+            theme === "dark" ||
+            ((theme === null || theme === "system") &&
+              Boolean(window.matchMedia) &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches);
+        } catch {
+          /* ignore storage errors */
+        }
+        if (dark) document.documentElement.classList.add("dark");
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -4,7 +4,16 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { UpdateToastPayload } from "@/updater";
+import { I18nProvider } from "@/contexts/I18nContext";
 import { UpdateToastWindow } from "./UpdateToastWindow";
+
+function renderToast() {
+	return render(
+		<I18nProvider>
+			<UpdateToastWindow />
+		</I18nProvider>,
+	);
+}
 
 type ToastListener = (payload: UpdateToastPayload | null) => void;
 
@@ -65,7 +74,7 @@ describe("UpdateToastWindow", () => {
 
 	it("renders an empty wrapper when there is no toast payload", async () => {
 		installElectronApi(null);
-		const { container } = render(<UpdateToastWindow />);
+		const { container } = renderToast();
 
 		await waitFor(() => {
 			expect(container.querySelector("p")).toBeNull();
@@ -74,7 +83,7 @@ describe("UpdateToastWindow", () => {
 
 	it("renders the available-update toast with actions", async () => {
 		installElectronApi(AVAILABLE);
-		render(<UpdateToastWindow />);
+		renderToast();
 
 		expect(await screen.findByText("Mo Rec 1.1.0 is available")).toBeInTheDocument();
 		expect(screen.getByRole("button", { name: "Install & Restart" })).toBeInTheDocument();
@@ -87,7 +96,7 @@ describe("UpdateToastWindow", () => {
 			phase: "ready",
 		});
 		const user = userEvent.setup();
-		render(<UpdateToastWindow />);
+		renderToast();
 
 		await user.click(await screen.findByRole("button", { name: "Install & Restart" }));
 		expect(electronAPI.installDownloadedUpdate).toHaveBeenCalledTimes(1);
@@ -96,7 +105,7 @@ describe("UpdateToastWindow", () => {
 	it("downloads the available update from the primary action", async () => {
 		const { electronAPI } = installElectronApi(AVAILABLE);
 		const user = userEvent.setup();
-		render(<UpdateToastWindow />);
+		renderToast();
 
 		await user.click(await screen.findByRole("button", { name: "Install & Restart" }));
 		expect(electronAPI.downloadAvailableUpdate).toHaveBeenCalledWith(true);
@@ -109,7 +118,7 @@ describe("UpdateToastWindow", () => {
 			primaryAction: "retry-check",
 		});
 		const user = userEvent.setup();
-		render(<UpdateToastWindow />);
+		renderToast();
 
 		await user.click(await screen.findByRole("button", { name: "Try Again" }));
 		expect(electronAPI.checkForAppUpdates).toHaveBeenCalledTimes(1);
@@ -118,7 +127,7 @@ describe("UpdateToastWindow", () => {
 	it("defers with the selected reminder delay", async () => {
 		const { electronAPI } = installElectronApi(AVAILABLE);
 		const user = userEvent.setup();
-		render(<UpdateToastWindow />);
+		renderToast();
 
 		await screen.findByText("Mo Rec 1.1.0 is available");
 		await user.selectOptions(screen.getByRole("combobox"), "1 hour");
@@ -130,7 +139,7 @@ describe("UpdateToastWindow", () => {
 	it("dismisses instead of deferring for the dev preview", async () => {
 		const { electronAPI } = installElectronApi({ ...AVAILABLE, isPreview: true });
 		const user = userEvent.setup();
-		render(<UpdateToastWindow />);
+		renderToast();
 
 		expect(await screen.findByText("Update Prompt Preview")).toBeInTheDocument();
 		await user.click(screen.getByRole("button", { name: "Later" }));
@@ -139,7 +148,7 @@ describe("UpdateToastWindow", () => {
 
 	it("shows download progress with transfer statistics and no action buttons", async () => {
 		installElectronApi(DOWNLOADING);
-		render(<UpdateToastWindow />);
+		renderToast();
 
 		expect(await screen.findByText("Installing Mo Rec 1.1.0")).toBeInTheDocument();
 		expect(screen.getByText("42% complete")).toBeInTheDocument();
@@ -153,7 +162,7 @@ describe("UpdateToastWindow", () => {
 
 	it("updates live when the main process pushes a toast state change", async () => {
 		const { pushPayload } = installElectronApi(null);
-		render(<UpdateToastWindow />);
+		renderToast();
 
 		pushPayload(AVAILABLE);
 		await waitFor(() => {

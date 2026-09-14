@@ -9,6 +9,7 @@
 		"enableWebcam": "啟用網路攝影機疊加",
 		"countdownDelay": "倒數延遲",
 		"noDelay": "無延遲",
+		"countdownCancelHint": "點擊可取消",
 		"record": "錄製",
 		"starting": "正在啟動…",
 		"recordingFolder": "錄影儲存路徑：{{path}}",
@@ -58,7 +59,12 @@
 		"appearance": "Appearance",
 		"preparing": "Preparing recording",
 		"preparingSubtitle": "Opening the editor in a moment",
-		"previewUpdateUi": "Preview Update UI"
+		"previewUpdateUi": "Preview Update UI",
+		"countdownSeconds": "{{seconds}} 秒",
+		"savedMetadataToast": "錄製已儲存，但工作階段中繼資料未能儲存。",
+		"editorOpenFailedToast": "錄製已儲存，但無法開啟編輯器。請重新開啟應用程式並從您的錄製中載入。",
+		"savedMuxFailedToast": "錄製已儲存，但無法合併伴生音軌。",
+		"recoveredMuxFailedToast": "錄製已復原，但無法合併伴生音軌。"
 	},
 	"sourceSelector": {
 		"loadingSources": "正在載入來源...",
@@ -87,5 +93,26 @@
 		"light": "Light",
 		"loading": "Refreshing...",
 		"system": "System"
+	},
+	"updates": {
+		"previewTitle": "更新提示預覽",
+		"availableTitle": "Mo Rec {{version}} 可用",
+		"installingTitle": "正在安裝 Mo Rec {{version}}",
+		"readyTitle": "Mo Rec {{version}} 已就緒",
+		"errorRetryTitle": "無法檢查更新",
+		"errorAttentionTitle": "Mo Rec {{version}} 需要處理",
+		"installAndRestart": "安裝並重新啟動",
+		"tryAgain": "重試",
+		"later": "稍後",
+		"reminderLabel": "稍後提醒我",
+		"reminder1h": "1 小時",
+		"reminder3h": "3 小時",
+		"reminderTomorrow": "明天",
+		"reminder3d": "3 天",
+		"downloaded": "已下載",
+		"left": "剩餘",
+		"speed": "速度",
+		"percentComplete": "已完成 {{percent}}%",
+		"updateProgressLabel": "更新下載進度"
 	}
 }

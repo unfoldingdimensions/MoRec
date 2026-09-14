@@ -9,6 +9,7 @@
 		"enableWebcam": "Webcam-Overlay aktivieren",
 		"countdownDelay": "Countdown-Verzögerung",
 		"noDelay": "Keine Verzögerung",
+		"countdownCancelHint": "Klicken zum Abbrechen",
 		"record": "Aufnehmen",
 		"starting": "Startet…",
 		"recordingFolder": "Pfad zu den Aufzeichnungen: {{path}}",
@@ -58,7 +59,12 @@
 		"appearance": "Appearance",
 		"preparing": "Preparing recording",
 		"preparingSubtitle": "Opening the editor in a moment",
-		"previewUpdateUi": "Preview Update UI"
+		"previewUpdateUi": "Preview Update UI",
+		"countdownSeconds": "{{seconds}} Sek.",
+		"savedMetadataToast": "Aufnahme gespeichert, aber die Sitzungsmetadaten konnten nicht gespeichert werden.",
+		"editorOpenFailedToast": "Aufnahme gespeichert, aber der Editor konnte nicht geöffnet werden. Öffne die App erneut und lade sie aus deinen Aufnahmen.",
+		"savedMuxFailedToast": "Aufnahme gespeichert, aber die Tonspur konnte nicht zusammengefügt werden.",
+		"recoveredMuxFailedToast": "Aufnahme wiederhergestellt, aber die Tonspur konnte nicht zusammengefügt werden."
 	},
 	"sourceSelector": {
 		"loadingSources": "Quellen werden geladen...",
@@ -87,5 +93,26 @@
 		"light": "Light",
 		"loading": "Refreshing...",
 		"system": "System"
+	},
+	"updates": {
+		"previewTitle": "Update-Vorschau",
+		"availableTitle": "Mo Rec {{version}} ist verfügbar",
+		"installingTitle": "Mo Rec {{version}} wird installiert",
+		"readyTitle": "Mo Rec {{version}} ist bereit",
+		"errorRetryTitle": "Update konnte nicht geprüft werden",
+		"errorAttentionTitle": "Mo Rec {{version}} erfordert Aufmerksamkeit",
+		"installAndRestart": "Installieren und neu starten",
+		"tryAgain": "Erneut versuchen",
+		"later": "Später",
+		"reminderLabel": "Später erinnern",
+		"reminder1h": "1 Stunde",
+		"reminder3h": "3 Stunden",
+		"reminderTomorrow": "Morgen",
+		"reminder3d": "3 Tage",
+		"downloaded": "Geladen",
+		"left": "Verbleibend",
+		"speed": "Tempo",
+		"percentComplete": "{{percent}} % abgeschlossen",
+		"updateProgressLabel": "Update-Download-Fortschritt"
 	}
 }

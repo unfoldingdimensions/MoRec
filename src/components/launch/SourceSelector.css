@@ -140,3 +140,9 @@
 		transform: translateX(-50%);
 	}
 }
+
+@media (prefers-reduced-motion: reduce) {
+	.source-selector-marquee-track {
+		animation: none;
+	}
+}

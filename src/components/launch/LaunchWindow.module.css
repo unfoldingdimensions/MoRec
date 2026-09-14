@@ -11,7 +11,9 @@
 	align-items: center;
 	gap: 10px;
 	width: max-content;
-	max-width: 1200px;
+	/* The non-passthrough fallback window is 860 DIP wide; cap the bar to the
+	 * viewport so locale strings can't push it past the window edge. */
+	max-width: min(1200px, calc(100vw - 32px));
 	background: var(--launch-bar-bg);
 	border: 1px solid var(--launch-bar-border);
 	border-radius: 20px;
@@ -72,27 +74,27 @@
 }
 
 .ibActive {
-	color: #3d8bff;
+	color: var(--launch-accent);
 }
 
 .ibActive:hover {
-	color: #62a4ff;
+	color: var(--launch-accent-hover);
 }
 
 .ibRed {
-	color: #f43f5e;
+	color: var(--launch-state-rec);
 }
 
 .ibRed:hover {
-	color: #ff5a75;
+	color: var(--launch-state-rec-hover);
 }
 
 .ibGreen {
-	color: #34d399;
+	color: var(--launch-state-ok);
 }
 
 .ibGreen:hover {
-	color: #4eeeb0;
+	color: var(--launch-state-ok-hover);
 }
 
 .menuCard {
@@ -178,11 +180,11 @@
 	align-items: center;
 	gap: 11px;
 	min-width: 238px;
-	color: #eeeef2;
+	color: var(--launch-text);
 }
 
 .finalizingSpin {
-	color: #3d8bff;
+	color: var(--launch-accent);
 	animation: finalizingSpin 0.9s linear infinite;
 }
 
@@ -196,7 +198,7 @@
 }
 
 .finalizingCopy small {
-	color: #8a8a96;
+	color: var(--launch-text-muted);
 	font-size: 10px;
 	font-weight: 600;
 }
@@ -216,7 +218,7 @@
 	height: 46px;
 	border-radius: 50%;
 	border: none;
-	background: #f43f5e;
+	background: var(--launch-state-rec);
 	color: #fff;
 	cursor: pointer;
 	display: inline-flex;
@@ -228,7 +230,7 @@
 }
 
 .recBtn:hover {
-	background: #ff5a75;
+	background: var(--launch-state-rec-hover);
 	box-shadow: 0 0 0 6px rgba(244, 63, 94, 0.15);
 }
 
@@ -238,7 +240,7 @@
 }
 
 .recBtn:disabled:hover {
-	background: #f43f5e;
+	background: var(--launch-state-rec);
 	box-shadow: none;
 }
 
@@ -252,6 +254,13 @@
 
 .recDotBlink {
 	animation: blink 1.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.recDotBlink,
+	.finalizingSpin {
+		animation: none;
+	}
 }
 
 .recordingWebcamPreview {
@@ -294,13 +303,4 @@
 	50% {
 		opacity: 0.2;
 	}
-}
-
-.micSelect {
-	color-scheme: dark;
-}
-
-.micSelect option {
-	background-color: #1a1a22;
-	color: #eeeef2;
 }

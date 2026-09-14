@@ -9,6 +9,7 @@
 		"enableWebcam": "Ativar sobreposição da webcam",
 		"countdownDelay": "Atraso da contagem regressiva",
 		"noDelay": "Sem atraso",
+		"countdownCancelHint": "Clique para cancelar",
 		"record": "Gravar",
 		"starting": "Iniciando…",
 		"recordingFolder": "Caminho das gravações: {{path}}",
@@ -58,7 +59,12 @@
 		"appearance": "Appearance",
 		"preparing": "Preparing recording",
 		"preparingSubtitle": "Opening the editor in a moment",
-		"previewUpdateUi": "Preview Update UI"
+		"previewUpdateUi": "Preview Update UI",
+		"countdownSeconds": "{{seconds}}s",
+		"savedMetadataToast": "Gravação salva, mas os metadados da sessão não puderam ser salvos.",
+		"editorOpenFailedToast": "Gravação salva, mas não foi possível abrir o editor. Reabra o aplicativo e carregue-a a partir das suas gravações.",
+		"savedMuxFailedToast": "Gravação salva, mas não foi possível combinar o áudio complementar.",
+		"recoveredMuxFailedToast": "Gravação recuperada, mas não foi possível combinar o áudio complementar."
 	},
 	"sourceSelector": {
 		"loadingSources": "Carregando fontes...",
@@ -87,5 +93,26 @@
 		"light": "Light",
 		"loading": "Refreshing...",
 		"system": "System"
+	},
+	"updates": {
+		"previewTitle": "Prévia da atualização",
+		"availableTitle": "Mo Rec {{version}} está disponível",
+		"installingTitle": "Instalando o Mo Rec {{version}}",
+		"readyTitle": "Mo Rec {{version}} está pronto",
+		"errorRetryTitle": "Não foi possível verificar atualizações",
+		"errorAttentionTitle": "Mo Rec {{version}} precisa de atenção",
+		"installAndRestart": "Instalar e reiniciar",
+		"tryAgain": "Tentar novamente",
+		"later": "Mais tarde",
+		"reminderLabel": "Lembrar-me mais tarde",
+		"reminder1h": "1 hora",
+		"reminder3h": "3 horas",
+		"reminderTomorrow": "Amanhã",
+		"reminder3d": "3 dias",
+		"downloaded": "Baixado",
+		"left": "Restante",
+		"speed": "Velocidade",
+		"percentComplete": "{{percent}}% concluído",
+		"updateProgressLabel": "Progresso do download da atualização"
 	}
 }

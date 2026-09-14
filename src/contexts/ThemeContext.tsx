@@ -82,6 +82,26 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 		setPreference(resolved === "dark" ? "light" : "dark");
 	}, [resolved, setPreference]);
 
+	// Each Electron window is a separate renderer; the storage event is the
+	// cross-window channel so a theme change in one window reaches the others.
+	useEffect(() => {
+		const handleStorage = (event: StorageEvent) => {
+			if (event.key !== THEME_STORAGE_KEY) {
+				return;
+			}
+			if (event.newValue !== "light" && event.newValue !== "dark" && event.newValue !== "system") {
+				return;
+			}
+			const next = event.newValue as ThemePreference;
+			setPreferenceState(next);
+			const nextResolved = resolveTheme(next);
+			setResolved(nextResolved);
+			applyThemeToDOM(nextResolved);
+		};
+		window.addEventListener("storage", handleStorage);
+		return () => window.removeEventListener("storage", handleStorage);
+	}, []);
+
 	// Listen for system theme changes when preference is "system"
 	useEffect(() => {
 		if (preference !== "system") return;

@@ -108,28 +108,25 @@ export function WebcamPopover({
 					</div>
 				</div>
 			)}
-			{videoDevices.map((device) => (
-				<DropdownItem
-					key={device.deviceId}
-					icon={
-						webcamEnabled &&
-						(webcamDeviceId === device.deviceId ||
-							selectedVideoDeviceId === device.deviceId) ? (
-							<Video size={16} />
-						) : (
-							<VideoOff size={16} />
-						)
-					}
-					selected={
-						webcamEnabled &&
-						(webcamDeviceId === device.deviceId ||
-							selectedVideoDeviceId === device.deviceId)
-					}
-					onClick={() => onSelectVideoDevice(device.deviceId)}
-				>
-					{device.label}
-				</DropdownItem>
-			))}
+			{videoDevices.map((device) => {
+				const isSelected =
+					webcamEnabled &&
+					(webcamDeviceId === device.deviceId ||
+						selectedVideoDeviceId === device.deviceId);
+				return (
+					<DropdownItem
+						key={device.deviceId}
+						// Same camera icon for every row: a slashed camera reads as
+						// "unavailable", not "not selected" — selection is shown by
+						// the check + tint.
+						icon={<Video size={16} />}
+						selected={isSelected}
+						onClick={() => onSelectVideoDevice(device.deviceId)}
+					>
+						{device.label}
+					</DropdownItem>
+				);
+			})}
 			{videoDevices.length === 0 && (
 				<div className="text-center text-xs text-[var(--launch-text-muted)] py-4">
 					{t("recording.noWebcamsFound")}

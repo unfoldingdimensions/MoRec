@@ -118,8 +118,11 @@ export function useWebcamPreviewOverlay({
 
 			const latestDeltaX = pointer.clientX - latestDragState.startX;
 			const latestDeltaY = pointer.clientY - latestDragState.startY;
-			const viewportWidth = Math.max(window.innerWidth, window.screen?.width ?? 0);
-			const viewportHeight = Math.max(window.innerHeight, window.screen?.height ?? 0);
+			// Clamp against the HUD window's own viewport (same contract as the HUD
+			// bar drag): clamping to the physical screen let the preview be dragged
+			// outside the window and lost mid-recording.
+			const viewportWidth = window.innerWidth;
+			const viewportHeight = window.innerHeight;
 			const unclampedLeft = latestDragState.initialLeft + latestDeltaX;
 			const unclampedTop = latestDragState.initialTop + latestDeltaY;
 			const clampedLeft = Math.min(

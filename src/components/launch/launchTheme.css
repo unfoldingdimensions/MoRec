@@ -10,7 +10,14 @@
 	--launch-hover: rgba(0, 0, 0, 0.045);
 	--launch-selected: rgba(37, 99, 235, 0.12); /* Blue 600 at 12% */
 	--launch-accent: #2563eb; /* Blue 600 */
+	--launch-accent-hover: #1d4ed8; /* Blue 700 */
 	--launch-accent-soft: #f1f5f9; /* Slate 100 */
+	/* Recording state colors (text/icons need 4.5:1, icons 3:1 on the light bar) */
+	--launch-state-rec: #e11d48; /* Rose 600 */
+	--launch-state-rec-hover: #be123c; /* Rose 700 */
+	--launch-state-paused: #b45309; /* Amber 700 */
+	--launch-state-ok: #047857; /* Emerald 700 */
+	--launch-state-ok-hover: #059669; /* Emerald 600 */
 	--launch-popover-blur: 40px;
 	--launch-popover-saturate: 200%;
 	--launch-bar-bg: rgba(255, 255, 255, 0.98);
@@ -33,7 +40,14 @@
 	--launch-hover: rgba(255, 255, 255, 0.1);
 	--launch-selected: rgba(92, 153, 255, 0.22);
 	--launch-accent: #3d8bff;
+	--launch-accent-hover: #62a4ff;
 	--launch-accent-soft: #dbeafe;
+	/* Recording state colors (same hues as before, kept for the dark bar) */
+	--launch-state-rec: #f43f5e;
+	--launch-state-rec-hover: #ff5a75;
+	--launch-state-paused: #fbbf24;
+	--launch-state-ok: #34d399;
+	--launch-state-ok-hover: #4eeeb0;
 	--launch-bar-bg: rgba(18, 18, 24, 0.97);
 	--launch-bar-border: rgba(255, 255, 255, 0.07);
 	--launch-bar-shadow: 0 10px 30px rgba(0, 0, 0, 0.24), 0 2px 10px rgba(0, 0, 0, 0.12);
