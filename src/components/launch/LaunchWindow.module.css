@@ -256,6 +256,13 @@
 	animation: blink 1.2s ease-in-out infinite;
 }
 
+@media (prefers-reduced-motion: reduce) {
+	.recDotBlink,
+	.finalizingSpin {
+		animation: none;
+	}
+}
+
 .recordingWebcamPreview {
 	position: fixed;
 	right: 32px;

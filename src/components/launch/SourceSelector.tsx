@@ -60,7 +60,9 @@ export function MarqueeText({ text }: { text: string }) {
 			<span ref={staticRef} className="source-selector-marquee-static">
 				{text}
 			</span>
-			<span className="source-selector-marquee-animated">
+			{/* Visual-only scrolling duplicate: keep it out of the a11y tree so
+				screen readers announce the label once. */}
+			<span className="source-selector-marquee-animated" aria-hidden="true">
 				<span className="source-selector-marquee-track">
 					<span className="source-selector-marquee-segment">{text}</span>
 					<span className="source-selector-marquee-segment source-selector-marquee-duplicate">
