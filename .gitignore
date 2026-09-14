@@ -49,3 +49,6 @@ gpu-export-probe.mp4
 
 # Agent orchestration scratch (briefings, dispatch notes, audit scripts)
 .agents/
+
+# Local agent CLI session state
+.zcode/
