@@ -7,6 +7,7 @@ import { getMediaContentType } from "./mediaTypes";
 
 let mediaServerBaseUrl: string | null = null;
 let mediaServerStartPromise: Promise<string> | null = null;
+let mediaServerInstance: ReturnType<typeof createServer> | null = null;
 
 export function resolveHttpByteRange(
 	rangeHeader: string,
@@ -243,6 +244,8 @@ export async function ensureMediaServer(): Promise<string> {
 			reject(error);
 		});
 
+		mediaServerInstance = server;
+
 		server.listen(0, "127.0.0.1", () => {
 			const address = server.address();
 			if (!address || typeof address === "string") {
@@ -258,6 +261,20 @@ export async function ensureMediaServer(): Promise<string> {
 	});
 
 	return mediaServerStartPromise;
+}
+
+/**
+ * Stop the running server and reset cached state. Intended for tests that
+ * start/stop the server around assertions.
+ */
+export async function closeMediaServer(): Promise<void> {
+	const instance = mediaServerInstance;
+	mediaServerInstance = null;
+	mediaServerBaseUrl = null;
+	mediaServerStartPromise = null;
+	if (instance) {
+		await new Promise<void>((resolve) => instance.close(() => resolve()));
+	}
 }
 
 export function buildMediaUrl(baseUrl: string, filePath: string): string {
