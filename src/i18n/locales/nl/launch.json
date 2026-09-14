@@ -87,5 +87,26 @@
 		"light": "Light",
 		"loading": "Refreshing...",
 		"system": "System"
+	},
+	"updates": {
+		"previewTitle": "Updatevoorbeeld",
+		"availableTitle": "Mo Rec {{version}} is beschikbaar",
+		"installingTitle": "Mo Rec {{version}} wordt geïnstalleerd",
+		"readyTitle": "Mo Rec {{version}} is klaar",
+		"errorRetryTitle": "Kan niet controleren op updates",
+		"errorAttentionTitle": "Mo Rec {{version}} vereist aandacht",
+		"installAndRestart": "Installeren en herstarten",
+		"tryAgain": "Opnieuw proberen",
+		"later": "Later",
+		"reminderLabel": "Herinner mij later",
+		"reminder1h": "1 uur",
+		"reminder3h": "3 uur",
+		"reminderTomorrow": "Morgen",
+		"reminder3d": "3 dagen",
+		"downloaded": "Gedownload",
+		"left": "Resterend",
+		"speed": "Snelheid",
+		"percentComplete": "{{percent}}% voltooid",
+		"updateProgressLabel": "Voortgang update-download"
 	}
 }

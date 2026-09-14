@@ -87,5 +87,26 @@
 		"light": "Light",
 		"loading": "Refreshing...",
 		"system": "System"
+	},
+	"updates": {
+		"previewTitle": "업데이트 미리보기",
+		"availableTitle": "Mo Rec {{version}} 사용 가능",
+		"installingTitle": "Mo Rec {{version}} 설치 중",
+		"readyTitle": "Mo Rec {{version}} 준비 완료",
+		"errorRetryTitle": "업데이트를 확인할 수 없습니다",
+		"errorAttentionTitle": "Mo Rec {{version}}에 주의가 필요합니다",
+		"installAndRestart": "설치 후 다시 시작",
+		"tryAgain": "다시 시도",
+		"later": "나중에",
+		"reminderLabel": "나중에 알림",
+		"reminder1h": "1시간",
+		"reminder3h": "3시간",
+		"reminderTomorrow": "내일",
+		"reminder3d": "3일",
+		"downloaded": "다운로드됨",
+		"left": "남음",
+		"speed": "속도",
+		"percentComplete": "{{percent}}% 완료",
+		"updateProgressLabel": "업데이트 다운로드 진행률"
 	}
 }

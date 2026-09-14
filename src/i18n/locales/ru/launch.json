@@ -87,5 +87,26 @@
 		"light": "Light",
 		"loading": "Refreshing...",
 		"system": "System"
+	},
+	"updates": {
+		"previewTitle": "Предпросмотр обновления",
+		"availableTitle": "Доступен Mo Rec {{version}}",
+		"installingTitle": "Установка Mo Rec {{version}}",
+		"readyTitle": "Mo Rec {{version}} готов",
+		"errorRetryTitle": "Не удалось проверить обновления",
+		"errorAttentionTitle": "Mo Rec {{version}} требует внимания",
+		"installAndRestart": "Установить и перезапустить",
+		"tryAgain": "Повторить",
+		"later": "Позже",
+		"reminderLabel": "Напомнить позже",
+		"reminder1h": "1 час",
+		"reminder3h": "3 часа",
+		"reminderTomorrow": "Завтра",
+		"reminder3d": "3 дня",
+		"downloaded": "Загружено",
+		"left": "Осталось",
+		"speed": "Скорость",
+		"percentComplete": "Завершено: {{percent}}%",
+		"updateProgressLabel": "Прогресс загрузки обновления"
 	}
 }

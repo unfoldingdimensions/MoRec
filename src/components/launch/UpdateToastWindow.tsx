@@ -5,6 +5,7 @@ import {
 	Rocket,
 } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
+import { useScopedT } from "@/contexts/I18nContext";
 
 type UpdateToastPayload = {
 	version: string;
@@ -22,11 +23,11 @@ type UpdateToastPayload = {
 
 const DEFAULT_REMINDER_DELAY_MS = 3 * 60 * 60 * 1000;
 const REMINDER_OPTIONS = [
-	{ label: "1 hour", value: 1 * 60 * 60 * 1000 },
-	{ label: "3 hours", value: 3 * 60 * 60 * 1000 },
-	{ label: "Tomorrow", value: 24 * 60 * 60 * 1000 },
-	{ label: "3 days", value: 3 * 24 * 60 * 60 * 1000 },
-];
+	{ key: "reminder1h", value: 1 * 60 * 60 * 1000 },
+	{ key: "reminder3h", value: 3 * 60 * 60 * 1000 },
+	{ key: "reminderTomorrow", value: 24 * 60 * 60 * 1000 },
+	{ key: "reminder3d", value: 3 * 24 * 60 * 60 * 1000 },
+] as const;
 
 function formatBytes(value: number | undefined) {
 	if (value === undefined || !Number.isFinite(value) || value <= 0) {
@@ -41,27 +42,35 @@ function formatBytes(value: number | undefined) {
 	return `${megabytes.toFixed(megabytes >= 100 ? 0 : 1)} MB`;
 }
 
-function getToastTitle(payload: UpdateToastPayload) {
+function getToastTitle(
+	payload: UpdateToastPayload,
+	t: (key: string, fallback?: string, vars?: Record<string, string | number>) => string,
+) {
 	if (payload.isPreview) {
-		return "Update Prompt Preview";
+		return t("updates.previewTitle");
 	}
 
 	switch (payload.phase) {
 		case "available":
-			return `Mo Rec ${payload.version} is available`;
+			return t("updates.availableTitle", undefined, { version: payload.version });
 		case "downloading":
-			return `Installing Mo Rec ${payload.version}`;
+			return t("updates.installingTitle", undefined, { version: payload.version });
 		case "ready":
-			return `Mo Rec ${payload.version} is ready`;
+			return t("updates.readyTitle", undefined, { version: payload.version });
 		case "error":
 			return payload.primaryAction === "retry-check"
-				? "Could not check for updates"
-				: `Mo Rec ${payload.version} needs attention`;
+				? t("updates.errorRetryTitle")
+				: t("updates.errorAttentionTitle", undefined, { version: payload.version });
 	}
 }
 
-function getPrimaryButtonLabel(payload: UpdateToastPayload) {
-	return payload.primaryAction === "retry-check" ? "Try Again" : "Install & Restart";
+function getPrimaryButtonLabel(
+	payload: UpdateToastPayload,
+	t: (key: string) => string,
+) {
+	return payload.primaryAction === "retry-check"
+		? t("updates.tryAgain")
+		: t("updates.installAndRestart");
 }
 
 function getPhaseIcon(payload: UpdateToastPayload) {
@@ -78,6 +87,7 @@ function getPhaseIcon(payload: UpdateToastPayload) {
 }
 
 export function UpdateToastWindow() {
+	const t = useScopedT("launch");
 	const [payload, setPayload] = useState<UpdateToastPayload | null>(null);
 	const [reminderDelayMs, setReminderDelayMs] = useState(DEFAULT_REMINDER_DELAY_MS);
 
@@ -131,15 +141,18 @@ export function UpdateToastWindow() {
 	const phaseStats: Array<{ label: string; value: string }> = [];
 	if (payload?.phase === "downloading") {
 		if (downloadedLabel && totalLabel) {
-			phaseStats.push({ label: "Downloaded", value: `${downloadedLabel} / ${totalLabel}` });
+			phaseStats.push({
+				label: t("updates.downloaded"),
+				value: `${downloadedLabel} / ${totalLabel}`,
+			});
 		} else if (downloadedLabel) {
-			phaseStats.push({ label: "Downloaded", value: downloadedLabel });
+			phaseStats.push({ label: t("updates.downloaded"), value: downloadedLabel });
 		}
 		if (remainingLabel) {
-			phaseStats.push({ label: "Left", value: remainingLabel });
+			phaseStats.push({ label: t("updates.left"), value: remainingLabel });
 		}
 		if (speedLabel) {
-			phaseStats.push({ label: "Speed", value: `${speedLabel}/s` });
+			phaseStats.push({ label: t("updates.speed"), value: `${speedLabel}/s` });
 		}
 	}
 
@@ -226,6 +239,9 @@ export function UpdateToastWindow() {
 		outline: "none",
 		boxShadow: "inset 0 0 0 1px rgba(37, 99, 235, 0.06)",
 		cursor: "pointer",
+		// The styled trigger is dark; without this the native popup list renders
+		// in the OS light scheme and its text becomes unreadable.
+		colorScheme: "dark",
 	} as const;
 
 	const handlePrimaryAction = async () => {
@@ -266,10 +282,10 @@ export function UpdateToastWindow() {
 	return (
 		<div style={wrapperStyle}>
 			<div style={cardStyle}>
-				<div style={iconBoxStyle}>{getPhaseIcon(payload)}</div>
-				<div style={{ minWidth: 0, flex: 1 }}>
-					<div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-						<p style={titleStyle}>{getToastTitle(payload)}</p>
+					<div style={iconBoxStyle}>{getPhaseIcon(payload)}</div>
+					<div style={{ minWidth: 0, flex: 1 }}>
+						<div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+							<p style={titleStyle}>{getToastTitle(payload, t)}</p>
 						{payload.isPreview ? (
 							<span
 								style={{
@@ -293,6 +309,11 @@ export function UpdateToastWindow() {
 					{payload.phase === "downloading" ? (
 						<div style={{ marginTop: 14 }}>
 							<div
+								role="progressbar"
+								aria-valuemin={0}
+								aria-valuemax={100}
+								aria-valuenow={normalizedProgress}
+								aria-label={t("updates.updateProgressLabel")}
 								style={{
 									height: 10,
 									overflow: "hidden",
@@ -326,7 +347,9 @@ export function UpdateToastWindow() {
 										color: "#dbeafe",
 									}}
 								>
-									{normalizedProgress}% complete
+									{t("updates.percentComplete", undefined, {
+										percent: normalizedProgress,
+									})}
 								</span>
 								{phaseStats.map((stat) => (
 									<span
@@ -364,7 +387,7 @@ export function UpdateToastWindow() {
 									onClick={handlePrimaryAction}
 									style={primaryButtonStyle}
 								>
-									{getPrimaryButtonLabel(payload)}
+									{getPrimaryButtonLabel(payload, t)}
 								</button>
 								<select
 									value={String(reminderDelayMs)}
@@ -372,10 +395,11 @@ export function UpdateToastWindow() {
 										setReminderDelayMs(Number.parseInt(event.target.value, 10));
 									}}
 									style={selectStyle}
+									aria-label={t("updates.reminderLabel")}
 								>
 									{REMINDER_OPTIONS.map((option) => (
 										<option key={option.value} value={option.value}>
-											{option.label}
+											{t(`updates.${option.key}`)}
 										</option>
 									))}
 								</select>
@@ -384,7 +408,7 @@ export function UpdateToastWindow() {
 									onClick={handleLater}
 									style={subtleButtonStyle}
 								>
-									Later
+									{t("updates.later")}
 								</button>
 							</>
 						) : null}

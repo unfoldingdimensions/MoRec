@@ -87,5 +87,26 @@
 		"light": "Light",
 		"loading": "Refreshing...",
 		"system": "System"
+	},
+	"updates": {
+		"previewTitle": "更新提示預覽",
+		"availableTitle": "Mo Rec {{version}} 可用",
+		"installingTitle": "正在安裝 Mo Rec {{version}}",
+		"readyTitle": "Mo Rec {{version}} 已就緒",
+		"errorRetryTitle": "無法檢查更新",
+		"errorAttentionTitle": "Mo Rec {{version}} 需要處理",
+		"installAndRestart": "安裝並重新啟動",
+		"tryAgain": "重試",
+		"later": "稍後",
+		"reminderLabel": "稍後提醒我",
+		"reminder1h": "1 小時",
+		"reminder3h": "3 小時",
+		"reminderTomorrow": "明天",
+		"reminder3d": "3 天",
+		"downloaded": "已下載",
+		"left": "剩餘",
+		"speed": "速度",
+		"percentComplete": "已完成 {{percent}}%",
+		"updateProgressLabel": "更新下載進度"
 	}
 }

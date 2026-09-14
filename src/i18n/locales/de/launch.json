@@ -87,5 +87,26 @@
 		"light": "Light",
 		"loading": "Refreshing...",
 		"system": "System"
+	},
+	"updates": {
+		"previewTitle": "Update-Vorschau",
+		"availableTitle": "Mo Rec {{version}} ist verfügbar",
+		"installingTitle": "Mo Rec {{version}} wird installiert",
+		"readyTitle": "Mo Rec {{version}} ist bereit",
+		"errorRetryTitle": "Update konnte nicht geprüft werden",
+		"errorAttentionTitle": "Mo Rec {{version}} erfordert Aufmerksamkeit",
+		"installAndRestart": "Installieren und neu starten",
+		"tryAgain": "Erneut versuchen",
+		"later": "Später",
+		"reminderLabel": "Später erinnern",
+		"reminder1h": "1 Stunde",
+		"reminder3h": "3 Stunden",
+		"reminderTomorrow": "Morgen",
+		"reminder3d": "3 Tage",
+		"downloaded": "Geladen",
+		"left": "Verbleibend",
+		"speed": "Tempo",
+		"percentComplete": "{{percent}} % abgeschlossen",
+		"updateProgressLabel": "Update-Download-Fortschritt"
 	}
 }
