@@ -9,11 +9,11 @@ import VideoEditor from "./components/video-editor/VideoEditor";
 import { useI18n } from "./contexts/I18nContext";
 import { ShortcutsProvider } from "./contexts/ShortcutsContext";
 import { loadAllCustomFonts } from "./lib/customFonts";
+import { isMacOS } from "./lib/platform";
 
 export default function App() {
 	const [windowType, setWindowType] = useState("");
 	const { t } = useI18n();
-	const isMacOS = /mac/i.test(navigator.platform);
 	const appIconSrc = "/app-icons/morec-128.png";
 
 	useEffect(() => {
@@ -26,7 +26,7 @@ export default function App() {
 			type === "hud-overlay" ||
 			type === "source-selector" ||
 			type === "countdown" ||
-			(type === "update-toast" && isMacOS)
+			(type === "update-toast" && isMacOS())
 		) {
 			document.body.style.background = "transparent";
 			document.documentElement.style.background = "transparent";

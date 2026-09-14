@@ -6,6 +6,7 @@ import {
 } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import { useScopedT } from "@/contexts/I18nContext";
+import { isMacOS } from "@/lib/platform";
 
 type UpdateToastPayload = {
 	version: string;
@@ -156,7 +157,7 @@ export function UpdateToastWindow() {
 		}
 	}
 
-	const isMacOS = /mac/i.test(navigator.platform);
+	const isMacOSPlatform = isMacOS();
 	const wrapperStyle = {
 		display: "flex",
 		alignItems: "center",
@@ -165,7 +166,7 @@ export function UpdateToastWindow() {
 		height: "100%",
 		padding: 10,
 		boxSizing: "border-box",
-		background: isMacOS ? "transparent" : "#0b1220",
+		background: isMacOSPlatform ? "transparent" : "#0b1220",
 	} as const;
 	const cardStyle = {
 		width: "100%",
