@@ -20,8 +20,10 @@ function getBarColor(level: number, threshold: number) {
 }
 
 export function AudioLevelMeter({ level, className = "" }: AudioLevelMeterProps) {
+	// Decorative volume visualization for the adjacent device name; hidden from
+	// the a11y tree so it doesn't read as unlabeled noise.
 	return (
-		<div className={`flex items-end justify-between gap-1.5 h-6 ${className}`}>
+		<div aria-hidden="true" className={`flex items-end justify-between gap-1.5 h-6 ${className}`}>
 			{bars.map((bar, index) => (
 				<div
 					key={index}
