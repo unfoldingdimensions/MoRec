@@ -9,6 +9,7 @@
 		"enableWebcam": "Abilita overlay webcam",
 		"countdownDelay": "Ritardo conto alla rovescia",
 		"noDelay": "Nessun ritardo",
+		"countdownCancelHint": "Fai clic per annullare",
 		"record": "Registra",
 		"starting": "Avvio…",
 		"recordingFolder": "Percorso registrazioni: {{path}}",

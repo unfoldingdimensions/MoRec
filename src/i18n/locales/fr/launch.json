@@ -9,6 +9,7 @@
 		"enableWebcam": "Activer l’incrustation webcam",
 		"countdownDelay": "Délai du compte à rebours",
 		"noDelay": "Aucun délai",
+		"countdownCancelHint": "Cliquez pour annuler",
 		"record": "Enregistrer",
 		"starting": "Démarrage…",
 		"recordingFolder": "Chemin des enregistrements : {{path}}",

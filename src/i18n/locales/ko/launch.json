@@ -9,6 +9,7 @@
 		"enableWebcam": "웹캠 오버레이 켜기",
 		"countdownDelay": "카운트다운 지연",
 		"noDelay": "지연 없음",
+		"countdownCancelHint": "클릭하여 취소",
 		"record": "녹화",
 		"starting": "시작 중…",
 		"recordingFolder": "녹화 폴더: {{path}}",

@@ -9,6 +9,7 @@
 		"enableWebcam": "Enable webcam overlay",
 		"countdownDelay": "Countdown delay",
 		"noDelay": "No delay",
+		"countdownCancelHint": "Click to cancel",
 		"record": "Record",
 		"starting": "Starting…",
 		"recordingFolder": "Recordings Path: {{path}}",

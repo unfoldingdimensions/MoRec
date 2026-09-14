@@ -3,7 +3,16 @@ import { act } from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { I18nProvider } from "@/contexts/I18nContext";
 import { CountdownOverlay } from "./CountdownOverlay";
+
+function renderOverlay() {
+	return render(
+		<I18nProvider>
+			<CountdownOverlay />
+		</I18nProvider>,
+	);
+}
 
 type TickListener = (seconds: number) => void;
 
@@ -32,7 +41,7 @@ describe("CountdownOverlay", () => {
 	});
 
 	it("renders nothing when no countdown is active", async () => {
-		const { container } = render(<CountdownOverlay />);
+		const { container } = renderOverlay();
 		await waitFor(() => {
 			expect(container.firstChild).toBeNull();
 		});
@@ -42,8 +51,11 @@ describe("CountdownOverlay", () => {
 		const { electronAPI } = installElectronApi();
 		electronAPI.getActiveCountdown.mockResolvedValue({ success: true, seconds: 5 });
 
-		render(<CountdownOverlay />);
+		renderOverlay();
 		expect(await screen.findByText("5")).toBeInTheDocument();
+		// The cancel affordance is visible on the badge itself.
+		expect(screen.getByRole("button", { name: /cancel/i })).toBeInTheDocument();
+		expect(screen.getByRole("timer")).toHaveTextContent("5");
 	});
 
 	it("updates the displayed number on tick events", async () => {
@@ -53,7 +65,7 @@ describe("CountdownOverlay", () => {
 		};
 		electronAPI.getActiveCountdown.mockResolvedValue({ success: true, seconds: 3 });
 
-		render(<CountdownOverlay />);
+		renderOverlay();
 		expect(await screen.findByText("3")).toBeInTheDocument();
 
 		emitTick(2);
@@ -67,7 +79,7 @@ describe("CountdownOverlay", () => {
 		electronAPI.getActiveCountdown.mockResolvedValue({ success: true, seconds: 3 });
 		const user = userEvent.setup();
 
-		render(<CountdownOverlay />);
+		renderOverlay();
 		await user.click(await screen.findByText("3"));
 
 		expect(electronAPI.cancelCountdown).toHaveBeenCalledTimes(1);
@@ -78,7 +90,7 @@ describe("CountdownOverlay", () => {
 		electronAPI.getActiveCountdown.mockResolvedValue({ success: true, seconds: 3 });
 		const user = userEvent.setup();
 
-		render(<CountdownOverlay />);
+		renderOverlay();
 		await screen.findByText("3");
 
 		await user.keyboard("{Escape}");

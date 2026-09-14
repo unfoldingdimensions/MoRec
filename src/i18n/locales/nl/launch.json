@@ -9,6 +9,7 @@
 		"enableWebcam": "Webcam-overlay inschakelen",
 		"countdownDelay": "Aftelvertraging",
 		"noDelay": "Geen vertraging",
+		"countdownCancelHint": "Klik om te annuleren",
 		"record": "Opnemen",
 		"starting": "Bezig met starten…",
 		"recordingFolder": "Opnamepad: {{path}}",

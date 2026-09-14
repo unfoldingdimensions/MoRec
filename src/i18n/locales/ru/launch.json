@@ -9,6 +9,7 @@
 		"enableWebcam": "Включить наложение веб-камеры",
 		"countdownDelay": "Обратный отсчёт",
 		"noDelay": "Без задержки",
+		"countdownCancelHint": "Нажмите, чтобы отменить",
 		"record": "Запись",
 		"starting": "Запуск…",
 		"recordingFolder": "Место сохранения: {{path}}",

@@ -9,6 +9,7 @@
 		"enableWebcam": "Ativar sobreposição da webcam",
 		"countdownDelay": "Atraso da contagem regressiva",
 		"noDelay": "Sem atraso",
+		"countdownCancelHint": "Clique para cancelar",
 		"record": "Gravar",
 		"starting": "Iniciando…",
 		"recordingFolder": "Caminho das gravações: {{path}}",

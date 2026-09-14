@@ -9,6 +9,7 @@
 		"enableWebcam": "Webcam-Overlay aktivieren",
 		"countdownDelay": "Countdown-Verzögerung",
 		"noDelay": "Keine Verzögerung",
+		"countdownCancelHint": "Klicken zum Abbrechen",
 		"record": "Aufnehmen",
 		"starting": "Startet…",
 		"recordingFolder": "Pfad zu den Aufzeichnungen: {{path}}",

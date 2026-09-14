@@ -9,6 +9,7 @@
 		"enableWebcam": "启用摄像头叠加",
 		"countdownDelay": "倒计时延迟",
 		"noDelay": "无延迟",
+		"countdownCancelHint": "点击可取消",
 		"record": "录制",
 		"starting": "正在启动…",
 		"recordingFolder": "录制文件夹：{{path}}",
