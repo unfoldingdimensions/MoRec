@@ -304,12 +304,3 @@
 		opacity: 0.2;
 	}
 }
-
-.micSelect {
-	color-scheme: dark;
-}
-
-.micSelect option {
-	background-color: #1a1a22;
-	color: #eeeef2;
-}
