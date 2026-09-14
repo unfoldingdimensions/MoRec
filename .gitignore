@@ -46,3 +46,6 @@ tmp-*.ps1
 .tmp-*.ps1
 gpu-export-probe.mp4
 .mimosa/
+
+# Agent orchestration scratch (briefings, dispatch notes, audit scripts)
+.agents/
