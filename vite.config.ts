@@ -1,4 +1,3 @@
-import { spawnSync } from "node:child_process";
 import path from "node:path";
 import react from "@vitejs/plugin-react";
 import { defineConfig, type Plugin } from "vite";
@@ -34,25 +33,8 @@ function electronMainCjsOutputPlugin(): Plugin {
 	};
 }
 
-function electronMainCjsGuardPlugin(): Plugin {
-	return {
-		name: "morec-electron-main-cjs-guard",
-		closeBundle() {
-			const scriptPath = path.resolve(__dirname, "scripts/smoke-electron-main-cjs.mjs");
-			const result = spawnSync(process.execPath, [scriptPath], {
-				cwd: __dirname,
-				encoding: "utf8",
-			});
-
-			if (result.status !== 0) {
-				const details = [result.stdout, result.stderr].filter(Boolean).join("\n");
-				throw new Error(
-					`Electron main CJS smoke failed after Vite build.${details ? `\n${details}` : ""}`,
-				);
-			}
-		},
-	};
-}
+// The electron main CJS smoke runs as a standalone build step
+// (`npm run smoke:electron-main-cjs`) rather than a closeBundle hook.
 
 // https://vitejs.dev/config/
 export default defineConfig({
