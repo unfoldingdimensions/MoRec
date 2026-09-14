@@ -1,1 +1,0 @@
-console.log('PowerShell Base64 Writer works!');
