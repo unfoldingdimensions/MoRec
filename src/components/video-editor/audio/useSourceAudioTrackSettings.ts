@@ -97,7 +97,7 @@ export function useSourceAudioTrackSettings({
 			}
 			return prev;
 		});
-	}, []);
+	}, [setDefaultSourceAudioTrackSettings]);
 
 	const getSourceAudioTrackSettingsForClip = useCallback(
 		(clipId: string | null): SourceAudioTrackSettings => {
@@ -139,7 +139,7 @@ export function useSourceAudioTrackSettings({
 				};
 			});
 		},
-		[defaultSourceAudioTrackSettings, selectedClipId],
+		[defaultSourceAudioTrackSettings, selectedClipId, setSourceAudioTrackSettingsByClip],
 	);
 
 	const onSelectedClipSourceAudioTrackNormalizeChange = useCallback(
@@ -163,7 +163,7 @@ export function useSourceAudioTrackSettings({
 				};
 			});
 		},
-		[defaultSourceAudioTrackSettings, selectedClipId],
+		[defaultSourceAudioTrackSettings, selectedClipId, setSourceAudioTrackSettingsByClip],
 	);
 
 	return {
