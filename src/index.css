@@ -29,7 +29,10 @@
 	}
 
 	:root {
-		--app-font-sans: "SF Pro Display", "SF Pro Text", Helvetica, sans-serif;
+		/* SF Pro covers macOS; Segoe UI is the Windows system font (neither SF
+		 * Pro nor Helvetica ships with Windows, which fell back to Arial). */
+		--app-font-sans: "SF Pro Display", "SF Pro Text", "Segoe UI", system-ui, Helvetica,
+			sans-serif;
 		--brand-accent: #2563eb;
 		--brand-accent-rgb: 37, 99, 235;
 		--background: 0 0% 100%;
