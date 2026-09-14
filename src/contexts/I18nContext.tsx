@@ -337,6 +337,19 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 		}
 	}, []);
 
+	// Each Electron window is a separate renderer; the storage event is the
+	// cross-window channel so a locale change in one window reaches the others.
+	useEffect(() => {
+		const handleStorage = (event: StorageEvent) => {
+			if (event.key !== LOCALE_STORAGE_KEY || event.newValue === null) {
+				return;
+			}
+			setLocaleState(normalizeLocale(event.newValue));
+		};
+		window.addEventListener("storage", handleStorage);
+		return () => window.removeEventListener("storage", handleStorage);
+	}, []);
+
 	useEffect(() => {
 		document.documentElement.lang = locale;
 	}, [locale]);

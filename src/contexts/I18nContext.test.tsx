@@ -74,4 +74,31 @@ describe("I18nContext", () => {
 		// common.app.* was backfilled in en; German falls through to it.
 		expect(result.current.t("common.app.name")).toBe("Mo Rec");
 	});
+
+	it("adopts a locale changed in another window via the storage event", async () => {
+		const { result } = renderHook(() => useI18n(), { wrapper });
+		await waitFor(() => expect(result.current.locale).toBe("en"));
+
+		await act(async () => {
+			window.dispatchEvent(
+				new StorageEvent("storage", { key: "morec.locale", newValue: "de" }),
+			);
+		});
+
+		expect(result.current.locale).toBe("de");
+		expect(result.current.t("launch.recording.record")).toBe("Aufnehmen");
+	});
+
+	it("ignores storage events for other keys", async () => {
+		const { result } = renderHook(() => useI18n(), { wrapper });
+		await waitFor(() => expect(result.current.locale).toBe("en"));
+
+		await act(async () => {
+			window.dispatchEvent(
+				new StorageEvent("storage", { key: "morec.theme", newValue: "de" }),
+			);
+		});
+
+		expect(result.current.locale).toBe("en");
+	});
 });
