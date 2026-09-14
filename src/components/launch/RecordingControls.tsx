@@ -44,12 +44,16 @@ export const RecordingControls = ({
 				<div className="flex items-center gap-[5px]">
 					<div
 						className={`w-[7px] h-[7px] rounded-full ${
-							paused ? "bg-[#fbbf24]" : `bg-[#f43f5e] ${styles.recDotBlink}`
+							paused
+								? "bg-[var(--launch-state-paused)]"
+								: `bg-[var(--launch-state-rec)] ${styles.recDotBlink}`
 						}`}
 					/>
 					<span
 						className={`text-[10px] font-bold tracking-[0.06em] ${
-							paused ? "text-[#fbbf24]" : "text-[#f43f5e]"
+							paused
+								? "text-[var(--launch-state-paused)]"
+								: "text-[var(--launch-state-rec)]"
 						}`}
 					>
 						{paused ? t("recording.paused") : t("recording.rec")}
@@ -58,7 +62,7 @@ export const RecordingControls = ({
 
 				<span
 					className={`font-mono text-xs font-semibold min-w-[52px] text-center tracking-[0.02em] ${
-						paused ? "text-[#fbbf24]" : "text-[var(--launch-text)]"
+							paused ? "text-[var(--launch-state-paused)]" : "text-[var(--launch-text)]"
 					}`}
 				>
 					{formatTime(elapsed)}
