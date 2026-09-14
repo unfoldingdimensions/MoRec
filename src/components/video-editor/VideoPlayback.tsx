@@ -2224,7 +2224,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 				cursorContainerRef.current = null;
 				videoSpriteRef.current = null;
 			};
-		}, [initializePixiRenderer, onError]);
+		}, [initializePixiRenderer, onError, syncPreviewMotionBlurQuality]);
 
 		useEffect(() => {
 			const video = videoRef.current;
@@ -2280,7 +2280,9 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 
 			animationStateRef.current = createPlaybackAnimationState();
 
-			layoutVideoContent();
+			// Call through the ref: layoutVideoContent's identity tracks layout
+			// props, and re-running this setup on those changes is not wanted.
+			layoutVideoContentRef.current?.();
 			video.pause();
 
 			const updateTextureSource = () => {
@@ -2338,7 +2340,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 
 				videoSpriteRef.current = null;
 			};
-		}, [pixiReady, videoReady, onTimeUpdate, updateOverlayForRegion]);
+		}, [pixiReady, videoReady, onTimeUpdate, updateOverlayForRegion, onPlayStateChange]);
 
 		useEffect(() => {
 			if (!pixiReady || !videoReady) return;
