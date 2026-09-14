@@ -23,6 +23,7 @@ export type ElectronModuleOverrides = Record<string, unknown>;
 export class IpcRegistry {
 	private handlers = new Map<string, IpcHandler>();
 	private listeners = new Map<string, IpcListener[]>();
+	private appListeners = new Map<string, IpcListener[]>();
 
 	private electronOverrides: ElectronModuleOverrides;
 
@@ -33,6 +34,7 @@ export class IpcRegistry {
 	reset() {
 		this.handlers.clear();
 		this.listeners.clear();
+		this.appListeners.clear();
 	}
 
 	installElectronMock() {
@@ -49,6 +51,11 @@ export class IpcRegistry {
 				isPackaged: false,
 				isReady: () => true,
 				whenReady: async () => undefined,
+				on: (event: string, listener: IpcListener) => {
+					const list = this.appListeners.get(event) ?? [];
+					list.push(listener);
+					this.appListeners.set(event, list);
+				},
 				...(this.electronOverrides.app as object | undefined),
 			},
 			BrowserWindow: {
@@ -128,6 +135,13 @@ export class IpcRegistry {
 
 	emit(channel: string, ...args: unknown[]) {
 		for (const listener of this.listeners.get(channel) ?? []) {
+			listener(...args);
+		}
+	}
+
+	/** Invoke listeners registered via `app.on(event, ...)` (e.g. before-quit). */
+	emitAppEvent(event: string, ...args: unknown[]) {
+		for (const listener of this.appListeners.get(event) ?? []) {
 			listener(...args);
 		}
 	}

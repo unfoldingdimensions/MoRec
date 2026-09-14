@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
  * Tests for the Windows HMONITOR resolver: output parsing, the TTL cache,
@@ -20,6 +20,13 @@ describe("monitorResolver", () => {
 		vi.resetModules();
 		execFileMock.mockReset();
 		spawnSyncMock.mockReset();
+		// The resolver short-circuits to [] off Windows; the units under test here
+		// are the PowerShell parsing/caching paths behind that guard.
+		vi.spyOn(process, "platform", "get").mockReturnValue("win32");
+	});
+
+	afterEach(() => {
+		vi.restoreAllMocks();
 	});
 
 	it("parses monitor handles from PowerShell output", async () => {
