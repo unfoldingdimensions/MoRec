@@ -59,7 +59,12 @@
 		"appearance": "Appearance",
 		"preparing": "Preparing recording",
 		"preparingSubtitle": "Opening the editor in a moment",
-		"previewUpdateUi": "Preview Update UI"
+		"previewUpdateUi": "Preview Update UI",
+		"countdownSeconds": "{{seconds}} 秒",
+		"savedMetadataToast": "錄製已儲存，但工作階段中繼資料未能儲存。",
+		"editorOpenFailedToast": "錄製已儲存，但無法開啟編輯器。請重新開啟應用程式並從您的錄製中載入。",
+		"savedMuxFailedToast": "錄製已儲存，但無法合併伴生音軌。",
+		"recoveredMuxFailedToast": "錄製已復原，但無法合併伴生音軌。"
 	},
 	"sourceSelector": {
 		"loadingSources": "正在載入來源...",

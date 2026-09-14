@@ -59,7 +59,12 @@
 		"appearance": "Appearance",
 		"preparing": "Preparing recording",
 		"preparingSubtitle": "Opening the editor in a moment",
-		"previewUpdateUi": "Preview Update UI"
+		"previewUpdateUi": "Preview Update UI",
+		"countdownSeconds": "{{seconds}}s",
+		"savedMetadataToast": "Gravação salva, mas os metadados da sessão não puderam ser salvos.",
+		"editorOpenFailedToast": "Gravação salva, mas não foi possível abrir o editor. Reabra o aplicativo e carregue-a a partir das suas gravações.",
+		"savedMuxFailedToast": "Gravação salva, mas não foi possível combinar o áudio complementar.",
+		"recoveredMuxFailedToast": "Gravação recuperada, mas não foi possível combinar o áudio complementar."
 	},
 	"sourceSelector": {
 		"loadingSources": "Carregando fontes...",

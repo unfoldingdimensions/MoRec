@@ -59,7 +59,12 @@
 		"appearance": "Appearance",
 		"preparing": "Preparing recording",
 		"preparingSubtitle": "Opening the editor in a moment",
-		"previewUpdateUi": "Preview Update UI"
+		"previewUpdateUi": "Preview Update UI",
+		"countdownSeconds": "{{seconds}}s",
+		"savedMetadataToast": "Registrazione salvata, ma i metadati della sessione non sono stati salvati.",
+		"editorOpenFailedToast": "Registrazione salvata, ma non è stato possibile aprire l'editor. Riapri l'app e caricala dalle tue registrazioni.",
+		"savedMuxFailedToast": "Registrazione salvata, ma non è stato possibile unire l'audio complementare.",
+		"recoveredMuxFailedToast": "Registrazione recuperata, ma non è stato possibile unire l'audio complementare."
 	},
 	"sourceSelector": {
 		"loadingSources": "Caricamento sorgenti...",

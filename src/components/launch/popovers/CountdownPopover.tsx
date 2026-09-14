@@ -45,7 +45,9 @@ export function CountdownPopover({
 						requestClose(POPOVER_ID);
 					}}
 				>
-					{delay === 0 ? t("recording.noDelay") : `${delay}s`}
+					{delay === 0
+						? t("recording.noDelay")
+						: t("recording.countdownSeconds", undefined, { seconds: delay })}
 				</DropdownItem>
 			))}
 		</HudPopover>

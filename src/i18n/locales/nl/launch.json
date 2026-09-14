@@ -59,7 +59,12 @@
 		"appearance": "Appearance",
 		"preparing": "Preparing recording",
 		"preparingSubtitle": "Opening the editor in a moment",
-		"previewUpdateUi": "Preview Update UI"
+		"previewUpdateUi": "Preview Update UI",
+		"countdownSeconds": "{{seconds}}s",
+		"savedMetadataToast": "Opname opgeslagen, maar de sessiemetagegevens konden niet worden opgeslagen.",
+		"editorOpenFailedToast": "Opname opgeslagen, maar de editor kon niet worden geopend. Open de app opnieuw en laad deze vanuit je opnames.",
+		"savedMuxFailedToast": "Opname opgeslagen, maar de bijbehorende audiotrack kon niet worden samengevoegd.",
+		"recoveredMuxFailedToast": "Opname hersteld, maar de bijbehorende audiotrack kon niet worden samengevoegd."
 	},
 	"sourceSelector": {
 		"loadingSources": "Bronnen laden...",

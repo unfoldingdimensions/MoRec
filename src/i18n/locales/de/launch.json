@@ -59,7 +59,12 @@
 		"appearance": "Appearance",
 		"preparing": "Preparing recording",
 		"preparingSubtitle": "Opening the editor in a moment",
-		"previewUpdateUi": "Preview Update UI"
+		"previewUpdateUi": "Preview Update UI",
+		"countdownSeconds": "{{seconds}} Sek.",
+		"savedMetadataToast": "Aufnahme gespeichert, aber die Sitzungsmetadaten konnten nicht gespeichert werden.",
+		"editorOpenFailedToast": "Aufnahme gespeichert, aber der Editor konnte nicht geöffnet werden. Öffne die App erneut und lade sie aus deinen Aufnahmen.",
+		"savedMuxFailedToast": "Aufnahme gespeichert, aber die Tonspur konnte nicht zusammengefügt werden.",
+		"recoveredMuxFailedToast": "Aufnahme wiederhergestellt, aber die Tonspur konnte nicht zusammengefügt werden."
 	},
 	"sourceSelector": {
 		"loadingSources": "Quellen werden geladen...",

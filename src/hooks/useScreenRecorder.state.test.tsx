@@ -16,6 +16,7 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { I18nProvider } from "@/contexts/I18nContext";
 import { useScreenRecorder } from "./useScreenRecorder";
 
 vi.mock("@fix-webm-duration/fix", () => ({
@@ -269,7 +270,11 @@ function renderRecorderHook(): Promise<Harness> {
 
 	const rerender = async () => {
 		await act(async () => {
-			root.render(<Probe />);
+			root.render(
+			<I18nProvider>
+				<Probe />
+			</I18nProvider>,
+		);
 		});
 	};
 
@@ -281,7 +286,11 @@ function renderRecorderHook(): Promise<Harness> {
 	};
 
 	const whenReady = act(async () => {
-		root.render(<Probe />);
+		root.render(
+			<I18nProvider>
+				<Probe />
+			</I18nProvider>,
+		);
 	});
 
 	return (async () => {

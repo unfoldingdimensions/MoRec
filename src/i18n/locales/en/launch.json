@@ -59,7 +59,12 @@
 		"appearance": "Appearance",
 		"preparing": "Preparing recording",
 		"preparingSubtitle": "Opening the editor in a moment",
-		"previewUpdateUi": "Preview Update UI"
+		"previewUpdateUi": "Preview Update UI",
+		"countdownSeconds": "{{seconds}}s",
+		"savedMetadataToast": "Recording saved, but session metadata could not be persisted.",
+		"editorOpenFailedToast": "Recording saved, but the editor could not be opened. Reopen the app and load it from your recordings.",
+		"savedMuxFailedToast": "Recording saved, but the audio companion could not be muxed.",
+		"recoveredMuxFailedToast": "Recording recovered, but the audio companion could not be muxed."
 	},
 	"sourceSelector": {
 		"loadingSources": "Loading sources...",

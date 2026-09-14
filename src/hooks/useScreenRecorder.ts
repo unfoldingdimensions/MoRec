@@ -1,6 +1,7 @@
 import { fixWebmDuration } from "@fix-webm-duration/fix";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { useScopedT } from "@/contexts/I18nContext";
 import { getEffectiveRecordingDurationMs } from "@/lib/mediaTiming";
 import {
 	getVideoExtensionForMimeType,
@@ -361,6 +362,7 @@ function withDeviceRequestTimeout<T>(promise: Promise<T>, timeoutMs: number): Pr
 }
 
 export function useScreenRecorder(): UseScreenRecorderReturn {
+	const t = useScopedT("launch");
 	const [recording, setRecording] = useState(false);
 	const [paused, setPaused] = useState(false);
 	const [starting, setStarting] = useState(false);
@@ -738,7 +740,7 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 					});
 				} catch (fallbackError) {
 					console.error("Failed to persist fallback video path:", fallbackError);
-					toast.error("Recording saved, but session metadata could not be persisted.", {
+					toast.error(t("recording.savedMetadataToast"), {
 						duration: 10000,
 					});
 				}
@@ -751,16 +753,13 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 				// The recording is saved; a failed editor switch must not surface
 				// as "failed to finalize". Guide the user to the recording instead.
 				console.error("Failed to switch to the editor after finalization:", switchError);
-				toast.error(
-					"Recording saved, but the editor could not be opened. Reopen the app and load it from your recordings.",
-					{ duration: 10000 },
-				);
+				toast.error(t("recording.editorOpenFailedToast"), { duration: 10000 });
 			}
 			console.log(
 				`[PERF:RENDERER] Finalize Session & Switch to Editor: COMPLETED in ${(performance.now() - start).toFixed(2)}ms`,
 			);
 		},
-		[],
+		[t],
 	);
 
 	const closeMicFallbackPauseInterval = useCallback((now = performance.now()) => {
@@ -985,7 +984,7 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 					// Companion audio muxing is best-effort: the recovered video is
 					// already on disk, so finish the session without the mux.
 					console.error("Failed to mux recovered native Windows recording:", muxError);
-					toast.error("Recording recovered, but the audio companion could not be muxed.", {
+					toast.error(t("recording.recoveredMuxFailedToast"), {
 						duration: 10000,
 					});
 				}
@@ -1003,6 +1002,7 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 			stopMicFallbackRecorder,
 			stopWebcamRecorder,
 			storeMicrophoneSidecar,
+			t,
 		],
 	);
 
@@ -1257,10 +1257,9 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 							// contract: the video is already saved, so finalize the
 							// session instead of failing the whole recording.
 							console.error("Failed to mux native Windows recording audio:", muxError);
-							toast.error(
-								"Recording saved, but the audio companion could not be muxed.",
-								{ duration: 10000 },
-							);
+							toast.error(t("recording.savedMuxFailedToast"), {
+								duration: 10000,
+							});
 						}
 					}
 
@@ -1322,6 +1321,7 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 		stopMicFallbackRecorder,
 		stopWebcamRecorder,
 		storeMicrophoneSidecar,
+		t,
 	]);
 
 	useEffect(() => {

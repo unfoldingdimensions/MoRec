@@ -59,7 +59,12 @@
 		"appearance": "Appearance",
 		"preparing": "Preparing recording",
 		"preparingSubtitle": "Opening the editor in a moment",
-		"previewUpdateUi": "Preview Update UI"
+		"previewUpdateUi": "Preview Update UI",
+		"countdownSeconds": "{{seconds}} с",
+		"savedMetadataToast": "Запись сохранена, но метаданные сессии не удалось сохранить.",
+		"editorOpenFailedToast": "Запись сохранена, но редактор не удалось открыть. Откройте приложение заново и загрузите её из записей.",
+		"savedMuxFailedToast": "Запись сохранена, но не удалось объединить сопутствующую аудиодорожку.",
+		"recoveredMuxFailedToast": "Запись восстановлена, но не удалось объединить сопутствующую аудиодорожку."
 	},
 	"sourceSelector": {
 		"loadingSources": "Загрузка источников...",

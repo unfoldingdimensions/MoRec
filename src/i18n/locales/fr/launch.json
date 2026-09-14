@@ -59,7 +59,12 @@
 		"appearance": "Appearance",
 		"preparing": "Preparing recording",
 		"preparingSubtitle": "Opening the editor in a moment",
-		"previewUpdateUi": "Preview Update UI"
+		"previewUpdateUi": "Preview Update UI",
+		"countdownSeconds": "{{seconds}} s",
+		"savedMetadataToast": "Enregistrement sauvegardé, mais les métadonnées de la session n'ont pas pu être conservées.",
+		"editorOpenFailedToast": "Enregistrement sauvegardé, mais l'éditeur n'a pas pu être ouvert. Rouvrez l'application et chargez-la depuis vos enregistrements.",
+		"savedMuxFailedToast": "Enregistrement sauvegardé, mais la piste audio n'a pas pu être assemblée.",
+		"recoveredMuxFailedToast": "Enregistrement récupéré, mais la piste audio n'a pas pu être assemblée."
 	},
 	"sourceSelector": {
 		"loadingSources": "Chargement des sources...",

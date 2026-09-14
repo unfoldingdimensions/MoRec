@@ -59,7 +59,12 @@
 		"appearance": "Appearance",
 		"preparing": "Preparing recording",
 		"preparingSubtitle": "Opening the editor in a moment",
-		"previewUpdateUi": "Preview Update UI"
+		"previewUpdateUi": "Preview Update UI",
+		"countdownSeconds": "{{seconds}}s",
+		"savedMetadataToast": "Grabación guardada, pero no se pudieron guardar los metadatos de la sesión.",
+		"editorOpenFailedToast": "Grabación guardada, pero no se pudo abrir el editor. Vuelve a abrir la app y cárgala desde tus grabaciones.",
+		"savedMuxFailedToast": "Grabación guardada, pero no se pudo combinar el audio acompañante.",
+		"recoveredMuxFailedToast": "Grabación recuperada, pero no se pudo combinar el audio acompañante."
 	},
 	"sourceSelector": {
 		"loadingSources": "Cargando fuentes...",
