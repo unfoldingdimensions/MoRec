@@ -55,6 +55,10 @@ describe("register/recording start orchestration (win32)", () => {
 		registry.installElectronMock();
 		state = await import("../state");
 
+		// These tests exercise the win32 start path; route the platform checks
+		// through it on every OS.
+		vi.spyOn(process, "platform", "get").mockReturnValue("win32");
+
 		for (const fn of Object.values(recordingWindows)) {
 			fn.mockReset();
 		}
@@ -171,6 +175,7 @@ describe("register/recording start orchestration (win32)", () => {
 	});
 
 	afterEach(() => {
+		vi.restoreAllMocks();
 		vi.resetModules();
 		vi.doUnmock("electron");
 		vi.doUnmock("node:child_process");
