@@ -363,28 +363,42 @@ function LaunchWindowContent() {
 				}
 			/>
 
-			<button
-				type="button"
-				className={`${styles.recBtn} ${styles.electronNoDrag}`}
-				onClick={
-					hasSelectedSource || platform === "linux"
-						? toggleRecording
-						: () => {
-								beginInteractiveHudAction();
-								requestOpen("sources");
-							}
-				}
-				disabled={countdownActive || starting}
-				aria-busy={starting || undefined}
-				title={starting ? t("recording.starting", "Starting…") : t("recording.record")}
-				aria-label={starting ? t("recording.starting", "Starting…") : t("recording.record")}
-			>
-				{starting ? (
-					<ArrowClockwiseIcon size={16} className={styles.finalizingSpin} />
-				) : (
-					<div className={styles.recDot} />
-				)}
-			</button>
+			{countdownActive ? (
+				/* While the countdown runs the record button is dead; turn it into
+				 * the visible cancel affordance (same path the countdown badge uses). */
+				<button
+					type="button"
+					className={`${styles.recBtn} ${styles.electronNoDrag}`}
+					onClick={() => window.electronAPI?.cancelCountdown?.()}
+					title={t("recording.cancel")}
+					aria-label={t("recording.cancel")}
+				>
+					<XIcon size={20} weight="bold" />
+				</button>
+			) : (
+				<button
+					type="button"
+					className={`${styles.recBtn} ${styles.electronNoDrag}`}
+					onClick={
+						hasSelectedSource || platform === "linux"
+							? toggleRecording
+							: () => {
+									beginInteractiveHudAction();
+									requestOpen("sources");
+								}
+					}
+					disabled={starting}
+					aria-busy={starting || undefined}
+					title={starting ? t("recording.starting", "Starting…") : t("recording.record")}
+					aria-label={starting ? t("recording.starting", "Starting…") : t("recording.record")}
+				>
+					{starting ? (
+						<ArrowClockwiseIcon size={16} className={styles.finalizingSpin} />
+					) : (
+						<div className={styles.recDot} />
+					)}
+				</button>
+			)}
 
 			<Separator orientation="vertical" className="mx-[5px] h-6" />
 
