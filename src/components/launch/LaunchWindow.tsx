@@ -97,6 +97,9 @@ function LaunchWindowContent() {
 	} = useLaunchWindowActions();
 
 	const showWebcamControls = webcamEnabled && !recording;
+	// "Screen" is the internal sentinel for "no source picked yet"; the button
+	// shows the localized word until a real source name replaces it.
+	const displaySource = hasSelectedSource ? selectedSource : t("recording.screen");
 	const { devices, selectedDeviceId, setSelectedDeviceId } = useMicrophoneDevices(
 		microphoneEnabled || openId === "mic",
 		microphoneDeviceId,
@@ -238,11 +241,11 @@ function LaunchWindowContent() {
 								variant="outline"
 								size="lg"
 								className={`${styles.electronNoDrag} group gap-2 px-3 min-w-0 max-w-[180px] rounded-[11px] font-medium text-[12px] shrink-0 border-[var(--launch-border)] bg-[var(--launch-surface)] text-[var(--launch-text)] hover:border-[var(--launch-border-strong)] hover:bg-[var(--launch-hover)] transition-all ${openId === "sources" ? "border-[var(--launch-border-strong)] bg-[var(--launch-hover)]" : ""}`}
-								title={selectedSource}
+								title={displaySource}
 							>
 								<MonitorIcon size={16} className="shrink-0" />
 								<div className="flex-1 min-w-0 overflow-hidden">
-									<MarqueeText text={selectedSource} />
+									<MarqueeText text={displaySource} />
 								</div>
 								<CaretUpIcon
 									size={10}

@@ -315,6 +315,11 @@ export const SourceSelector = React.memo(function SourceSelector({
 		}
 	}, [isAutonomous]);
 
+	const t = useScopedT("launch");
+	// "Screen" is the internal sentinel for "no source picked yet"; show the
+	// localized word in the trigger until a real source name replaces it.
+	const displaySource = selectedSource === "Screen" ? t("recording.screen") : selectedSource;
+
 	const trigger = children ? (
 		React.isValidElement(children) ? (
 			React.cloneElement(children as React.ReactElement<React.HTMLAttributes<HTMLElement>>, {
@@ -335,11 +340,11 @@ export const SourceSelector = React.memo(function SourceSelector({
 				"border-[#2a2a34] bg-[#1a1a22] text-[#eeeef2] hover:border-[#3e3e4c] hover:bg-[#20202a] transition-all",
 				"data-[state=open]:border-[#3e3e4c] data-[state=open]:bg-[#20202a]",
 			)}
-			title={selectedSource}
+			title={displaySource}
 		>
 			<MonitorIcon size={16} className="shrink-0" />
 			<div className="flex-1 min-w-0">
-				<MarqueeText text={selectedSource} />
+				<MarqueeText text={displaySource} />
 			</div>
 			<CaretUpIcon
 				size={10}
