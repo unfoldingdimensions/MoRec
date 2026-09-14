@@ -1,4 +1,4 @@
-import { MicrophoneIcon, MicrophoneSlashIcon } from "@phosphor-icons/react";
+import { Check, MicrophoneIcon, MicrophoneSlashIcon } from "@phosphor-icons/react";
 import type { ReactElement, ReactNode } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAudioLevelMeter } from "@/hooks/useAudioLevelMeter";
@@ -26,9 +26,13 @@ export function DropdownItem({
 			type="button"
 			className={`${styles.ddItem} ${selected ? styles.ddItemSelected : ""}`}
 			onClick={onClick}
+			aria-pressed={selected === undefined ? undefined : Boolean(selected)}
 		>
 			<span className="shrink-0">{icon}</span>
 			<span className="truncate">{children}</span>
+			{selected ? (
+				<Check size={14} className="shrink-0" aria-hidden="true" />
+			) : null}
 			{trailing}
 		</button>
 	);
@@ -53,11 +57,15 @@ export function MicDeviceRow({
 			type="button"
 			className={`${styles.ddItem} ${selected ? styles.ddItemSelected : ""}`}
 			onClick={onSelect}
+			aria-pressed={selected}
 		>
 			<span className="shrink-0">
 				{selected ? <MicrophoneIcon size={16} /> : <MicrophoneSlashIcon size={16} />}
 			</span>
 			<span className="truncate flex-1">{device.label}</span>
+			{selected ? (
+				<Check size={14} className="shrink-0" aria-hidden="true" />
+			) : null}
 			<AudioLevelMeter level={level} className="w-16 shrink-0" />
 		</button>
 	);

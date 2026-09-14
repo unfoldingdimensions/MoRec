@@ -275,25 +275,30 @@ function LaunchWindowContent() {
 					setSelectedDeviceId(deviceId);
 					setMicrophoneDeviceId(deviceId === "default" ? undefined : deviceId);
 				}}
-				trigger={
-					<Button
-						variant="ghost"
-						size="icon"
-						iconSize="lg"
-						title={
-							microphoneEnabled
-								? t("recording.disableMicrophone")
-								: t("recording.enableMicrophone")
-						}
-						className={microphoneEnabled ? styles.ibActive : ""}
-					>
-						{microphoneEnabled ? (
-							<MicrophoneIcon size={18} />
-						) : (
-							<MicrophoneSlashIcon size={18} />
-						)}
-					</Button>
-				}
+					trigger={
+						<Button
+							variant="ghost"
+							size="icon"
+							iconSize="lg"
+							title={
+								microphoneEnabled
+									? t("recording.disableMicrophone")
+									: t("recording.enableMicrophone")
+							}
+							aria-label={
+								microphoneEnabled
+									? t("recording.disableMicrophone")
+									: t("recording.enableMicrophone")
+							}
+							className={microphoneEnabled ? styles.ibActive : ""}
+						>
+							{microphoneEnabled ? (
+								<MicrophoneIcon size={18} />
+							) : (
+								<MicrophoneSlashIcon size={18} />
+							)}
+						</Button>
+					}
 			/>
 
 			<WebcamPopover
@@ -315,25 +320,30 @@ function LaunchWindowContent() {
 					setSelectedVideoDeviceId(deviceId);
 					setWebcamDeviceId(deviceId);
 				}}
-				trigger={
-					<Button
-						variant="ghost"
-						size="icon"
-						iconSize="lg"
-						title={
-							webcamEnabled
-								? t("recording.disableWebcam")
-								: t("recording.enableWebcam")
-						}
-						className={webcamEnabled ? styles.ibActive : ""}
-					>
-						{webcamEnabled ? (
-							<VideoCameraIcon size={18} />
-						) : (
-							<VideoCameraSlashIcon size={18} />
-						)}
-					</Button>
-				}
+					trigger={
+						<Button
+							variant="ghost"
+							size="icon"
+							iconSize="lg"
+							title={
+								webcamEnabled
+									? t("recording.disableWebcam")
+									: t("recording.enableWebcam")
+							}
+							aria-label={
+								webcamEnabled
+									? t("recording.disableWebcam")
+									: t("recording.enableWebcam")
+							}
+							className={webcamEnabled ? styles.ibActive : ""}
+						>
+							{webcamEnabled ? (
+								<VideoCameraIcon size={18} />
+							) : (
+								<VideoCameraSlashIcon size={18} />
+							)}
+						</Button>
+					}
 			/>
 
 			<CountdownPopover
@@ -345,6 +355,7 @@ function LaunchWindowContent() {
 						size="icon"
 						iconSize="lg"
 						title={t("recording.countdownDelay")}
+						aria-label={t("recording.countdownDelay")}
 						className={countdownDelay > 0 ? styles.ibActive : ""}
 					>
 						<TimerIcon size={18} />
@@ -366,6 +377,7 @@ function LaunchWindowContent() {
 				disabled={countdownActive || starting}
 				aria-busy={starting || undefined}
 				title={starting ? t("recording.starting", "Starting…") : t("recording.record")}
+				aria-label={starting ? t("recording.starting", "Starting…") : t("recording.record")}
 			>
 				{starting ? (
 					<ArrowClockwiseIcon size={16} className={styles.finalizingSpin} />
@@ -410,31 +422,33 @@ function LaunchWindowContent() {
 				}}
 				appVersion={appVersion}
 				trigger={
-					<Button variant="ghost" size="icon" iconSize="lg" title={t("recording.more")}>
+					<Button variant="ghost" size="icon" iconSize="lg" title={t("recording.more")} aria-label={t("recording.more")}>
 						<DotsThreeVerticalIcon size={18} />
 					</Button>
 				}
 			/>
 
-			<Button
-				variant="ghost"
-				size="icon"
-				iconSize="lg"
-				onClick={() => window.electronAPI?.hudOverlayHide?.()}
-				title={t("recording.hideHud")}
-			>
-				<MinusIcon size={16} />
-			</Button>
+				<Button
+					variant="ghost"
+					size="icon"
+					iconSize="lg"
+					onClick={() => window.electronAPI?.hudOverlayHide?.()}
+					title={t("recording.hideHud")}
+					aria-label={t("recording.hideHud")}
+				>
+					<MinusIcon size={16} />
+				</Button>
 
-			<Button
-				variant="ghost"
-				size="icon"
-				iconSize="lg"
-				onClick={() => window.electronAPI?.hudOverlayClose?.()}
-				title={t("recording.closeApp")}
-			>
-				<XIcon size={16} />
-			</Button>
+				<Button
+					variant="ghost"
+					size="icon"
+					iconSize="lg"
+					onClick={() => window.electronAPI?.hudOverlayClose?.()}
+					title={t("recording.closeApp")}
+					aria-label={t("recording.closeApp")}
+				>
+					<XIcon size={16} />
+				</Button>
 		</>
 	);
 
@@ -493,7 +507,9 @@ function LaunchWindowContent() {
 									onPointerUp={useNativeHudBarDrag ? undefined : handleHudBarPointerUp}
 									onPointerCancel={useNativeHudBarDrag ? undefined : handleHudBarPointerUp}
 								>
-									<RxDragHandleDots2 size={14} className="text-[#6b6b78]" />
+									{/* Decorative drag affordance: the HUD window is intentionally
+										non-focusable, so the handle is hidden from the a11y tree. */}
+									<RxDragHandleDots2 size={14} className="text-[#6b6b78]" aria-hidden="true" />
 								</div>
 
 								<div className={styles.barStateViewport}>
