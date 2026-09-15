@@ -50,7 +50,10 @@ export function getBrowserMicSidecarTimeoutMs(sourceBytes: number) {
 	return Math.min(BROWSER_MIC_SIDECAR_MAX_TIMEOUT_MS, scaled);
 }
 
-export const RECORDING_AUDIO_SIDECAR_DEBUG_ENV = "MOREC_KEEP_RECORDING_AUDIO_SIDECARS"; // not used yet, because we need to have seperate audio files for system and mic for each recording
+// Set MOREC_KEEP_RECORDING_AUDIO_SIDECARS=1 to keep the browser mic sidecar's
+// unfiltered source webm (and orphaned native mic sidecars) next to the
+// recording for diagnostics instead of deleting them after conversion.
+export const RECORDING_AUDIO_SIDECAR_DEBUG_ENV = "MOREC_KEEP_RECORDING_AUDIO_SIDECARS";
 
 export function shouldKeepRecordingAudioSidecars(env: NodeJS.ProcessEnv = process.env) {
 	const value = env[RECORDING_AUDIO_SIDECAR_DEBUG_ENV]?.trim().toLowerCase();
