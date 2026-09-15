@@ -23,6 +23,7 @@ import {
 } from "../state";
 import { AudioSyncAdjustment } from "../types";
 import { moveFileWithOverwrite } from "../utils";
+import { getCompanionAudioStartDelayMs } from "./diagnostics";
 import { emitRecordingInterrupted } from "./events";
 
 const WINDOWS_CAPTURE_STOP_TIMEOUT_MS = 45_000;
@@ -295,7 +296,7 @@ export async function muxNativeWindowsVideoWithAudio(
 					path: finalSystemPath,
 					sizeBytes: stat.size,
 					durationSeconds: 0,
-					startDelayMs: null,
+					startDelayMs: await getCompanionAudioStartDelayMs(finalSystemPath),
 					adjustment: { mode: "none", delayMs: 0, tempoRatio: 1, durationDeltaMs: 0 },
 				};
 			}
@@ -317,7 +318,7 @@ export async function muxNativeWindowsVideoWithAudio(
 					path: finalMicPath,
 					sizeBytes: stat.size,
 					durationSeconds: 0,
-					startDelayMs: null,
+					startDelayMs: await getCompanionAudioStartDelayMs(finalMicPath),
 					adjustment: { mode: "none", delayMs: 0, tempoRatio: 1, durationDeltaMs: 0 },
 				};
 			}
