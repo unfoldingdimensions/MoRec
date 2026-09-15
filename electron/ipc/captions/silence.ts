@@ -190,6 +190,18 @@ export function padSpans(spans: Span[], edgePadMs: number): void {
 		spans[index].startMs = Math.max(0, Math.round(rawStart - leftPad));
 		spans[index].endMs = Math.max(spans[index].startMs + 1, Math.round(rawEnd + rightPad));
 	}
+
+	// Word-derived pieces can straddle a pause (a stretched whisper word may end
+	// after the next piece starts); padding never shrinks a span, so enforce
+	// non-overlap afterwards by pulling later starts forward.
+	for (let index = 1; index < spans.length; index += 1) {
+		const previous = spans[index - 1];
+		const current = spans[index];
+		if (current.startMs < previous.endMs) {
+			current.startMs = previous.endMs;
+			current.endMs = Math.max(current.endMs, current.startMs + 1);
+		}
+	}
 }
 
 /**
