@@ -4,7 +4,7 @@ import path from "node:path";
 import { app } from "electron";
 import { RECORDINGS_DIR, USER_DATA_PATH } from "../../appPaths";
 import { isSupportedLocalMediaPath } from "../../mediaTypes";
-import { writeProjectFileAtomically } from "./atomicSave";
+import { getProjectBackupPath, writeProjectFileAtomically } from "./atomicSave";
 import {
 	LEGACY_PROJECT_FILE_EXTENSIONS,
 	MAX_RECENT_PROJECTS,
@@ -449,25 +449,51 @@ function isLoadableProjectData(projectData: unknown) {
 	);
 }
 
+// The atomic writer preserves the previous generation as <path>.morec.bak;
+// when the main file is unreadable or damaged, recover it instead of failing
+// while a complete copy sits in the same directory.
+async function loadProjectBackup(
+	projectPath: string,
+): Promise<{ project: unknown } | null> {
+	try {
+		const content = await fs.readFile(getProjectBackupPath(projectPath), "utf-8");
+		const project = parseJsonWithByteOrderMark(content);
+		return isLoadableProjectData(project) ? { project } : null;
+	} catch {
+		return null;
+	}
+}
+
 export async function loadProjectFromPath(projectPath: string) {
 	const normalizedPath = normalizePath(projectPath);
 	let project: unknown;
+	let recoveredFromBackup = false;
 	try {
 		const content = await fs.readFile(normalizedPath, "utf-8");
 		project = parseJsonWithByteOrderMark(content);
 	} catch (error) {
-		return {
-			success: false,
-			canceled: false,
-			message: `Failed to read project file: ${error instanceof Error ? error.message : String(error)}`,
-		};
+		const backup = await loadProjectBackup(normalizedPath);
+		if (!backup) {
+			return {
+				success: false,
+				canceled: false,
+				message: `Failed to read project file: ${error instanceof Error ? error.message : String(error)}`,
+			};
+		}
+		project = backup.project;
+		recoveredFromBackup = true;
 	}
 	if (!isLoadableProjectData(project)) {
-		return {
-			success: false,
-			canceled: false,
-			message: "Invalid project file format",
-		};
+		const backup = await loadProjectBackup(normalizedPath);
+		if (!backup) {
+			return {
+				success: false,
+				canceled: false,
+				message: "Invalid project file format",
+			};
+		}
+		project = backup.project;
+		recoveredFromBackup = true;
 	}
 	const mediaSources = await resolveProjectMediaSources(project);
 
@@ -515,6 +541,7 @@ export async function loadProjectFromPath(projectPath: string) {
 		success: true,
 		path: normalizedPath,
 		project,
+		recoveredFromBackup,
 	};
 }
 

@@ -229,4 +229,55 @@ describe("local media path policy", () => {
 		expect(result.success).toBe(true);
 		await expect(resolveApprovedLocalMediaPath(audioPath)).resolves.toBe(resolvedAudioPath);
 	});
+
+	it("recovers a project from its .bak when the main file is corrupt", async () => {
+		const videoPath = path.join(tempPath, "recording.mp4");
+		const projectPath = path.join(tempPath, "recording.morec");
+		await fs.writeFile(videoPath, "test-video");
+		// Torn main file (crash mid-write of a non-atomic writer) plus the
+		// previous complete generation the atomic writer preserves.
+		await fs.writeFile(projectPath, '{"version":1,"videoPa', "utf-8");
+		await fs.writeFile(
+			`${projectPath}.bak`,
+			JSON.stringify({ version: 1, videoPath, editor: {} }),
+			"utf-8",
+		);
+
+		const { loadProjectFromPath } = await import("./manager");
+
+		const result = await loadProjectFromPath(projectPath);
+		expect(result.success).toBe(true);
+		expect(result.recoveredFromBackup).toBe(true);
+		expect((result.project as { videoPath: string }).videoPath).toBe(videoPath);
+	});
+
+	it("does not report backup recovery when the main file loads cleanly", async () => {
+		const videoPath = path.join(tempPath, "recording.mp4");
+		const projectPath = path.join(tempPath, "recording.morec");
+		await fs.writeFile(videoPath, "test-video");
+		await fs.writeFile(
+			projectPath,
+			JSON.stringify({ version: 1, videoPath, editor: {} }),
+			"utf-8",
+		);
+
+		const { loadProjectFromPath } = await import("./manager");
+
+		const result = await loadProjectFromPath(projectPath);
+		expect(result.success).toBe(true);
+		expect(result.recoveredFromBackup).toBe(false);
+	});
+
+	it("fails with the original error when neither the main file nor the backup is readable", async () => {
+		const projectPath = path.join(tempPath, "recording.morec");
+		// Parses as JSON but is not a loadable project payload, and no .bak
+		// exists: the shape failure must surface unchanged.
+		await fs.writeFile(projectPath, JSON.stringify({ foo: 1 }), "utf-8");
+
+		const { loadProjectFromPath } = await import("./manager");
+
+		const result = await loadProjectFromPath(projectPath);
+		expect(result.success).toBe(false);
+		expect(result.message).toBe("Invalid project file format");
+	});
 });
