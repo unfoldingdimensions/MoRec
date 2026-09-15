@@ -39,7 +39,7 @@ import {
 	getSystemCursorHelperSourcePath,
 	getWindowsCaptureExePath,
 } from "../paths/binaries";
-import { rememberApprovedLocalReadPath } from "../project/manager";
+	import { rememberApprovedLocalReadPath, isPathInsideDirectory } from "../project/manager";
 import { writeProjectFileAtomically } from "../project/atomicSave";
 	import {
 		getBrowserMicSidecarFilters,
@@ -1717,6 +1717,23 @@ export function registerRecordingHandlers(
 			const baseName = videoPath.replace(/\.[^.]+$/, "");
 			const sidecarPath = `${baseName}.mic.wav`;
 			const sourceWebmPath = `${baseName}.mic.source.webm`;
+			// Write confinement: the renderer supplies videoPath, so every file
+			// this handler writes (wav, temp webm, metadata json) is derived from
+			// it and must stay inside the recordings directory.
+			const recordingsDir = await getRecordingsDir();
+			const resolvedRecordingsDir = await fs
+				.realpath(recordingsDir)
+				.catch(() => path.resolve(recordingsDir));
+			if (!videoPath || !isPathInsideDirectory(path.resolve(videoPath), resolvedRecordingsDir)) {
+				console.warn(
+					"Rejected microphone sidecar store outside the recordings directory:",
+					videoPath,
+				);
+				return {
+					success: false,
+					error: "Microphone sidecars can only be stored in the recordings directory",
+				};
+			}
 			// Unique per call: two interleaved store calls for the same video must
 			// not share (and truncate) each other's input file mid-transcode.
 			const tempWebmPath = `${sourceWebmPath}.${Date.now()}-${Math.random()

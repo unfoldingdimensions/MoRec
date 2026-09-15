@@ -173,9 +173,13 @@ describe("register/recording start orchestration (win32)", () => {
 		vi.doMock("../recording/storagePath", () => ({
 			resolveRecordedVideoStoragePath: vi.fn(async (p: string) => p),
 		}));
-		vi.doMock("../project/manager", () => ({
-			rememberApprovedLocalReadPath: vi.fn(),
-		}));
+		vi.doMock("../project/manager", async (importOriginal) => {
+			const actual = await importOriginal<typeof import("../project/manager")>();
+			return {
+				...actual,
+				rememberApprovedLocalReadPath: vi.fn(),
+			};
+		});
 		// utils.getScreen() uses createRequire("electron"), which bypasses the
 		// electron module mock; override it with a plain stub instead.
 		vi.doMock("../utils", async (importOriginal) => {
@@ -405,9 +409,13 @@ describe("register/recording stop recovery (win32)", () => {
 		vi.doMock("../recording/storagePath", () => ({
 			resolveRecordedVideoStoragePath: vi.fn(async (p: string) => p),
 		}));
-		vi.doMock("../project/manager", () => ({
-			rememberApprovedLocalReadPath: vi.fn(),
-		}));
+		vi.doMock("../project/manager", async (importOriginal) => {
+			const actual = await importOriginal<typeof import("../project/manager")>();
+			return {
+				...actual,
+				rememberApprovedLocalReadPath: vi.fn(),
+			};
+		});
 		vi.doMock("../utils", async (importOriginal) => {
 			const actual = await importOriginal<typeof import("../utils")>();
 			return {
@@ -491,5 +499,15 @@ describe("register/recording stop recovery (win32)", () => {
 			message: "No recoverable native Windows recording output was found.",
 		});
 		expect(state.windowsCaptureTempPath).toBeNull();
+	});
+
+	it("rejects microphone sidecar stores outside the recordings directory", async () => {
+		await expect(
+			registry.invoke(
+				"store-microphone-sidecar",
+				new ArrayBuffer(8),
+				"C:\\elsewhere\\video.mp4",
+			),
+		).resolves.toMatchObject({ success: false });
 	});
 });
