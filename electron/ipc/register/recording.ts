@@ -41,10 +41,11 @@ import {
 } from "../paths/binaries";
 import { rememberApprovedLocalReadPath } from "../project/manager";
 import { writeProjectFileAtomically } from "../project/atomicSave";
-import {
-	getBrowserMicSidecarFilters,
-	shouldKeepRecordingAudioSidecars,
-} from "../recording/audioFilters";
+	import {
+		getBrowserMicSidecarFilters,
+		getBrowserMicSidecarTimeoutMs,
+		shouldKeepRecordingAudioSidecars,
+	} from "../recording/audioFilters";
 import {
 	getCompanionAudioFallbackInfo,
 	getFileSizeIfPresent,
@@ -1607,7 +1608,10 @@ export function registerRecordingHandlers(
 						"pcm_s16le",
 						tempSidecarPath,
 					],
-					{ timeout: 120000, maxBuffer: 10 * 1024 * 1024 },
+					{
+						timeout: getBrowserMicSidecarTimeoutMs(audioData.byteLength),
+						maxBuffer: 10 * 1024 * 1024,
+					},
 				);
 				await fs.rename(tempSidecarPath, sidecarPath);
 				if (shouldKeepRecordingAudioSidecars()) {

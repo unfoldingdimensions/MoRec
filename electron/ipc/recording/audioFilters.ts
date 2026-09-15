@@ -32,6 +32,24 @@ export function getBrowserMicSidecarFilters(profile?: string | null) {
 	return BROWSER_MIC_SIDECAR_FILTERS;
 }
 
+export const BROWSER_MIC_SIDECAR_MIN_TIMEOUT_MS = 120_000;
+export const BROWSER_MIC_SIDECAR_MAX_TIMEOUT_MS = 30 * 60_000;
+/** Extra transcode budget added per 4 MB of opus/webm source (~2 min of audio). */
+const BROWSER_MIC_SIDECAR_TIMEOUT_MS_PER_4MB = 120_000;
+
+/**
+ * Transcode budget for the browser-mic sidecar conversion. The filter chain
+ * (afftdn + speechnorm) is far from free, so a fixed 2-minute timeout killed
+ * long recordings' sidecars on slow CPUs; scale with the source size instead.
+ */
+export function getBrowserMicSidecarTimeoutMs(sourceBytes: number) {
+	const megabytes = Math.max(0, sourceBytes) / (1024 * 1024);
+	const scaled =
+		BROWSER_MIC_SIDECAR_MIN_TIMEOUT_MS +
+		Math.floor(megabytes / 4) * BROWSER_MIC_SIDECAR_TIMEOUT_MS_PER_4MB;
+	return Math.min(BROWSER_MIC_SIDECAR_MAX_TIMEOUT_MS, scaled);
+}
+
 export const RECORDING_AUDIO_SIDECAR_DEBUG_ENV = "MOREC_KEEP_RECORDING_AUDIO_SIDECARS"; // not used yet, because we need to have seperate audio files for system and mic for each recording
 
 export function shouldKeepRecordingAudioSidecars(env: NodeJS.ProcessEnv = process.env) {
