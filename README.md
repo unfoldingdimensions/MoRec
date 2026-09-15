@@ -1,6 +1,10 @@
 # Mo Rec
 
 <p align="center">
+  <img src="branding/source-assets/logo-master.png" alt="Mo Rec logo" width="120" />
+</p>
+
+<p align="center">
   <img src="https://img.shields.io/badge/open%20source-AGPL3.0-2563eb?style=for-the-badge" alt="AGPL 3.0 license" />
 </p>
 
