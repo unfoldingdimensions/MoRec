@@ -130,7 +130,8 @@ export function parseWhisperJsonCues(content: string): CaptionCuePayload[] {
 }
 
 export function parseSrtTimestamp(value: string): number | null {
-	const match = value.trim().match(/^(\d{2}):(\d{2}):(\d{2}),(\d{3})$/);
+	// Hours may be written with a single digit by other SRT generators.
+	const match = value.trim().match(/^(\d{1,3}):(\d{2}):(\d{2}),(\d{3})$/);
 	if (!match) {
 		return null;
 	}

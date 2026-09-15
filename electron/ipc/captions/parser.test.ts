@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildCaptionTextFromWords, parseWhisperJsonWords } from "./parser";
+import { buildCaptionTextFromWords, parseSrtCues, parseSrtTimestamp, parseWhisperJsonWords } from "./parser";
 
 describe("parseWhisperJsonWords", () => {
 	it("splits tokens into space-separated words with timing", () => {
@@ -50,5 +50,38 @@ describe("parseWhisperJsonWords", () => {
 	it("returns an empty list for non-array input", () => {
 		expect(parseWhisperJsonWords(null)).toEqual([]);
 		expect(parseWhisperJsonWords("nope")).toEqual([]);
+	});
+});
+
+describe("parseSrtTimestamp", () => {
+	it("accepts standard two-digit-hour timestamps", () => {
+		expect(parseSrtTimestamp("01:02:03,004")).toBe(3_723_004);
+	});
+
+	it("accepts single-digit-hour timestamps written by other tools", () => {
+		expect(parseSrtTimestamp("0:00:01,000")).toBe(1_000);
+	});
+
+	it("rejects malformed timestamps", () => {
+		expect(parseSrtTimestamp("nope")).toBeNull();
+		expect(parseSrtTimestamp("1:2:3,4")).toBeNull();
+	});
+});
+
+describe("parseSrtCues", () => {
+	it("parses blocks with single-digit hour timestamps", () => {
+		const cues = parseSrtCues(["1", "0:00:00,500 --> 0:00:02,000", "Hello there", ""].join("\n"));
+
+		expect(cues).toEqual([{ id: "caption-1", startMs: 500, endMs: 2000, text: "Hello there" }]);
+	});
+
+	it("keeps multi-line cue text", () => {
+		const cues = parseSrtCues(
+			["1", "00:00:01,000 --> 00:00:03,500", "line one", "line two", ""].join("\r\n"),
+		);
+
+		expect(cues).toEqual([
+			{ id: "caption-1", startMs: 1000, endMs: 3500, text: "line one\nline two" },
+		]);
 	});
 });
