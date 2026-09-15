@@ -2504,6 +2504,12 @@ export default function VideoEditor() {
 						currentProjectResult.path ?? null,
 					);
 					if (restored) {
+						if (currentProjectResult.recoveredFromBackup) {
+							toast.info(
+								"Project file was unreadable; recovered the last backup. Save to make it permanent.",
+								{ duration: 8000 },
+							);
+						}
 						// Re-apply user preferences so stale project data does not
 						// overwrite the last-used padding, aspect ratio, export
 						// settings, etc. that were saved to localStorage.
@@ -3318,7 +3324,14 @@ export default function VideoEditor() {
 
 			setProjectBrowserOpen(false);
 			await refreshProjectLibrary();
-			toast.success(`Project loaded from ${result.path}`);
+			if (result.recoveredFromBackup) {
+				toast.info(
+					"Project file was unreadable; recovered the last backup. Save to make it permanent.",
+					{ duration: 8000 },
+				);
+			} else {
+				toast.success(`Project loaded from ${result.path}`);
+			}
 		},
 		[applyLoadedProject, confirmReplaceSourceWithUnsavedChanges, refreshProjectLibrary],
 	);

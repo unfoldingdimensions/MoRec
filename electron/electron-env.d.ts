@@ -765,6 +765,7 @@ interface Window {
 			message?: string;
 			canceled?: boolean;
 			error?: string;
+			recoveredFromBackup?: boolean;
 		}>;
 		loadCurrentProjectFile: () => Promise<{
 			success: boolean;
@@ -773,6 +774,7 @@ interface Window {
 			message?: string;
 			canceled?: boolean;
 			error?: string;
+			recoveredFromBackup?: boolean;
 		}>;
 		getProjectsDirectory: () => Promise<{
 			success: boolean;
@@ -799,6 +801,7 @@ interface Window {
 			message?: string;
 			canceled?: boolean;
 			error?: string;
+			recoveredFromBackup?: boolean;
 		}>;
 		openProjectsDirectory: () => Promise<{
 			success: boolean;

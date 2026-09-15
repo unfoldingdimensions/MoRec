@@ -107,22 +107,33 @@ export async function moveFileWithOverwrite(sourcePath: string, destinationPath:
 	}
 }
 
+let recordingsDirectorySettingLoad: Promise<void> | null = null;
+
 async function loadRecordingsDirectorySetting() {
 	if (recordingsDirLoaded) {
 		return;
 	}
 
-	setRecordingsDirLoaded(true);
-
-	try {
-		const content = await fs.readFile(RECORDINGS_SETTINGS_FILE, "utf-8");
-		const parsed = parseJsonWithByteOrderMark<{ recordingsDir?: unknown }>(content);
-		if (typeof parsed.recordingsDir === "string" && parsed.recordingsDir.trim()) {
-			setCustomRecordingsDir(path.resolve(parsed.recordingsDir));
-		}
-	} catch {
-		setCustomRecordingsDir(null);
+	// Memoize the in-flight read so concurrent getRecordingsDir() callers
+	// early in startup wait for the settings file instead of skipping the
+	// load while it is still in flight and resolving the default directory.
+	if (!recordingsDirectorySettingLoad) {
+		recordingsDirectorySettingLoad = (async () => {
+			try {
+				const content = await fs.readFile(RECORDINGS_SETTINGS_FILE, "utf-8");
+				const parsed = parseJsonWithByteOrderMark<{ recordingsDir?: unknown }>(content);
+				if (typeof parsed.recordingsDir === "string" && parsed.recordingsDir.trim()) {
+					setCustomRecordingsDir(path.resolve(parsed.recordingsDir));
+				}
+			} catch {
+				setCustomRecordingsDir(null);
+			} finally {
+				setRecordingsDirLoaded(true);
+			}
+		})();
 	}
+
+	await recordingsDirectorySettingLoad;
 }
 
 export async function getRecordingsDir() {

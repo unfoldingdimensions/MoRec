@@ -12,6 +12,7 @@ import {
 } from "../constants";
 import { getProjectBackupPath, writeProjectFileAtomically } from "../project/atomicSave";
 import {
+	enqueueRecentProjectsUpdate,
 	getProjectsDir,
 	getProjectThumbnailPath,
 	isPathInsideDirectory,
@@ -53,8 +54,26 @@ function normalizeBoolean(value: unknown, fallback = false): boolean {
 	return typeof value === "boolean" ? value : fallback;
 }
 
+// Windows reserves these device names for files regardless of extension
+// ("NUL.morec" is not a creatable file).
+const WINDOWS_RESERVED_DEVICE_NAMES = new Set([
+	"CON",
+	"PRN",
+	"AUX",
+	"NUL",
+	...Array.from({ length: 9 }, (_, index) => `COM${index + 1}`),
+	...Array.from({ length: 9 }, (_, index) => `LPT${index + 1}`),
+]);
+
+// A long name plus the atomic writer's temp suffix can exceed MAX_PATH on
+// default Windows configurations, failing deep inside the save with an
+// opaque error.
+const MAX_PROJECT_SAVE_NAME_LENGTH = 120;
+
 /**
  * Produces a filesystem-safe project base name without the project extension.
+ * Returns null for empty, reserved, or over-long names so callers can fall
+ * back or report a clear error.
  */
 function normalizeProjectSaveName(projectName?: string | null) {
 	if (typeof projectName !== "string") {
@@ -79,7 +98,17 @@ function normalizeProjectSaveName(projectName?: string | null) {
 		.replace(/[. ]+$/g, "")
 		.trim();
 
-	return sanitizedName || null;
+	if (!sanitizedName) {
+		return null;
+	}
+	if (WINDOWS_RESERVED_DEVICE_NAMES.has(sanitizedName.toUpperCase())) {
+		return null;
+	}
+	if (sanitizedName.length > MAX_PROJECT_SAVE_NAME_LENGTH) {
+		return null;
+	}
+
+	return sanitizedName;
 }
 
 type NamedProjectSaveMode = "rename" | "copy";
@@ -187,17 +216,19 @@ async function ensureNamedProjectSaveDoesNotOverwriteDifferentProject(
 			};
 		}
 
-		if (existingVideoPath && incomingVideoPath && existingVideoPath !== incomingVideoPath) {
+		// At least one side predates projectId (legacy project files): the
+		// source video is the identity anchor. Equal video paths mean the
+		// user is re-saving their own project — requiring both sides to lack
+		// a projectId here permanently blocked named saves over every
+		// legacy project.
+		if (existingVideoPath && incomingVideoPath) {
+			if (existingVideoPath === incomingVideoPath) {
+				return { success: true };
+			}
+
 			return {
 				success: false,
 				message: "A different project already uses this name",
-			};
-		}
-
-		if (!existingProjectId && !incomingProjectId && existingVideoPath && incomingVideoPath) {
-			return {
-				success: false,
-				message: "Unable to verify project identity for the chosen name",
 			};
 		}
 
@@ -417,7 +448,10 @@ export function registerProjectHandlers() {
 				if (!normalizedProjectName) {
 					return {
 						success: false,
-						message: "Project name is required",
+						message:
+							typeof projectName === "string" && projectName.trim()
+								? "Project name is not usable on Windows (reserved device name or too long)"
+								: "Project name is required",
 					};
 				}
 
@@ -480,15 +514,17 @@ export function registerProjectHandlers() {
 						.rm(getProjectBackupPath(activeProjectPath), { force: true })
 						.catch(() => undefined);
 
-					const recentProjectPaths = await loadRecentProjectPaths();
-					const filteredRecentProjectPaths: string[] = [];
-					for (const recentProjectPath of recentProjectPaths) {
-						const recentResolvedPath = await resolveComparablePath(recentProjectPath);
-						if (recentResolvedPath !== activeResolvedPath) {
-							filteredRecentProjectPaths.push(recentProjectPath);
+					await enqueueRecentProjectsUpdate(async () => {
+						const currentRecentProjectPaths = await loadRecentProjectPaths();
+						const filteredRecentProjectPaths: string[] = [];
+						for (const recentProjectPath of currentRecentProjectPaths) {
+							const recentResolvedPath = await resolveComparablePath(recentProjectPath);
+							if (recentResolvedPath !== activeResolvedPath) {
+								filteredRecentProjectPaths.push(recentProjectPath);
+							}
 						}
-					}
-					await saveRecentProjectPaths(filteredRecentProjectPaths);
+						await saveRecentProjectPaths(filteredRecentProjectPaths);
+					});
 				}
 
 				setCurrentProjectPath(targetProjectPath);
@@ -654,9 +690,10 @@ export function registerProjectHandlers() {
 				resolvedSession.webcamPath,
 			]);
 
-			if (nextSession.webcamPath) {
-				await persistRecordingSessionManifest(nextSession);
-			}
+			// Persist unconditionally: with no webcam link this removes a stale
+			// manifest still referencing a deleted webcam file, keeping the
+			// two session channels symmetric.
+			await persistRecordingSessionManifest(nextSession);
 
 			if (!options?.preserveProjectPath) {
 				setCurrentProjectPath(null);
@@ -747,7 +784,21 @@ export function registerProjectHandlers() {
 			) {
 				return { success: false, error: "Only auto-generated recordings can be deleted" };
 			}
-			await fs.unlink(resolvedPath).catch(() => undefined);
+			try {
+				await fs.unlink(resolvedPath);
+			} catch (unlinkError) {
+				// ENOENT means the recording is already gone; continue so leftover
+				// sidecars are still cleaned up. Any other failure (EBUSY while an
+				// export or a player holds the file, EPERM from an AV scan) leaves
+				// the video in place: destroying its audio/diagnostics sidecars now
+				// would permanently orphan them, so abort and report the real error.
+				if ((unlinkError as NodeJS.ErrnoException)?.code !== "ENOENT") {
+					return {
+						success: false,
+						error: `Failed to delete recording: ${String(unlinkError)}`,
+					};
+				}
+			}
 
 			// Defensively remove associated companion sidecars (.mic.wav, .system.wav, .mic.wav.json, .system.wav.json, .diagnostics.json, -webcam.*)
 			const dir = path.dirname(resolvedPath);
@@ -776,6 +827,9 @@ export function registerProjectHandlers() {
 				".cursor.json",
 				".telemetry.json",
 				RECORDING_SESSION_MANIFEST_SUFFIX,
+				// The manifest is committed atomically, so its previous generation
+				// is preserved alongside it and must be cleaned up with the rest.
+				`${RECORDING_SESSION_MANIFEST_SUFFIX}.bak`,
 			];
 
 			await Promise.all([
@@ -801,6 +855,24 @@ export function registerProjectHandlers() {
 				);
 			} catch {
 				// Best-effort cleanup
+			}
+
+			const activeSession = currentRecordingSession;
+			if (activeSession?.webcamPath) {
+				const sessionWebcamFile = path.basename(activeSession.webcamPath);
+				const sessionWebcamBase = sessionWebcamFile.slice(
+					0,
+					sessionWebcamFile.length - path.extname(sessionWebcamFile).length,
+				);
+				if (
+					sessionWebcamBase === baseName ||
+					sessionWebcamBase.startsWith(`${baseName}-webcam`)
+				) {
+					// The deleted file was the session's linked webcam (or that
+					// recording's webcam companion): drop the dead link instead
+					// of leaving the session pointing at nothing.
+					setCurrentRecordingSession({ ...activeSession, webcamPath: null });
+				}
 			}
 
 			const currentResolved = currentVideoPath

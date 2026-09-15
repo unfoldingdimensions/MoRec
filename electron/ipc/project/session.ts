@@ -3,10 +3,25 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { RECORDING_SESSION_MANIFEST_SUFFIX } from "../constants";
 import type { RecordingSessionData, RecordingSessionManifest } from "../types";
+import { writeProjectFileAtomically } from "./atomicSave";
 import { normalizeVideoSourcePath, parseJsonWithByteOrderMark } from "../utils";
 
 function normalizeRecordingTimeOffsetMs(value: unknown): number {
 	return typeof value === "number" && Number.isFinite(value) ? Math.round(value) : 0;
+}
+
+// The manifest sits next to the video and can be written by anything that
+// can touch the folder, so only a plain filename inside the video's own
+// directory may ever be re-linked.
+function isPlainFileName(value: string): boolean {
+	return (
+		value.length > 0 &&
+		value !== "." &&
+		value !== ".." &&
+		!value.includes("/") &&
+		!value.includes("\\") &&
+		path.basename(value) === value
+	);
 }
 
 export function getRecordingSessionManifestPath(videoPath: string) {
@@ -32,13 +47,17 @@ export async function persistRecordingSessionManifest(
 	}
 
 	const manifest: RecordingSessionManifest = {
-		version: 2,
+		version: 3,
 		videoFileName: path.basename(normalizedVideoPath),
 		webcamFileName: path.basename(normalizedWebcamPath),
 		timeOffsetMs: normalizeRecordingTimeOffsetMs(session.timeOffsetMs),
+		hideOverlayCursorByDefault: session.hideOverlayCursorByDefault === true,
 	};
 
-	await fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2), "utf-8");
+	// The manifest is the only durable record of the webcam link and its sync
+	// offset, and it is most likely to be mid-write during the exact crash it
+	// exists to survive — commit it through the temp+rename writer.
+	await writeProjectFileAtomically(manifestPath, JSON.stringify(manifest, null, 2));
 }
 
 export async function resolveRecordingSessionManifest(
@@ -54,7 +73,7 @@ export async function resolveRecordingSessionManifest(
 	try {
 		const content = await fs.readFile(manifestPath, "utf-8");
 		const parsed = parseJsonWithByteOrderMark<Partial<RecordingSessionManifest>>(content);
-		if (parsed.version !== 1 && parsed.version !== 2) {
+		if (parsed.version !== 1 && parsed.version !== 2 && parsed.version !== 3) {
 			return null;
 		}
 
@@ -63,11 +82,23 @@ export async function resolveRecordingSessionManifest(
 				? parsed.webcamFileName.trim()
 				: null;
 
+		if (webcamFileName && !isPlainFileName(webcamFileName)) {
+			// A traversal or absolute path in the manifest must not become a
+			// read-approved webcam link; keep the offset but drop the link.
+			return {
+				videoPath: normalizedVideoPath,
+				webcamPath: null,
+				timeOffsetMs: normalizeRecordingTimeOffsetMs(parsed.timeOffsetMs),
+				hideOverlayCursorByDefault: parsed.hideOverlayCursorByDefault === true,
+			};
+		}
+
 		if (!webcamFileName) {
 			return {
 				videoPath: normalizedVideoPath,
 				webcamPath: null,
 				timeOffsetMs: normalizeRecordingTimeOffsetMs(parsed.timeOffsetMs),
+				hideOverlayCursorByDefault: parsed.hideOverlayCursorByDefault === true,
 			};
 		}
 
@@ -81,6 +112,7 @@ export async function resolveRecordingSessionManifest(
 			videoPath: normalizedVideoPath,
 			webcamPath: webcamExists ? webcamPath : null,
 			timeOffsetMs: normalizeRecordingTimeOffsetMs(parsed.timeOffsetMs),
+			hideOverlayCursorByDefault: parsed.hideOverlayCursorByDefault === true,
 		};
 	} catch {
 		return null;

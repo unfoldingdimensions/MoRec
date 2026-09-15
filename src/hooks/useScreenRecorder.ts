@@ -1109,7 +1109,15 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 						// it will never be part of a finalized session.
 						void window.electronAPI.deleteRecordingFile(result.path);
 					}
-					webcamStopResolver.current?.(result.success ? (result.path ?? null) : null);
+					if (result.success && result.path && webcamDiscardRequested.current) {
+						// Cancel raced the store: the file was already being written
+						// when discard was requested, so no session will ever
+						// reference it — drop the orphaned webcam file.
+						void window.electronAPI.deleteRecordingFile(result.path);
+						webcamStopResolver.current?.(null);
+					} else {
+						webcamStopResolver.current?.(result.success ? (result.path ?? null) : null);
+					}
 				} catch (error) {
 					console.error("Error saving webcam recording:", error);
 					webcamStopResolver.current?.(null);

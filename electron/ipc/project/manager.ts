@@ -4,6 +4,7 @@ import path from "node:path";
 import { app } from "electron";
 import { RECORDINGS_DIR, USER_DATA_PATH } from "../../appPaths";
 import { isSupportedLocalMediaPath } from "../../mediaTypes";
+import { getProjectBackupPath, writeProjectFileAtomically } from "./atomicSave";
 import {
 	LEGACY_PROJECT_FILE_EXTENSIONS,
 	MAX_RECENT_PROJECTS,
@@ -238,19 +239,50 @@ export async function resolveProjectMediaSources(
 	}
 }
 
+const STALE_ATOMIC_TEMP_FILE_AGE_MS = 60 * 60 * 1000;
+// Matches the temp names createTemporaryPath generates for project and
+// backup generations.
+const ATOMIC_TEMP_FILE_PATTERN = /^\.morec-(?:project|backup)-\d+-[0-9a-f-]{36}\.tmp$/;
+
+// The atomic writer cleans its temp files in a finally block; a hard crash
+// between the write and the rename strands them. Sweep on Projects-directory
+// access — the age guard protects any concurrent writer in dev (production
+// enforces a single instance).
+async function sweepStaleAtomicTempFiles(directory: string) {
+	let entries: string[];
+	try {
+		entries = await fs.readdir(directory);
+	} catch {
+		return;
+	}
+
+	const staleBefore = Date.now() - STALE_ATOMIC_TEMP_FILE_AGE_MS;
+	await Promise.all(
+		entries
+			.filter((entry) => ATOMIC_TEMP_FILE_PATTERN.test(entry))
+			.map(async (entry) => {
+				const entryPath = path.join(directory, entry);
+				const stats = await fs.stat(entryPath).catch(() => null);
+				if (stats?.isFile() && stats.mtimeMs < staleBefore) {
+					await fs.rm(entryPath, { force: true }).catch(() => undefined);
+				}
+			}),
+	);
+}
+
 export async function getProjectsDir() {
 	const projectsDir = path.join(await getRecordingsDir(), PROJECTS_DIRECTORY_NAME);
 	await fs.mkdir(projectsDir, { recursive: true });
+	await sweepStaleAtomicTempFiles(projectsDir);
 	return projectsDir;
 }
 
 export async function persistRecordingsDirectorySetting(nextDir: string) {
 	setCustomRecordingsDir(path.resolve(nextDir));
 	setRecordingsDirLoaded(true);
-	await fs.writeFile(
+	await writeProjectFileAtomically(
 		RECORDINGS_SETTINGS_FILE,
 		JSON.stringify({ recordingsDir: path.resolve(nextDir) }, null, 2),
-		"utf-8",
 	);
 }
 
@@ -298,15 +330,29 @@ export async function loadRecentProjectPaths() {
 	}
 }
 
+// Recents are read-modify-written from several IPC handlers (remember on
+// save/load, the library listing, and rename-mode cleanup). Serialize the
+// whole read-modify-write sequence through one queue so concurrent callers
+// cannot drop each other's entries by writing from a stale snapshot.
+let recentProjectsUpdate: Promise<unknown> = Promise.resolve();
+
+export function enqueueRecentProjectsUpdate<T>(update: () => Promise<T>): Promise<T> {
+	const run = recentProjectsUpdate.then(update, update);
+	recentProjectsUpdate = run.then(
+		() => undefined,
+		() => undefined,
+	);
+	return run;
+}
+
 export async function saveRecentProjectPaths(paths: string[]) {
 	const normalizedPaths = Array.from(new Set(paths.map((value) => normalizePath(value)))).slice(
 		0,
 		MAX_RECENT_PROJECTS,
 	);
-	await fs.writeFile(
+	await writeProjectFileAtomically(
 		RECENT_PROJECTS_FILE,
 		JSON.stringify({ paths: normalizedPaths }, null, 2),
-		"utf-8",
 	);
 }
 
@@ -315,8 +361,10 @@ export async function rememberRecentProject(projectPath: string) {
 		return;
 	}
 
-	const existingPaths = await loadRecentProjectPaths();
-	await saveRecentProjectPaths([projectPath, ...existingPaths]);
+	await enqueueRecentProjectsUpdate(async () => {
+		const existingPaths = await loadRecentProjectPaths();
+		await saveRecentProjectPaths([projectPath, ...existingPaths]);
+	});
 }
 
 export async function buildProjectLibraryEntry(
@@ -396,11 +444,12 @@ export async function listProjectLibraryEntries() {
 		.sort((left, right) => right.updatedAt - left.updatedAt);
 
 	// Listing the library must not prune recents that are temporarily
-	// unreadable (e.g. on an unmounted drive): keep every known recent path,
-	// with resolved entries first, instead of overwriting with only the
-	// currently readable subset.
-	await saveRecentProjectPaths(
-		Array.from(new Set([...entries.map((entry) => entry.path), ...recentProjectPaths])),
+	// unreadable (e.g. on an unmounted drive), and the recents cap must not
+	// evict user-opened projects just because the Projects directory scan
+	// found many files: keep the user's recents list first in its own MRU
+	// order, then append scan entries the recents do not already know.
+	await enqueueRecentProjectsUpdate(() =>
+		saveRecentProjectPaths([...recentProjectPaths, ...entries.map((entry) => entry.path)]),
 	);
 
 	return {
@@ -432,25 +481,51 @@ function isLoadableProjectData(projectData: unknown) {
 	);
 }
 
+// The atomic writer preserves the previous generation as <path>.morec.bak;
+// when the main file is unreadable or damaged, recover it instead of failing
+// while a complete copy sits in the same directory.
+async function loadProjectBackup(
+	projectPath: string,
+): Promise<{ project: unknown } | null> {
+	try {
+		const content = await fs.readFile(getProjectBackupPath(projectPath), "utf-8");
+		const project = parseJsonWithByteOrderMark(content);
+		return isLoadableProjectData(project) ? { project } : null;
+	} catch {
+		return null;
+	}
+}
+
 export async function loadProjectFromPath(projectPath: string) {
 	const normalizedPath = normalizePath(projectPath);
 	let project: unknown;
+	let recoveredFromBackup = false;
 	try {
 		const content = await fs.readFile(normalizedPath, "utf-8");
 		project = parseJsonWithByteOrderMark(content);
 	} catch (error) {
-		return {
-			success: false,
-			canceled: false,
-			message: `Failed to read project file: ${error instanceof Error ? error.message : String(error)}`,
-		};
+		const backup = await loadProjectBackup(normalizedPath);
+		if (!backup) {
+			return {
+				success: false,
+				canceled: false,
+				message: `Failed to read project file: ${error instanceof Error ? error.message : String(error)}`,
+			};
+		}
+		project = backup.project;
+		recoveredFromBackup = true;
 	}
 	if (!isLoadableProjectData(project)) {
-		return {
-			success: false,
-			canceled: false,
-			message: "Invalid project file format",
-		};
+		const backup = await loadProjectBackup(normalizedPath);
+		if (!backup) {
+			return {
+				success: false,
+				canceled: false,
+				message: "Invalid project file format",
+			};
+		}
+		project = backup.project;
+		recoveredFromBackup = true;
 	}
 	const mediaSources = await resolveProjectMediaSources(project);
 
@@ -498,6 +573,7 @@ export async function loadProjectFromPath(projectPath: string) {
 		success: true,
 		path: normalizedPath,
 		project,
+		recoveredFromBackup,
 	};
 }
 

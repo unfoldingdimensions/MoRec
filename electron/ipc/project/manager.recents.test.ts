@@ -126,6 +126,52 @@ describe("project manager recents + library listing", () => {
 		]);
 	});
 
+	it("keeps every entry when concurrent remembers race", async () => {
+		const { rememberRecentProject, loadRecentProjectPaths } = await import("./manager");
+
+		// The read-modify-write queue serializes these; without it, all three
+		// read the empty store before any write lands and only the last wins.
+		await Promise.all([
+			rememberRecentProject("/disks/race-1.morec"),
+			rememberRecentProject("/disks/race-2.morec"),
+			rememberRecentProject("/disks/race-3.morec"),
+		]);
+
+		const paths = await loadRecentProjectPaths();
+		expect(paths).toHaveLength(3);
+		expect(paths).toEqual([
+			await normalized("/disks/race-3.morec"),
+			await normalized("/disks/race-2.morec"),
+			await normalized("/disks/race-1.morec"),
+		]);
+	});
+
+	it("sweeps stale atomic temp files from the Projects directory", async () => {
+		const { getProjectsDir } = await import("./manager");
+		const projectsDir = await getProjectsDir();
+
+		const staleTmp = path.join(
+			projectsDir,
+			".morec-project-4242-3f2504e0-4f89-11d3-9a0c-0305e82c3301.tmp",
+		);
+		const freshTmp = path.join(
+			projectsDir,
+			".morec-backup-4242-6ec0bd7f-11c0-43da-975e-2a8ad9ebae0b.tmp",
+		);
+		const unrelatedTmp = path.join(projectsDir, "leftover.tmp");
+		await fs.writeFile(staleTmp, "orphan");
+		await fs.writeFile(freshTmp, "live");
+		await fs.writeFile(unrelatedTmp, "other");
+		const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+		await fs.utimes(staleTmp, twoHoursAgo, twoHoursAgo);
+
+		await getProjectsDir();
+
+		await expect(fs.access(staleTmp)).rejects.toMatchObject({ code: "ENOENT" });
+		await expect(fs.readFile(freshTmp, "utf-8")).resolves.toBe("live");
+		await expect(fs.readFile(unrelatedTmp, "utf-8")).resolves.toBe("other");
+	});
+
 	it("listing includes scanned Projects-directory files and recents", async () => {
 		const { listProjectLibraryEntries } = await import("./manager");
 
@@ -156,7 +202,7 @@ describe("project manager recents + library listing", () => {
 
 		await fs.mkdir(path.join(files.recordings, "Projects"), { recursive: true });
 		// A recent on an "unmounted drive" (does not exist right now) plus one
-		// that resolves; listing must keep both.
+		// that resolves; listing must keep both, in the recents' own order.
 		const missing = path.join(tempRoot, "unmounted", "lost.morec");
 		const existing = path.join(tempRoot, "kept.morec");
 		await fs.writeFile(existing, "{}", "utf-8");
@@ -167,6 +213,42 @@ describe("project manager recents + library listing", () => {
 		};
 
 		expect(entries.map((entry) => entry.path)).toEqual([existing]);
-		expect(await readRecents()).toEqual([existing, missing]);
+		expect(await readRecents()).toEqual([missing, existing]);
+	});
+
+	it("listing keeps user recents ahead of directory scan entries under the cap", async () => {
+		const { listProjectLibraryEntries, loadRecentProjectPaths } = await import("./manager");
+
+		await fs.mkdir(path.join(files.recordings, "Projects"), { recursive: true });
+		// MAX_RECENT_PROJECTS is mocked to 3. With more Projects-directory
+		// files than remaining slots, scan entries fill only what is left and
+		// the oldest scan entry is dropped — never the user's own recents.
+		const oldDir = path.join(files.recordings, "Projects", "old.morec");
+		const midDir = path.join(files.recordings, "Projects", "mid.morec");
+		const newDir = path.join(files.recordings, "Projects", "new.morec");
+		const external = path.join(tempRoot, "external.morec");
+		const ageMsByName: Array<[string, number]> = [
+			[oldDir, 60_000],
+			[midDir, 30_000],
+			[newDir, 10_000],
+		];
+		for (const [projectPath, ageMs] of ageMsByName) {
+			const updatedAt = new Date(Date.now() - ageMs);
+			await fs.writeFile(projectPath, "{}", "utf-8");
+			await fs.utimes(projectPath, updatedAt, updatedAt);
+		}
+		await fs.writeFile(external, "{}", "utf-8");
+		await writeRecents([external]);
+
+		await listProjectLibraryEntries();
+
+		const saved = await readRecents();
+		expect(await loadRecentProjectPaths()).toEqual(saved);
+		expect(saved).toHaveLength(3);
+		expect(saved[0]).toBe(await normalized(external));
+		expect(saved.slice(1).sort()).toEqual(
+			[await normalized(midDir), await normalized(newDir)].sort(),
+		);
+		expect(saved).not.toContain(await normalized(oldDir));
 	});
 });

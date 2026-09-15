@@ -5,6 +5,8 @@ import path from "node:path";
 
 const pendingWrites = new Map<string, Promise<void>>();
 
+type AtomicFileContents = string | Uint8Array;
+
 const unsupportedDirectorySyncErrors = new Set([
 	"EACCES",
 	"EINVAL",
@@ -41,12 +43,16 @@ async function getExistingFileMode(filePath: string): Promise<number | undefined
 
 async function writeSyncedTemporaryFile(
 	filePath: string,
-	contents: string,
+	contents: AtomicFileContents,
 	mode?: number,
 ): Promise<void> {
 	const handle = await fs.open(filePath, "wx", mode);
 	try {
-		await handle.writeFile(contents, "utf-8");
+		if (typeof contents === "string") {
+			await handle.writeFile(contents, "utf-8");
+		} else {
+			await handle.writeFile(contents);
+		}
 		if (mode !== undefined) {
 			await handle.chmod(mode);
 		}
@@ -104,7 +110,7 @@ async function preservePreviousGeneration(
 	await fs.rename(backupTemporaryPath, backupPath);
 }
 
-async function commitProjectFile(projectPath: string, contents: string): Promise<void> {
+async function commitProjectFile(projectPath: string, contents: AtomicFileContents): Promise<void> {
 	const targetPath = path.resolve(projectPath);
 	const parentDir = path.dirname(targetPath);
 	const backupPath = getProjectBackupPath(targetPath);
@@ -127,7 +133,7 @@ async function commitProjectFile(projectPath: string, contents: string): Promise
 
 export async function writeProjectFileAtomically(
 	projectPath: string,
-	contents: string,
+	contents: AtomicFileContents,
 ): Promise<void> {
 	const queueKey = getQueueKey(projectPath);
 	const previousWrite = pendingWrites.get(queueKey) ?? Promise.resolve();

@@ -40,6 +40,7 @@ import {
 	getWindowsCaptureExePath,
 } from "../paths/binaries";
 import { rememberApprovedLocalReadPath } from "../project/manager";
+import { writeProjectFileAtomically } from "../project/atomicSave";
 import {
 	getBrowserMicSidecarFilters,
 	shouldKeepRecordingAudioSidecars,
@@ -1704,9 +1705,11 @@ export function registerRecordingHandlers(
 
 	ipcMain.handle("store-recorded-video", async (_, videoData: ArrayBuffer, fileName: unknown) => {
 		try {
-			const recordingsDir = await getRecordingsDir();
-			const videoPath = resolveRecordedVideoStoragePath(recordingsDir, fileName);
-			await fs.writeFile(videoPath, Buffer.from(videoData));
+		const recordingsDir = await getRecordingsDir();
+		const videoPath = resolveRecordedVideoStoragePath(recordingsDir, fileName);
+		// A crash mid-store must not leave a torn recording that the recovery
+		// scan then has to skip: commit through the temp+rename writer.
+		await writeProjectFileAtomically(videoPath, Buffer.from(videoData));
 			return await finalizeStoredVideo(videoPath);
 		} catch (error) {
 			console.error("Failed to store video:", error);

@@ -192,6 +192,203 @@ describe("delete-recording-file IPC handler", () => {
 		}
 	});
 
+	it("aborts sidecar cleanup and reports failure when the main file cannot be deleted", async () => {
+		const deleteHandler = ipcHandlers.get("delete-recording-file")!;
+		const baseName = "recording-locked-take";
+		// A non-empty directory at the video path makes fs.unlink fail with a
+		// non-ENOENT code (EPERM), standing in for a file locked by an export
+		// or an external process.
+		const lockedMain = path.join(testRecordingsDir, `${baseName}.mp4`);
+		await fs.mkdir(lockedMain);
+		await fs.writeFile(path.join(lockedMain, "chunk.mp4"), "video");
+
+		const sidecars = [
+			`${baseName}.mic.wav`,
+			`${baseName}.diagnostics.json`,
+			`${baseName}.morec-session.json`,
+			`${baseName}-webcam.webm`,
+		];
+		for (const file of sidecars) {
+			await fs.writeFile(path.join(testRecordingsDir, file), "sidecar content");
+		}
+
+		const result = (await deleteHandler(null, lockedMain)) as {
+			success: boolean;
+			error?: string;
+		};
+
+		expect(result.success).toBe(false);
+		expect(result.error).toContain("Failed to delete recording");
+
+		// The locked main file and every sidecar must survive: deleting the
+		// sidecars would permanently orphan the audio of a recording that
+		// still exists.
+		const stat = await fs.stat(lockedMain);
+		expect(stat.isDirectory()).toBe(true);
+		for (const file of sidecars) {
+			await expect(fs.access(path.join(testRecordingsDir, file))).resolves.toBeUndefined();
+		}
+	});
+
+	it("still cleans up sidecars when the main file is already gone", async () => {
+		const deleteHandler = ipcHandlers.get("delete-recording-file")!;
+		const baseName = "recording-already-deleted";
+		const sidecars = [
+			`${baseName}.mic.wav`,
+			`${baseName}.morec-session.json`,
+			`${baseName}-webcam.webm`,
+		];
+		for (const file of sidecars) {
+			await fs.writeFile(path.join(testRecordingsDir, file), "sidecar content");
+		}
+
+		const missingMain = path.join(testRecordingsDir, `${baseName}.mp4`);
+		const result = await deleteHandler(null, missingMain);
+		expect(result).toEqual({ success: true });
+
+		for (const file of sidecars) {
+			await expect(fs.access(path.join(testRecordingsDir, file))).rejects.toThrow();
+		}
+	});
+
+	it("allows named save over a legacy project (no projectId) with the same source video", async () => {
+		const namedSaveHandler = ipcHandlers.get("save-project-file-named")!;
+		const videoPath = path.join(testRecordingsDir, "recording-legacy-source.mp4");
+		await fs.writeFile(videoPath, "video");
+
+		const targetProjectPath = path.join(testRecordingsDir, "Projects", "Legacy Take.morec");
+		await fs.mkdir(path.dirname(targetProjectPath), { recursive: true });
+		await fs.writeFile(
+			targetProjectPath,
+			JSON.stringify({ version: 1, videoPath, editor: {} }),
+			"utf-8",
+		);
+
+		const result = (await namedSaveHandler(
+			null,
+			{ version: 1, projectId: "incoming-project", videoPath, editor: {} },
+			"Legacy Take",
+			null,
+			"copy",
+		)) as { success: boolean; message?: string };
+
+		expect(result.success).toBe(true);
+		const saved = JSON.parse(await fs.readFile(targetProjectPath, "utf-8"));
+		expect(typeof saved.projectId).toBe("string");
+		expect(saved.videoPath).toBe(videoPath);
+	});
+
+	it("refuses the name when the existing project uses a different source video", async () => {
+		const namedSaveHandler = ipcHandlers.get("save-project-file-named")!;
+		const existingVideoPath = path.join(testRecordingsDir, "recording-existing.mp4");
+		const incomingVideoPath = path.join(testRecordingsDir, "recording-incoming.mp4");
+		await fs.writeFile(existingVideoPath, "video-a");
+		await fs.writeFile(incomingVideoPath, "video-b");
+
+		const targetProjectPath = path.join(testRecordingsDir, "Projects", "Clash.morec");
+		await fs.mkdir(path.dirname(targetProjectPath), { recursive: true });
+		const existingContent = JSON.stringify({ version: 1, videoPath: existingVideoPath, editor: {} });
+		await fs.writeFile(targetProjectPath, existingContent, "utf-8");
+
+		const result = (await namedSaveHandler(
+			null,
+			{ version: 1, projectId: "incoming-project", videoPath: incomingVideoPath, editor: {} },
+			"Clash",
+			null,
+			"copy",
+		)) as { success: boolean; message?: string };
+
+		expect(result.success).toBe(false);
+		expect(result.message).toBe("A different project already uses this name");
+		expect(await fs.readFile(targetProjectPath, "utf8")).toBe(existingContent);
+	});
+
+	it("removes a stale webcam manifest when set-current-video-path has no webcam link", async () => {
+		const handler = ipcHandlers.get("set-current-video-path")!;
+		const videoPath = path.join(testRecordingsDir, "recording-unlink.mp4");
+		await fs.writeFile(videoPath, "video");
+		const webcamPath = path.join(testRecordingsDir, "recording-unlink-webcam.webm");
+		await fs.writeFile(webcamPath, "webcam");
+		const manifestPath = path.join(testRecordingsDir, "recording-unlink.morec-session.json");
+		await fs.writeFile(
+			manifestPath,
+			JSON.stringify({
+				version: 2,
+				videoFileName: "recording-unlink.mp4",
+				webcamFileName: "recording-unlink-webcam.webm",
+				timeOffsetMs: 0,
+			}),
+			"utf-8",
+		);
+
+		// The webcam file is already gone: resolving the session yields no
+		// webcam link, and persisting must clean up the manifest that still
+		// references it.
+		await fs.rm(webcamPath);
+
+		const result = (await handler(null, videoPath)) as { success: boolean };
+		expect(result.success).toBe(true);
+		await expect(fs.access(manifestPath)).rejects.toMatchObject({ code: "ENOENT" });
+	});
+
+	it("rejects reserved Windows device names as project names", async () => {
+		const namedSaveHandler = ipcHandlers.get("save-project-file-named")!;
+
+		for (const reservedName of ["NUL", "con", "COM1", "lpt3"]) {
+			const result = (await namedSaveHandler(
+				null,
+				{ version: 1, videoPath: path.join(testRecordingsDir, "recording-x.mp4"), editor: {} },
+				reservedName,
+				null,
+				"copy",
+			)) as { success: boolean; message?: string };
+
+			expect(result.success, `reserved name: ${reservedName}`).toBe(false);
+			expect(result.message).toContain("not usable on Windows");
+		}
+	});
+
+	it("rejects over-long project names instead of failing deep in the save", async () => {
+		const namedSaveHandler = ipcHandlers.get("save-project-file-named")!;
+
+		const result = (await namedSaveHandler(
+			null,
+			{ version: 1, videoPath: path.join(testRecordingsDir, "recording-x.mp4"), editor: {} },
+			"A".repeat(121),
+			null,
+			"copy",
+		)) as { success: boolean; message?: string };
+
+		expect(result.success).toBe(false);
+		expect(result.message).toContain("not usable on Windows");
+	});
+
+	it("clears the session's webcam link when the linked webcam file is deleted", async () => {
+		const deleteHandler = ipcHandlers.get("delete-recording-file")!;
+		const mainVideo = path.join(testRecordingsDir, "recording-x.mp4");
+		const webcamFile = path.join(testRecordingsDir, "recording-x-webcam.webm");
+		await fs.writeFile(mainVideo, "video");
+		await fs.writeFile(webcamFile, "webcam");
+
+		mockCurrentVideoPath = mainVideo;
+		mockCurrentRecordingSession = {
+			videoPath: mainVideo,
+			webcamPath: webcamFile,
+			timeOffsetMs: 30,
+		};
+
+		const result = await deleteHandler(null, webcamFile);
+		expect(result).toEqual({ success: true });
+
+		// The main video stays active, but the dead webcam link is dropped.
+		expect(mockCurrentVideoPath).toBe(mainVideo);
+		expect(mockCurrentRecordingSession).toMatchObject({
+			videoPath: mainVideo,
+			webcamPath: null,
+			timeOffsetMs: 30,
+		});
+	});
+
 	it("clears currentVideoPath and currentRecordingSession if the deleted video was active", async () => {
 		const deleteHandler = ipcHandlers.get("delete-recording-file")!;
 		const mainVideo = path.join(testRecordingsDir, "recording-active.mp4");
