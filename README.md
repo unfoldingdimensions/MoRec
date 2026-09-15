@@ -8,11 +8,17 @@
 ### Create polished demo videos in minutes
 **Mo Rec** is an **open-source screen recorder** and video editor for **walkthroughs, demos, product videos**, and tutorials.
 
+<p align="center">
+  <img src="docs/media/demo.gif" alt="Mo Rec in action" width="600" />
+</p>
+
 ---
 
 ## What is Mo Rec?
 
 Mo Rec is a desktop app for recording and editing screen captures with motion-driven presentation tools built in. Instead of sending raw footage to a motion designer just to add zooms, cursor polish, or a styled background, Mo Rec handles that workflow in one place.
+
+MoRec continues the Recordly project; legacy `.recordly` project files remain fully supported.
 
 Mo Rec runs on:
 - **macOS** 14.0+
@@ -26,11 +32,17 @@ Mo Rec runs on:
 ### Auto-zooms, cursor polish, and styled frames
 Mo Rec can automatically emphasize activity with zoom suggestions, smooth cursor movement, add motion effects, and place the final composition inside a styled frame with wallpapers, colors, gradients, blur, padding, and shadows.
 
+![Auto-zooms and styled frames](docs/media/feature1.gif)
+
 ### Dynamic webcam bubble overlays
 Add webcam footage as an overlay bubble, position it with presets or custom coordinates, mirror it, control shadow and roundness, and optionally make it react to zoom so it stays visually balanced during motion.
 
+![Webcam bubble overlay](docs/media/feature2.gif)
+
 ### Timeline editing built for demos
 Use drag-and-drop timeline tools for zooms, trims, speed regions, annotations, extra audio regions, and crop-aware edits. Save and reopen work as `.morec` project files.
+
+![Timeline editing](docs/media/feature3.png)
 
 ### Extensions & Customization
 Mo Rec features an extension architecture supporting custom frames, wallpapers, themes, and render hooks.
@@ -65,13 +77,24 @@ Mo Rec features an extension architecture supporting custom frames, wallpapers, 
 - Click effects (ripple, spotlight, echo)
 - Click bounce and cursor sway
 
+<p align="center">
+  <img src="docs/media/CursorLoop.gif" alt="Cursor click loop effect" width="420" />
+  <img src="docs/media/CursorSwayDemo.gif" alt="Cursor sway motion" width="420" />
+</p>
+
 ---
 
 ## Development
 
+### Prerequisites
+- **Node.js 22** (the version used in CI)
+- **npm** (ships with Node.js)
+- **Git**
+
+### Setup
 ```bash
-# Install dependencies
-npm install
+# Install dependencies from the lockfile
+npm ci
 
 # Run the dev server
 npm run dev
@@ -79,6 +102,13 @@ npm run dev
 # Run tests
 npm test
 ```
+
+Packaging and publishing releases are covered in [RELEASING.md](RELEASING.md).
+
+## Project Documentation
+- [CONTRIBUTING.md](CONTRIBUTING.md) — how to fork, test, and open pull requests
+- [EXTENSIONS.md](EXTENSIONS.md) — building custom frames, wallpapers, themes, and render hooks
+- [RELEASING.md](RELEASING.md) — tagging, packaging, and publishing releases
 
 ## License
 Mo Rec is licensed under the **AGPL 3.0**.
