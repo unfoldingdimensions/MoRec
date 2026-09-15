@@ -747,7 +747,21 @@ export function registerProjectHandlers() {
 			) {
 				return { success: false, error: "Only auto-generated recordings can be deleted" };
 			}
-			await fs.unlink(resolvedPath).catch(() => undefined);
+			try {
+				await fs.unlink(resolvedPath);
+			} catch (unlinkError) {
+				// ENOENT means the recording is already gone; continue so leftover
+				// sidecars are still cleaned up. Any other failure (EBUSY while an
+				// export or a player holds the file, EPERM from an AV scan) leaves
+				// the video in place: destroying its audio/diagnostics sidecars now
+				// would permanently orphan them, so abort and report the real error.
+				if ((unlinkError as NodeJS.ErrnoException)?.code !== "ENOENT") {
+					return {
+						success: false,
+						error: `Failed to delete recording: ${String(unlinkError)}`,
+					};
+				}
+			}
 
 			// Defensively remove associated companion sidecars (.mic.wav, .system.wav, .mic.wav.json, .system.wav.json, .diagnostics.json, -webcam.*)
 			const dir = path.dirname(resolvedPath);

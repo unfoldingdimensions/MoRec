@@ -192,6 +192,65 @@ describe("delete-recording-file IPC handler", () => {
 		}
 	});
 
+	it("aborts sidecar cleanup and reports failure when the main file cannot be deleted", async () => {
+		const deleteHandler = ipcHandlers.get("delete-recording-file")!;
+		const baseName = "recording-locked-take";
+		// A non-empty directory at the video path makes fs.unlink fail with a
+		// non-ENOENT code (EPERM), standing in for a file locked by an export
+		// or an external process.
+		const lockedMain = path.join(testRecordingsDir, `${baseName}.mp4`);
+		await fs.mkdir(lockedMain);
+		await fs.writeFile(path.join(lockedMain, "chunk.mp4"), "video");
+
+		const sidecars = [
+			`${baseName}.mic.wav`,
+			`${baseName}.diagnostics.json`,
+			`${baseName}.morec-session.json`,
+			`${baseName}-webcam.webm`,
+		];
+		for (const file of sidecars) {
+			await fs.writeFile(path.join(testRecordingsDir, file), "sidecar content");
+		}
+
+		const result = (await deleteHandler(null, lockedMain)) as {
+			success: boolean;
+			error?: string;
+		};
+
+		expect(result.success).toBe(false);
+		expect(result.error).toContain("Failed to delete recording");
+
+		// The locked main file and every sidecar must survive: deleting the
+		// sidecars would permanently orphan the audio of a recording that
+		// still exists.
+		const stat = await fs.stat(lockedMain);
+		expect(stat.isDirectory()).toBe(true);
+		for (const file of sidecars) {
+			await expect(fs.access(path.join(testRecordingsDir, file))).resolves.toBeUndefined();
+		}
+	});
+
+	it("still cleans up sidecars when the main file is already gone", async () => {
+		const deleteHandler = ipcHandlers.get("delete-recording-file")!;
+		const baseName = "recording-already-deleted";
+		const sidecars = [
+			`${baseName}.mic.wav`,
+			`${baseName}.morec-session.json`,
+			`${baseName}-webcam.webm`,
+		];
+		for (const file of sidecars) {
+			await fs.writeFile(path.join(testRecordingsDir, file), "sidecar content");
+		}
+
+		const missingMain = path.join(testRecordingsDir, `${baseName}.mp4`);
+		const result = await deleteHandler(null, missingMain);
+		expect(result).toEqual({ success: true });
+
+		for (const file of sidecars) {
+			await expect(fs.access(path.join(testRecordingsDir, file))).rejects.toThrow();
+		}
+	});
+
 	it("clears currentVideoPath and currentRecordingSession if the deleted video was active", async () => {
 		const deleteHandler = ipcHandlers.get("delete-recording-file")!;
 		const mainVideo = path.join(testRecordingsDir, "recording-active.mp4");
