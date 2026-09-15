@@ -55,9 +55,13 @@ describe("media server path policy", () => {
 
 		const { isAllowedMediaPath } = await import("./mediaServer");
 		const { rememberApprovedLocalReadPath } = await import("./ipc/project/manager");
+		const { approveUserPath } = await import("./ipc/utils");
 
 		expect(isAllowedMediaPath(videoPath)).toBe(false);
 
+		// Pickers approve the picked lexical spelling once; the session
+		// approval admits its realpath variant alongside it.
+		approveUserPath(videoPath);
 		await rememberApprovedLocalReadPath(videoPath);
 
 		expect(isAllowedMediaPath(videoPath)).toBe(true);

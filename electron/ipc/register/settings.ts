@@ -248,6 +248,12 @@ export function registerSettingsHandlers() {
 		return getBrowserMicrophoneProfileFromEnv();
 	});
 
+	// Only whitelisted preference keys (typed strictly below) may ever come
+	// from the renderer. The same settings file also stores the recordings
+	// directory that getRecordingsDir() trusts (it seeds the local-read
+	// allowlist prefix), so a raw renderer object must never be merged in:
+	// recordingsDir is set exclusively through the main-process directory
+	// picker.
 	ipcMain.handle(
 		"set-recording-preferences",
 		async (
@@ -261,6 +267,23 @@ export function registerSettingsHandlers() {
 			},
 		) => {
 			try {
+				const sanitized: Record<string, unknown> = {};
+				if (typeof prefs?.microphoneEnabled === "boolean") {
+					sanitized.microphoneEnabled = prefs.microphoneEnabled;
+				}
+				if (typeof prefs?.microphoneDeviceId === "string") {
+					sanitized.microphoneDeviceId = prefs.microphoneDeviceId;
+				}
+				if (typeof prefs?.systemAudioEnabled === "boolean") {
+					sanitized.systemAudioEnabled = prefs.systemAudioEnabled;
+				}
+				if (typeof prefs?.webcamEnabled === "boolean") {
+					sanitized.webcamEnabled = prefs.webcamEnabled;
+				}
+				if (typeof prefs?.webcamDeviceId === "string") {
+					sanitized.webcamDeviceId = prefs.webcamDeviceId;
+				}
+
 				let existing: Record<string, unknown> = {};
 				try {
 					const content = await fs.readFile(RECORDINGS_SETTINGS_FILE, "utf-8");
@@ -268,7 +291,7 @@ export function registerSettingsHandlers() {
 				} catch {
 					// file doesn't exist yet
 				}
-				const merged = { ...existing, ...prefs };
+				const merged = { ...existing, ...sanitized };
 				await fs.writeFile(
 					RECORDINGS_SETTINGS_FILE,
 					JSON.stringify(merged, null, 2),

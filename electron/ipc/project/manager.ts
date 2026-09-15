@@ -17,6 +17,7 @@ import {
 import {
 	approvedLocalReadPaths,
 	currentProjectPath,
+	customRecordingsDir,
 	setCurrentProjectPath,
 	setCurrentRecordingSession,
 	setCurrentVideoPath,
@@ -50,13 +51,23 @@ export function isPathInsideDirectory(candidatePath: string, directoryPath: stri
 	);
 }
 
-export function isAllowedLocalReadPath(candidatePath: string) {
-	const allowedPrefixes = [
-		RECORDINGS_DIR,
+// The recordings directory can be relocated by the user (persisted in
+// RECORDINGS_SETTINGS_FILE and loaded asynchronously by getRecordingsDir).
+// Flows that resolve real media paths go through getRecordingsDir() first,
+// which awaits that load, so the effective prefix is populated by the time it
+// matters; before the load completes this falls back to the default
+// recordings directory.
+function getAllowedLocalReadPrefixes() {
+	return [
+		customRecordingsDir ?? RECORDINGS_DIR,
 		USER_DATA_PATH,
 		getAssetRootPath(),
 		app.getPath("temp"),
 	];
+}
+
+export function isAllowedLocalReadPath(candidatePath: string) {
+	const allowedPrefixes = getAllowedLocalReadPrefixes();
 	const normalizedCandidatePath = normalizePath(candidatePath);
 
 	// Canonicalize so a symlink placed under an allowed prefix can't smuggle in a
@@ -104,9 +115,30 @@ export async function isAllowedLocalMediaPath(candidatePath: string) {
 	return isAllowedLocalReadPath(normalizedCandidatePath);
 }
 
+// Approval-time gate for renderer-reachable approval calls: only the LEXICAL
+// spelling is checked (app-managed prefix or already approved). The read-time
+// canonical check inside isAllowedLocalReadPath must not apply here — it would
+// reject exactly the dialog-picked paths whose lexical spelling differs from
+// their realpath (e.g. macOS /tmp -> /private/tmp) before the realpath variant
+// is admitted as a pair below. Renderer-supplied paths still fail this gate,
+// so nothing new becomes approvable.
+function isApprovableLocalReadPath(candidatePath: string) {
+	const normalizedCandidatePath = normalizePath(candidatePath);
+	return (
+		getAllowedLocalReadPrefixes().some((prefix) =>
+			isPathInsideDirectory(normalizedCandidatePath, prefix),
+		) || approvedLocalReadPaths.has(normalizedCandidatePath)
+	);
+}
+
+// A path only becomes approved if its lexical spelling satisfies the read
+// policy; the fs.realpath-derived spelling of that same file is then admitted
+// as a pair without its own gate — both spellings name one real file, so
+// dropping the realpath variant would strand the picked media once the
+// session set is replaced.
 async function collectApprovedLocalReadPaths(filePath?: string | null): Promise<string[]> {
 	const normalizedPath = normalizeVideoSourcePath(filePath);
-	if (!normalizedPath) {
+	if (!normalizedPath || !isApprovableLocalReadPath(normalizedPath)) {
 		return [];
 	}
 
@@ -119,7 +151,8 @@ async function collectApprovedLocalReadPaths(filePath?: string | null): Promise<
 			approvedPaths.push(normalizedRealPath);
 		}
 	} catch {
-		// Ignore missing files; the eventual read will surface the real error.
+		// Missing file (or a realpath failure): the lexical spelling alone is
+		// still approved, and the eventual read will surface the real error.
 	}
 
 	return approvedPaths;
@@ -154,7 +187,11 @@ export async function resolveApprovedLocalMediaPath(candidatePath: string): Prom
 		return null;
 	}
 
-	await rememberApprovedLocalReadPath(candidatePath);
+	// realPath just satisfied the same policy the approval gate enforces, so
+	// remember it directly: the caller's lexical spelling can differ from the
+	// real path (a symlinked directory) and would fail the gate, dropping the
+	// verified real path from the media server's set-membership check.
+	await rememberApprovedLocalReadPath(realPath);
 	return realPath;
 }
 

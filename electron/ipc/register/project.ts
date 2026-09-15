@@ -15,6 +15,7 @@ import {
 	enqueueRecentProjectsUpdate,
 	getProjectsDir,
 	getProjectThumbnailPath,
+	isAllowedLocalReadPath,
 	isPathInsideDirectory,
 	isTrustedProjectPath,
 	listProjectLibraryEntries,
@@ -670,7 +671,13 @@ export function registerProjectHandlers() {
 			options?: { preserveProjectPath?: boolean; hideOverlayCursorByDefault?: boolean },
 		) => {
 			setCurrentVideoPath(normalizeVideoSourcePath(path) ?? path);
-			approveUserPath(currentVideoPath);
+			// The renderer is untrusted: only bless the path for local reads when
+			// it already satisfies the read policy (app-managed trees or an
+			// already-approved path). Approving unconditionally here let a
+			// compromised renderer add arbitrary files to the read allowlist.
+			if (currentVideoPath && isAllowedLocalReadPath(currentVideoPath)) {
+				approveUserPath(currentVideoPath);
+			}
 			const resolvedSession = (await resolveRecordingSession(currentVideoPath)) ?? {
 				videoPath: currentVideoPath!,
 				webcamPath: null,
