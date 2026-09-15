@@ -17,7 +17,9 @@ import {
 	windowsCaptureStopRequested,
 	windowsCaptureTargetPath,
 	windowsCaptureTempPath,
+	windowsMicAudioPath,
 	windowsNativeCaptureActive,
+	windowsSystemAudioPath,
 } from "../state";
 import { AudioSyncAdjustment } from "../types";
 import { moveFileWithOverwrite } from "../utils";
@@ -176,6 +178,35 @@ export function waitForWindowsCaptureStop(
 	});
 }
 
+// The helper died mid-take: move a partially written temp companion file to
+// its final recordings-dir path (or delete it when unusable) so a crashed
+// recording keeps its audio instead of leaking WAVs in %TEMP%. Temp companion
+// names follow the stop handler's convention: <tempVideo>.system.wav/.mic.wav.
+async function salvageCrashedCompanionFile(
+	tempAudioPath: string | null,
+	finalAudioPath: string | null,
+) {
+	if (!tempAudioPath || !finalAudioPath || tempAudioPath === finalAudioPath) {
+		return;
+	}
+	try {
+		const stat = await fs.stat(tempAudioPath).catch(() => null);
+		if (stat && stat.size > 0) {
+			await moveFileWithOverwrite(tempAudioPath, finalAudioPath);
+			const tempJsonPath = `${tempAudioPath}.json`;
+			const jsonStat = await fs.stat(tempJsonPath).catch(() => null);
+			if (jsonStat && jsonStat.isFile()) {
+				await moveFileWithOverwrite(tempJsonPath, `${finalAudioPath}.json`);
+			}
+		} else {
+			await fs.rm(tempAudioPath, { force: true }).catch(() => undefined);
+			await fs.rm(`${tempAudioPath}.json`, { force: true }).catch(() => undefined);
+		}
+	} catch (error) {
+		console.warn("[windows-capture] Failed to salvage companion audio:", error);
+	}
+}
+
 export function attachWindowsCaptureLifecycle(proc: ChildProcessWithoutNullStreams) {
 	proc.once("close", () => {
 		const wasActive = windowsNativeCaptureActive;
@@ -195,11 +226,18 @@ export function attachWindowsCaptureLifecycle(proc: ChildProcessWithoutNullStrea
 		void (async () => {
 			const tempPath = windowsCaptureTempPath;
 			const targetPath = windowsCaptureTargetPath;
+			const tempSystemAudioPath = tempPath?.replace(/\.mp4$/u, ".system.wav") ?? null;
+			const tempMicAudioPath = tempPath?.replace(/\.mp4$/u, ".mic.wav") ?? null;
+			const finalSystemAudioPath = windowsSystemAudioPath;
+			const finalMicAudioPath = windowsMicAudioPath;
 			setWindowsCaptureTempPath(null);
 			setWindowsCaptureTargetPath(null);
 			setWindowsSystemAudioPath(null);
 			setWindowsMicAudioPath(null);
 			setWindowsOrphanedMicAudioPath(null);
+
+			await salvageCrashedCompanionFile(tempSystemAudioPath, finalSystemAudioPath);
+			await salvageCrashedCompanionFile(tempMicAudioPath, finalMicAudioPath);
 
 			if (!tempPath || tempPath === targetPath) {
 				return;
