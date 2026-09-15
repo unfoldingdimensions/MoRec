@@ -826,6 +826,24 @@ export function registerProjectHandlers() {
 				// Best-effort cleanup
 			}
 
+			const activeSession = currentRecordingSession;
+			if (activeSession?.webcamPath) {
+				const sessionWebcamFile = path.basename(activeSession.webcamPath);
+				const sessionWebcamBase = sessionWebcamFile.slice(
+					0,
+					sessionWebcamFile.length - path.extname(sessionWebcamFile).length,
+				);
+				if (
+					sessionWebcamBase === baseName ||
+					sessionWebcamBase.startsWith(`${baseName}-webcam`)
+				) {
+					// The deleted file was the session's linked webcam (or that
+					// recording's webcam companion): drop the dead link instead
+					// of leaving the session pointing at nothing.
+					setCurrentRecordingSession({ ...activeSession, webcamPath: null });
+				}
+			}
+
 			const currentResolved = currentVideoPath
 				? await fs.realpath(currentVideoPath).catch(() => currentVideoPath)
 				: null;

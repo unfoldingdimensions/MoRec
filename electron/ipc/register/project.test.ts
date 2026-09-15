@@ -331,6 +331,32 @@ describe("delete-recording-file IPC handler", () => {
 		await expect(fs.access(manifestPath)).rejects.toMatchObject({ code: "ENOENT" });
 	});
 
+	it("clears the session's webcam link when the linked webcam file is deleted", async () => {
+		const deleteHandler = ipcHandlers.get("delete-recording-file")!;
+		const mainVideo = path.join(testRecordingsDir, "recording-x.mp4");
+		const webcamFile = path.join(testRecordingsDir, "recording-x-webcam.webm");
+		await fs.writeFile(mainVideo, "video");
+		await fs.writeFile(webcamFile, "webcam");
+
+		mockCurrentVideoPath = mainVideo;
+		mockCurrentRecordingSession = {
+			videoPath: mainVideo,
+			webcamPath: webcamFile,
+			timeOffsetMs: 30,
+		};
+
+		const result = await deleteHandler(null, webcamFile);
+		expect(result).toEqual({ success: true });
+
+		// The main video stays active, but the dead webcam link is dropped.
+		expect(mockCurrentVideoPath).toBe(mainVideo);
+		expect(mockCurrentRecordingSession).toMatchObject({
+			videoPath: mainVideo,
+			webcamPath: null,
+			timeOffsetMs: 30,
+		});
+	});
+
 	it("clears currentVideoPath and currentRecordingSession if the deleted video was active", async () => {
 		const deleteHandler = ipcHandlers.get("delete-recording-file")!;
 		const mainVideo = path.join(testRecordingsDir, "recording-active.mp4");
