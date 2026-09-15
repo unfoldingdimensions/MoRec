@@ -52,6 +52,15 @@ class FakeCaptureProcess extends EventEmitter {
 	});
 }
 
+const recordingWindowsFallbacks = {
+	shouldStartWindowsBrowserMicrophoneFallback: vi.fn(() => false),
+	shouldUseWindowsBrowserMicrophoneFallback: vi.fn(
+		(captureOutput: string) =>
+			captureOutput.includes("WARNING: Failed to initialize WASAPI mic capture"),
+	),
+	WINDOWS_MIC_CAPTURE_INIT_WARNING: "WARNING: Failed to initialize WASAPI mic capture",
+};
+
 const SOURCE = { id: "screen:0", name: "Screen 1", display_id: "0" };
 
 describe("register/recording start orchestration (win32)", () => {
@@ -77,6 +86,18 @@ describe("register/recording start orchestration (win32)", () => {
 		for (const fn of Object.values(recordingDiagnostics)) {
 			fn.mockReset();
 		}
+		for (const fn of Object.values(recordingWindowsFallbacks)) {
+			if (typeof fn === "function") {
+				fn.mockReset();
+			}
+		}
+		recordingWindowsFallbacks.shouldStartWindowsBrowserMicrophoneFallback.mockImplementation(
+			() => false,
+		);
+		recordingWindowsFallbacks.shouldUseWindowsBrowserMicrophoneFallback.mockImplementation(
+			(captureOutput: string) =>
+				captureOutput.includes("WARNING: Failed to initialize WASAPI mic capture"),
+		);
 		// The availability check precedes every other branch in the start path.
 		recordingWindows.isNativeWindowsCaptureAvailable.mockResolvedValue({ available: true });
 		recordingWindows.waitForWindowsCaptureStart.mockResolvedValue(undefined);
@@ -97,10 +118,7 @@ describe("register/recording start orchestration (win32)", () => {
 			waitForNativeCaptureStart: vi.fn(),
 			waitForNativeCaptureStop: vi.fn(),
 		}));
-		vi.doMock("../recording/windowsFallbacks", () => ({
-			shouldStartWindowsBrowserMicrophoneFallback: vi.fn(() => false),
-			shouldUseWindowsBrowserMicrophoneFallback: vi.fn(() => false),
-		}));
+		vi.doMock("../recording/windowsFallbacks", () => recordingWindowsFallbacks);
 		vi.doMock("../monitorResolver", () => ({
 			getMonitorHandlesAsync: vi.fn(async () => []),
 		}));
@@ -263,6 +281,31 @@ describe("register/recording start orchestration (win32)", () => {
 		expect(result).toEqual({ success: true, microphoneFallbackRequired: false });
 		expect(spawnMock).toHaveBeenCalledTimes(1);
 	});
+
+	it("switches to browser mic fallback when the WASAPI warning lands after start", async () => {
+		recordingWindows.isNativeWindowsCaptureAvailable.mockResolvedValue({ available: true });
+
+		const startPromise = registry.invoke("start-native-screen-recording", SOURCE, {
+			capturesSystemAudio: false,
+			capturesMicrophone: true,
+		});
+
+		// The helper writes the mic-init warning to stderr around the time the
+		// start marker lands on stdout; deliver it while the handler's settle
+		// window is open.
+		await new Promise((resolve) => setTimeout(resolve, 20));
+		const proc = spawnMock.mock.results[0]?.value as FakeCaptureProcess;
+		proc.stderr.emit("data", Buffer.from("WARNING: Failed to initialize WASAPI mic capture\n"));
+
+		const result = (await startPromise) as {
+			success: boolean;
+			microphoneFallbackRequired: boolean;
+		};
+		expect(result).toEqual({ success: true, microphoneFallbackRequired: true });
+		// The native mic sidecar path is orphaned so stop/recover cleans it up.
+		expect(state.windowsOrphanedMicAudioPath).toBeTruthy();
+		expect(state.windowsMicAudioPath).toBeNull();
+	});
 });
 
 describe("register/recording stop recovery (win32)", () => {
@@ -282,6 +325,18 @@ describe("register/recording stop recovery (win32)", () => {
 		for (const fn of Object.values(recordingDiagnostics)) {
 			fn.mockReset();
 		}
+		for (const fn of Object.values(recordingWindowsFallbacks)) {
+			if (typeof fn === "function") {
+				fn.mockReset();
+			}
+		}
+		recordingWindowsFallbacks.shouldStartWindowsBrowserMicrophoneFallback.mockImplementation(
+			() => false,
+		);
+		recordingWindowsFallbacks.shouldUseWindowsBrowserMicrophoneFallback.mockImplementation(
+			(captureOutput: string) =>
+				captureOutput.includes("WARNING: Failed to initialize WASAPI mic capture"),
+		);
 
 		vi.doMock("node:child_process", () => ({
 			spawn: vi.fn(() => new FakeCaptureProcess()),
@@ -297,10 +352,7 @@ describe("register/recording stop recovery (win32)", () => {
 			waitForNativeCaptureStop: vi.fn(),
 		}));
 		vi.doMock("../recording/diagnostics", () => recordingDiagnostics);
-		vi.doMock("../recording/windowsFallbacks", () => ({
-			shouldStartWindowsBrowserMicrophoneFallback: vi.fn(() => false),
-			shouldUseWindowsBrowserMicrophoneFallback: vi.fn(() => false),
-		}));
+		vi.doMock("../recording/windowsFallbacks", () => recordingWindowsFallbacks);
 		vi.doMock("../monitorResolver", () => ({
 			getMonitorHandlesAsync: vi.fn(async () => []),
 		}));

@@ -73,10 +73,11 @@ import {
 	waitForWindowsCaptureStart,
 	waitForWindowsCaptureStop,
 } from "../recording/windows";
-import {
-	shouldStartWindowsBrowserMicrophoneFallback,
-	shouldUseWindowsBrowserMicrophoneFallback,
-} from "../recording/windowsFallbacks";
+	import {
+		shouldStartWindowsBrowserMicrophoneFallback,
+		shouldUseWindowsBrowserMicrophoneFallback,
+		WINDOWS_MIC_CAPTURE_INIT_WARNING,
+	} from "../recording/windowsFallbacks";
 import {
 	cachedSystemCursorAssets,
 	cachedSystemCursorAssetsSourceMtimeMs,
@@ -687,6 +688,17 @@ export function registerRecordingHandlers(
 					});
 
 					await waitForWindowsCaptureStart(wcProc);
+					// The helper prints WASAPI mic-init warnings to stderr before
+					// "Recording started" on stdout, but the two pipes deliver
+					// independently. Give stderr a brief settle before the one-shot
+					// fallback decision so a failed mic init is always visible.
+					if (
+						options?.capturesMicrophone &&
+						!browserMicFallbackRequested &&
+						!captureOutput.includes(WINDOWS_MIC_CAPTURE_INIT_WARNING)
+					) {
+						await new Promise((resolve) => setTimeout(resolve, 150));
+					}
 					const microphoneFallbackRequired =
 						browserMicFallbackRequested ||
 						shouldUseWindowsBrowserMicrophoneFallback(captureOutput, options);

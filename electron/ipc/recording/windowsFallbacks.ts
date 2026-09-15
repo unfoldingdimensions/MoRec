@@ -1,4 +1,4 @@
-const WINDOWS_MIC_CAPTURE_INIT_WARNING = "WARNING: Failed to initialize WASAPI mic capture";
+export const WINDOWS_MIC_CAPTURE_INIT_WARNING = "WARNING: Failed to initialize WASAPI mic capture";
 export const WINDOWS_MIC_CAPTURE_MODE_ENV = "MOREC_WINDOWS_MIC_CAPTURE";
 
 export function shouldStartWindowsBrowserMicrophoneFallback(
