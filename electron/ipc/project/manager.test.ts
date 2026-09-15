@@ -56,9 +56,14 @@ describe("local media path policy", () => {
 		const { isAllowedLocalMediaPath, rememberApprovedLocalReadPath } = await import(
 			"./manager"
 		);
+		const { approveUserPath } = await import("../utils");
 
 		await expect(isAllowedLocalMediaPath(exportPath)).resolves.toBe(false);
 
+		// Simulate the app's own approval flow: a dialog picker approves the
+		// picked lexical spelling exactly once, then the session approval
+		// records it (plus its realpath variant) for reads.
+		approveUserPath(exportPath);
 		await rememberApprovedLocalReadPath(exportPath);
 
 		await expect(isAllowedLocalMediaPath(exportPath)).resolves.toBe(true);
@@ -76,7 +81,10 @@ describe("local media path policy", () => {
 		const { isAllowedLocalMediaPath, rememberApprovedLocalReadPath } = await import(
 			"./manager"
 		);
+		const { approveUserPath } = await import("../utils");
 
+		// Pickers approve the destination before the file is written.
+		approveUserPath(pendingExportPath);
 		await rememberApprovedLocalReadPath(pendingExportPath);
 
 		await expect(isAllowedLocalMediaPath(pendingExportPath)).resolves.toBe(true);
@@ -93,12 +101,16 @@ describe("local media path policy", () => {
 			"./manager"
 		);
 		const { isAllowedMediaPath } = await import("../../mediaServer");
+		const { approveUserPath } = await import("../utils");
 
 		// Unapproved external paths are rejected before they ever reach the media server.
 		expect(isAllowedMediaPath(videoPath)).toBe(false);
 		await expect(resolveApprovedLocalMediaPath(videoPath)).resolves.toBeNull();
 
 		// Once the user opts in (via dialog/export/etc.) the path is approved.
+		// Pickers approve only the lexical spelling; the realpath variant of the
+		// same file is admitted alongside it.
+		approveUserPath(videoPath);
 		await rememberApprovedLocalReadPath(videoPath);
 
 		await expect(resolveApprovedLocalMediaPath(videoPath)).resolves.toBe(resolvedVideoPath);
@@ -223,7 +235,13 @@ describe("local media path policy", () => {
 		);
 
 		const { loadProjectFromPath, resolveApprovedLocalMediaPath } = await import("./manager");
+		const { approveUserPath } = await import("../utils");
 		const resolvedAudioPath = await fs.realpath(audioPath);
+
+		// The user picked this audio through a dialog in an earlier session, so
+		// the app already approved the lexical spelling; loading the project
+		// must keep it approved (but a load alone cannot bless a fresh path).
+		approveUserPath(audioPath);
 
 		const result = await loadProjectFromPath(projectPath);
 		expect(result.success).toBe(true);

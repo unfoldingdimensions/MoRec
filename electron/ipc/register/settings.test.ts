@@ -207,6 +207,45 @@ describe("register/settings handlers", () => {
 			expect(prefs.webcamEnabled).toBe(true);
 			expect(prefs.systemAudioEnabled).toBe(false);
 		});
+
+		it("ignores renderer-supplied recordingsDir instead of persisting it", async () => {
+			const attackerDir = path.join(tempRoot, "victim-home");
+			await registry.invoke("set-recording-preferences", {
+				microphoneEnabled: true,
+				recordingsDir: attackerDir,
+			} as Record<string, unknown>);
+
+			const stored = JSON.parse(await fs.readFile(files.recordings, "utf-8"));
+			expect(stored.recordingsDir).toBeUndefined();
+			expect(stored.microphoneEnabled).toBe(true);
+		});
+
+		it("keeps a legitimately persisted recordingsDir when saving preferences", async () => {
+			// persistRecordingsDirectorySetting (main-process directory picker) is
+			// the only legitimate writer of this key; a preference save must not
+			// drop it.
+			await fs.writeFile(
+				files.recordings,
+				JSON.stringify({ recordingsDir: path.join(tempRoot, "my-takes") }, null, 2),
+				"utf-8",
+			);
+
+			await registry.invoke("set-recording-preferences", { webcamEnabled: true });
+
+			const stored = JSON.parse(await fs.readFile(files.recordings, "utf-8"));
+			expect(stored.recordingsDir).toBe(path.join(tempRoot, "my-takes"));
+			expect(stored.webcamEnabled).toBe(true);
+		});
+
+		it("rejects non-whitelisted value types for preference keys", async () => {
+			await registry.invoke("set-recording-preferences", {
+				microphoneEnabled: "yes",
+				microphoneDeviceId: 42,
+			} as unknown as Record<string, unknown>);
+
+			const stored = JSON.parse(await fs.readFile(files.recordings, "utf-8"));
+			expect(stored).toEqual({});
+		});
 	});
 
 	describe("countdown", () => {
