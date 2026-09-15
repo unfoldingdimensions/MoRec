@@ -5,7 +5,7 @@ import path from "node:path";
 
 const pendingWrites = new Map<string, Promise<void>>();
 
-type AtomicFileContents = string | NodeJS.ArrayBufferView;
+type AtomicFileContents = string | Uint8Array;
 
 const unsupportedDirectorySyncErrors = new Set([
 	"EACCES",
