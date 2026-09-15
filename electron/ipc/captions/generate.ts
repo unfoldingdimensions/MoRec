@@ -9,6 +9,7 @@ import { getBundledWhisperExecutableCandidates } from "../paths/binaries";
 import { getUsableCompanionAudioCandidates } from "../recording/diagnostics";
 import { resolveRecordingSession } from "../project/session";
 import { normalizeVideoSourcePath } from "../utils";
+import type { CaptionCuePayload } from "../types";
 import { parseSrtCues, parseWhisperJsonCues, shouldRetryWhisperWithoutJson } from "./parser";
 import { segmentCuesIntoPhrases } from "./segment";
 import {
@@ -83,18 +84,33 @@ export async function resolveWhisperExecutablePath(preferredPath?: string | null
 	);
 }
 
+export type CaptionAudioCandidate = {
+	path: string;
+	label: string;
+	/** Only set for the webcam candidate: how far the webcam audio clock is shifted from the recording timeline. */
+	timeOffsetMs?: number;
+};
+
 export async function resolveCaptionAudioCandidates(videoPath: string) {
-	const candidates: Array<{ path: string; label: string }> = [];
+	const candidates: CaptionAudioCandidate[] = [];
 	const seenPaths = new Set<string>();
 
-	const pushCandidate = (candidatePath: string | null | undefined, label: string) => {
+	const pushCandidate = (
+		candidatePath: string | null | undefined,
+		label: string,
+		timeOffsetMs?: number,
+	) => {
 		const normalizedCandidatePath = normalizeVideoSourcePath(candidatePath);
 		if (!normalizedCandidatePath || seenPaths.has(normalizedCandidatePath)) {
 			return;
 		}
 
 		seenPaths.add(normalizedCandidatePath);
-		candidates.push({ path: normalizedCandidatePath, label });
+		candidates.push({
+			path: normalizedCandidatePath,
+			label,
+			...(Number.isFinite(timeOffsetMs) ? { timeOffsetMs } : {}),
+		});
 	};
 
 	pushCandidate(videoPath, "recording");
@@ -116,9 +132,46 @@ export async function resolveCaptionAudioCandidates(videoPath: string) {
 	}
 
 	const requestedRecordingSession = await resolveRecordingSession(videoPath);
-	pushCandidate(requestedRecordingSession?.webcamPath, "linked webcam recording");
+	pushCandidate(
+		requestedRecordingSession?.webcamPath,
+		"linked webcam recording",
+		requestedRecordingSession?.timeOffsetMs,
+	);
 
 	return candidates;
+}
+
+/**
+ * Webcam sidecar audio starts at the webcam's own t=0, which is offset from
+ * the recording timeline by the session's timeOffsetMs (webcam start minus
+ * screen start). Shift the parsed cues onto the timeline; cues pushed before
+ * zero are clamped rather than leaked at negative times.
+ */
+export function shiftCuesByOffset(cues: CaptionCuePayload[], offsetMs: number): CaptionCuePayload[] {
+	if (!Number.isFinite(offsetMs) || offsetMs === 0) {
+		return cues;
+	}
+
+	const shifted: CaptionCuePayload[] = [];
+	for (const cue of cues) {
+		const startMs = Math.max(0, cue.startMs + offsetMs);
+		const endMs = Math.max(startMs + 1, cue.endMs + offsetMs);
+		if (cue.endMs + offsetMs <= 0) {
+			continue;
+		}
+		const words = cue.words?.map((word) => ({
+			...word,
+			startMs: Math.max(0, word.startMs + offsetMs),
+			endMs: Math.max(0, word.endMs + offsetMs),
+		}));
+		shifted.push({
+			...cue,
+			startMs,
+			endMs,
+			...(words && words.length > 0 ? { words } : {}),
+		});
+	}
+	return shifted;
 }
 
 export async function extractCaptionAudioSource(options: {
@@ -307,6 +360,11 @@ export async function generateAutoCaptionsFromVideo(options: {
 				error,
 			);
 		}
+
+		// Webcam-sourced captions come back on the webcam's clock; move them onto
+		// the recording timeline after segmentation (silences were detected on the
+		// same extracted wav, so segmentation ran consistently in webcam time).
+		cuesToReturn = shiftCuesByOffset(cuesToReturn, audioSource.timeOffsetMs ?? 0);
 
 		return {
 			cues: cuesToReturn,
