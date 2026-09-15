@@ -47,10 +47,11 @@ export async function persistRecordingSessionManifest(
 	}
 
 	const manifest: RecordingSessionManifest = {
-		version: 2,
+		version: 3,
 		videoFileName: path.basename(normalizedVideoPath),
 		webcamFileName: path.basename(normalizedWebcamPath),
 		timeOffsetMs: normalizeRecordingTimeOffsetMs(session.timeOffsetMs),
+		hideOverlayCursorByDefault: session.hideOverlayCursorByDefault === true,
 	};
 
 	// The manifest is the only durable record of the webcam link and its sync
@@ -72,7 +73,7 @@ export async function resolveRecordingSessionManifest(
 	try {
 		const content = await fs.readFile(manifestPath, "utf-8");
 		const parsed = parseJsonWithByteOrderMark<Partial<RecordingSessionManifest>>(content);
-		if (parsed.version !== 1 && parsed.version !== 2) {
+		if (parsed.version !== 1 && parsed.version !== 2 && parsed.version !== 3) {
 			return null;
 		}
 
@@ -88,6 +89,7 @@ export async function resolveRecordingSessionManifest(
 				videoPath: normalizedVideoPath,
 				webcamPath: null,
 				timeOffsetMs: normalizeRecordingTimeOffsetMs(parsed.timeOffsetMs),
+				hideOverlayCursorByDefault: parsed.hideOverlayCursorByDefault === true,
 			};
 		}
 
@@ -96,6 +98,7 @@ export async function resolveRecordingSessionManifest(
 				videoPath: normalizedVideoPath,
 				webcamPath: null,
 				timeOffsetMs: normalizeRecordingTimeOffsetMs(parsed.timeOffsetMs),
+				hideOverlayCursorByDefault: parsed.hideOverlayCursorByDefault === true,
 			};
 		}
 
@@ -109,6 +112,7 @@ export async function resolveRecordingSessionManifest(
 			videoPath: normalizedVideoPath,
 			webcamPath: webcamExists ? webcamPath : null,
 			timeOffsetMs: normalizeRecordingTimeOffsetMs(parsed.timeOffsetMs),
+			hideOverlayCursorByDefault: parsed.hideOverlayCursorByDefault === true,
 		};
 	} catch {
 		return null;

@@ -53,6 +53,7 @@ describe("recording session manifest persistence", () => {
 			videoPath,
 			webcamPath,
 			timeOffsetMs: 120,
+			hideOverlayCursorByDefault: true,
 		});
 
 		await expect(fs.readFile(manifestPath(), "utf-8")).resolves.toContain('"webcamFileName"');
@@ -62,6 +63,29 @@ describe("recording session manifest persistence", () => {
 			videoPath,
 			webcamPath,
 			timeOffsetMs: 120,
+			hideOverlayCursorByDefault: true,
+		});
+	});
+
+	it("resolves a v2 manifest without a cursor flag as false", async () => {
+		const { resolveRecordingSessionManifest } = await importSession();
+
+		await fs.writeFile(
+			manifestPath(),
+			JSON.stringify({
+				version: 2,
+				videoFileName: "recording-100.mp4",
+				webcamFileName: "recording-100-webcam.webm",
+				timeOffsetMs: 10,
+			}),
+			"utf-8",
+		);
+
+		const session = await resolveRecordingSessionManifest(videoPath);
+		expect(session).toMatchObject({
+			webcamPath,
+			timeOffsetMs: 10,
+			hideOverlayCursorByDefault: false,
 		});
 	});
 

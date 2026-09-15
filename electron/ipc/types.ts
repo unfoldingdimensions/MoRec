@@ -56,10 +56,12 @@ export type PauseSegment = {
 };
 
 export type RecordingSessionManifest = {
-	version: 1 | 2;
+	version: 1 | 2 | 3;
 	videoFileName: string;
 	webcamFileName?: string | null;
 	timeOffsetMs?: number;
+	/** v3: survives restarts with the session instead of resetting. */
+	hideOverlayCursorByDefault?: boolean;
 };
 
 export type ProjectLibraryEntry = {
