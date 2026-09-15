@@ -573,6 +573,16 @@ export function registerRecordingHandlers(
 					};
 
 					if (captureTarget.kind === "invalid-window") {
+						// The staged target/temp paths were set before the target was
+						// resolved; clear them so the failure leaves no stale capture
+						// state behind for a later stop/recover call to trip over.
+						setWindowsCaptureTargetPath(null);
+						setWindowsCaptureTempPath(null);
+						setWindowsSystemAudioPath(null);
+						setWindowsMicAudioPath(null);
+						setWindowsOrphanedMicAudioPath(null);
+						setWindowsCaptureStopRequested(false);
+						setWindowsCapturePaused(false);
 						return {
 							success: false,
 							message:
