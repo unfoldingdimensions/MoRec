@@ -1573,7 +1573,14 @@ export function registerRecordingHandlers(
 			const baseName = videoPath.replace(/\.[^.]+$/, "");
 			const sidecarPath = `${baseName}.mic.wav`;
 			const sourceWebmPath = `${baseName}.mic.source.webm`;
-			const tempWebmPath = `${sourceWebmPath}.tmp`;
+			// Unique per call: two interleaved store calls for the same video must
+			// not share (and truncate) each other's input file mid-transcode.
+			const tempWebmPath = `${sourceWebmPath}.${Date.now()}-${Math.random()
+				.toString(36)
+				.slice(2, 8)}.tmp`;
+			// The wav is transcoded to a temp path and renamed into place so
+			// companion-audio readers never stat a half-written file.
+			const tempSidecarPath = `${sidecarPath}.tmp`;
 
 			try {
 				await fs.writeFile(tempWebmPath, Buffer.from(audioData));
@@ -1598,10 +1605,11 @@ export function registerRecordingHandlers(
 						].join(","),
 						"-c:a",
 						"pcm_s16le",
-						sidecarPath,
+						tempSidecarPath,
 					],
 					{ timeout: 120000, maxBuffer: 10 * 1024 * 1024 },
 				);
+				await fs.rename(tempSidecarPath, sidecarPath);
 				if (shouldKeepRecordingAudioSidecars()) {
 					await fs.rename(tempWebmPath, sourceWebmPath).catch(async () => {
 						await fs.copyFile(tempWebmPath, sourceWebmPath);
@@ -1695,6 +1703,7 @@ export function registerRecordingHandlers(
 			} catch (error) {
 				await Promise.all([
 					fs.rm(tempWebmPath, { force: true }).catch(() => undefined),
+					fs.rm(tempSidecarPath, { force: true }).catch(() => undefined),
 					fs.rm(sidecarPath, { force: true }).catch(() => undefined),
 				]);
 				console.error("Failed to store microphone sidecar:", error);
