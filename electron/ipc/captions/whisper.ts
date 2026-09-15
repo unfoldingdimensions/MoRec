@@ -9,6 +9,29 @@ import {
 	WHISPER_SMALL_MODEL_PATH,
 } from "../constants";
 
+/** ggml container magics shipped by whisper.cpp releases ("ggml" for legacy ggml-small.bin). */
+const WHISPER_MODEL_MAGICS = ["ggml", "ggmf", "ggjt", "gguf"];
+/** Floor for a plausible whisper "small" model; an HTML error page or stub is far smaller. */
+const MIN_WHISPER_MODEL_BYTES = 10 * 1024 * 1024;
+
+export function hasWhisperModelMagic(header: Buffer): boolean {
+	if (header.length < 4) {
+		return false;
+	}
+	return WHISPER_MODEL_MAGICS.includes(header.subarray(0, 4).toString("ascii"));
+}
+
+async function readFileMagic(filePath: string): Promise<Buffer> {
+	const handle = await fs.open(filePath, "r");
+	try {
+		const buffer = Buffer.alloc(4);
+		const { bytesRead } = await handle.read(buffer, 0, 4, 0);
+		return buffer.subarray(0, bytesRead);
+	} finally {
+		await handle.close();
+	}
+}
+
 export function sendWhisperModelDownloadProgress(
 	webContents: Electron.WebContents,
 	payload: {
@@ -29,11 +52,6 @@ export function sendWhisperModelDownloadProgress(
 export async function getWhisperSmallModelStatus() {
 	try {
 		await fs.access(WHISPER_SMALL_MODEL_PATH, fsConstants.R_OK);
-		return {
-			success: true,
-			exists: true,
-			path: WHISPER_SMALL_MODEL_PATH,
-		};
 	} catch {
 		return {
 			success: true,
@@ -41,6 +59,16 @@ export async function getWhisperSmallModelStatus() {
 			path: null,
 		};
 	}
+
+	// A truncated/interleaved legacy download is unusable; report it as absent so
+	// the UI offers a fresh download instead of failing at transcription time.
+	const magic = await readFileMagic(WHISPER_SMALL_MODEL_PATH).catch(() => null);
+	const usable = magic !== null && hasWhisperModelMagic(magic);
+	return {
+		success: true,
+		exists: usable,
+		path: usable ? WHISPER_SMALL_MODEL_PATH : null,
+	};
 }
 
 export function downloadFileWithProgress(
@@ -98,6 +126,27 @@ export function downloadFileWithProgress(
 				});
 
 				fileStream.on("finish", () => {
+					// A clean stream end does not mean a complete file: verify the byte
+					// count against content-length so a truncated download never gets
+					// renamed into place.
+					if (Number.isFinite(totalBytes) && totalBytes > 0 && downloadedBytes !== totalBytes) {
+						fileStream.destroy();
+						reject(
+							new Error(
+								`Whisper model download was incomplete (${downloadedBytes} of ${totalBytes} bytes).`,
+							),
+						);
+						return;
+					}
+					if (downloadedBytes < MIN_WHISPER_MODEL_BYTES) {
+						fileStream.destroy();
+						reject(
+							new Error(
+								`Whisper model download is implausibly small (${downloadedBytes} bytes).`,
+							),
+						);
+						return;
+					}
 					onProgress(100);
 					resolve();
 				});
@@ -115,9 +164,26 @@ export function downloadFileWithProgress(
 	return request(url);
 }
 
+// Two overlapping downloads share one temp path, so they must never run
+// concurrently: the second stream would interleave bytes into the first's
+// file and a corrupt model would get renamed into place. Late callers join
+// the in-flight promise (progress events go to the original requester).
+let smallModelDownloadInFlight: Promise<string> | null = null;
+
 export async function downloadWhisperSmallModel(
 	webContents: Electron.WebContents,
 ): Promise<string> {
+	if (smallModelDownloadInFlight) {
+		return smallModelDownloadInFlight;
+	}
+
+	smallModelDownloadInFlight = runWhisperSmallModelDownload(webContents).finally(() => {
+		smallModelDownloadInFlight = null;
+	});
+	return smallModelDownloadInFlight;
+}
+
+async function runWhisperSmallModelDownload(webContents: Electron.WebContents): Promise<string> {
 	await fs.mkdir(WHISPER_MODEL_DIR, { recursive: true });
 	const tempPath = `${WHISPER_SMALL_MODEL_PATH}.download`;
 
@@ -136,6 +202,12 @@ export async function downloadWhisperSmallModel(
 				path: null,
 			});
 		});
+		const magic = await readFileMagic(tempPath);
+		if (!hasWhisperModelMagic(magic)) {
+			throw new Error(
+				"Downloaded Whisper model is not a valid ggml model file (unexpected file header).",
+			);
+		}
 		await fs.rename(tempPath, WHISPER_SMALL_MODEL_PATH);
 		sendWhisperModelDownloadProgress(webContents, {
 			status: "downloaded",
