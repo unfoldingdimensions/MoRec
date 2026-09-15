@@ -54,8 +54,26 @@ function normalizeBoolean(value: unknown, fallback = false): boolean {
 	return typeof value === "boolean" ? value : fallback;
 }
 
+// Windows reserves these device names for files regardless of extension
+// ("NUL.morec" is not a creatable file).
+const WINDOWS_RESERVED_DEVICE_NAMES = new Set([
+	"CON",
+	"PRN",
+	"AUX",
+	"NUL",
+	...Array.from({ length: 9 }, (_, index) => `COM${index + 1}`),
+	...Array.from({ length: 9 }, (_, index) => `LPT${index + 1}`),
+]);
+
+// A long name plus the atomic writer's temp suffix can exceed MAX_PATH on
+// default Windows configurations, failing deep inside the save with an
+// opaque error.
+const MAX_PROJECT_SAVE_NAME_LENGTH = 120;
+
 /**
  * Produces a filesystem-safe project base name without the project extension.
+ * Returns null for empty, reserved, or over-long names so callers can fall
+ * back or report a clear error.
  */
 function normalizeProjectSaveName(projectName?: string | null) {
 	if (typeof projectName !== "string") {
@@ -80,7 +98,17 @@ function normalizeProjectSaveName(projectName?: string | null) {
 		.replace(/[. ]+$/g, "")
 		.trim();
 
-	return sanitizedName || null;
+	if (!sanitizedName) {
+		return null;
+	}
+	if (WINDOWS_RESERVED_DEVICE_NAMES.has(sanitizedName.toUpperCase())) {
+		return null;
+	}
+	if (sanitizedName.length > MAX_PROJECT_SAVE_NAME_LENGTH) {
+		return null;
+	}
+
+	return sanitizedName;
 }
 
 type NamedProjectSaveMode = "rename" | "copy";
@@ -420,7 +448,10 @@ export function registerProjectHandlers() {
 				if (!normalizedProjectName) {
 					return {
 						success: false,
-						message: "Project name is required",
+						message:
+							typeof projectName === "string" && projectName.trim()
+								? "Project name is not usable on Windows (reserved device name or too long)"
+								: "Project name is required",
 					};
 				}
 

@@ -331,6 +331,38 @@ describe("delete-recording-file IPC handler", () => {
 		await expect(fs.access(manifestPath)).rejects.toMatchObject({ code: "ENOENT" });
 	});
 
+	it("rejects reserved Windows device names as project names", async () => {
+		const namedSaveHandler = ipcHandlers.get("save-project-file-named")!;
+
+		for (const reservedName of ["NUL", "con", "COM1", "lpt3"]) {
+			const result = (await namedSaveHandler(
+				null,
+				{ version: 1, videoPath: path.join(testRecordingsDir, "recording-x.mp4"), editor: {} },
+				reservedName,
+				null,
+				"copy",
+			)) as { success: boolean; message?: string };
+
+			expect(result.success, `reserved name: ${reservedName}`).toBe(false);
+			expect(result.message).toContain("not usable on Windows");
+		}
+	});
+
+	it("rejects over-long project names instead of failing deep in the save", async () => {
+		const namedSaveHandler = ipcHandlers.get("save-project-file-named")!;
+
+		const result = (await namedSaveHandler(
+			null,
+			{ version: 1, videoPath: path.join(testRecordingsDir, "recording-x.mp4"), editor: {} },
+			"A".repeat(121),
+			null,
+			"copy",
+		)) as { success: boolean; message?: string };
+
+		expect(result.success).toBe(false);
+		expect(result.message).toContain("not usable on Windows");
+	});
+
 	it("clears the session's webcam link when the linked webcam file is deleted", async () => {
 		const deleteHandler = ipcHandlers.get("delete-recording-file")!;
 		const mainVideo = path.join(testRecordingsDir, "recording-x.mp4");
