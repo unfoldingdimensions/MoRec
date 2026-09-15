@@ -10,6 +10,20 @@ function normalizeRecordingTimeOffsetMs(value: unknown): number {
 	return typeof value === "number" && Number.isFinite(value) ? Math.round(value) : 0;
 }
 
+// The manifest sits next to the video and can be written by anything that
+// can touch the folder, so only a plain filename inside the video's own
+// directory may ever be re-linked.
+function isPlainFileName(value: string): boolean {
+	return (
+		value.length > 0 &&
+		value !== "." &&
+		value !== ".." &&
+		!value.includes("/") &&
+		!value.includes("\\") &&
+		path.basename(value) === value
+	);
+}
+
 export function getRecordingSessionManifestPath(videoPath: string) {
 	const extension = path.extname(videoPath);
 	const baseName = path.basename(videoPath, extension);
@@ -66,6 +80,16 @@ export async function resolveRecordingSessionManifest(
 			typeof parsed.webcamFileName === "string" && parsed.webcamFileName.trim()
 				? parsed.webcamFileName.trim()
 				: null;
+
+		if (webcamFileName && !isPlainFileName(webcamFileName)) {
+			// A traversal or absolute path in the manifest must not become a
+			// read-approved webcam link; keep the offset but drop the link.
+			return {
+				videoPath: normalizedVideoPath,
+				webcamPath: null,
+				timeOffsetMs: normalizeRecordingTimeOffsetMs(parsed.timeOffsetMs),
+			};
+		}
 
 		if (!webcamFileName) {
 			return {

@@ -74,6 +74,39 @@ describe("recording session manifest persistence", () => {
 		await expect(fs.access(manifestPath())).rejects.toMatchObject({ code: "ENOENT" });
 	});
 
+	it("ignores webcam links that are not plain filenames in the video directory", async () => {
+		const { resolveRecordingSessionManifest } = await importSession();
+
+		// A poisoned manifest (synced file, hand-edited sidecar) must not be
+		// able to point the webcam link outside the video's directory: the
+		// link is dropped while the parsed offset is kept.
+		const taintedWebcamFileNames = [
+			"..\\..\\sibling-secret.mp4",
+			"../../sibling-secret.mp4",
+			"sub/sibling-secret.mp4",
+			"sub\\sibling-secret.mp4",
+			".",
+			"..",
+		];
+
+		for (const webcamFileName of taintedWebcamFileNames) {
+			await fs.writeFile(
+				manifestPath(),
+				JSON.stringify({
+					version: 2,
+					videoFileName: "recording-100.mp4",
+					webcamFileName,
+					timeOffsetMs: 55,
+				}),
+				"utf-8",
+			);
+
+			const session = await resolveRecordingSessionManifest(videoPath);
+			expect(session?.webcamPath, `webcamFileName: ${webcamFileName}`).toBeNull();
+			expect(session?.timeOffsetMs).toBe(55);
+		}
+	});
+
 	it("falls back to the -webcam naming convention with a zero offset when the manifest is torn", async () => {
 		const { resolveRecordingSession } = await importSession();
 
