@@ -1,7 +1,6 @@
 # Mo Rec
 
 <p align="center">
-  <img src="https://img.shields.io/badge/macOS%20%7C%20Windows%20%7C%20Linux-111827?style=for-the-badge" alt="macOS Windows Linux" />
   <img src="https://img.shields.io/badge/open%20source-AGPL3.0-2563eb?style=for-the-badge" alt="AGPL 3.0 license" />
 </p>
 
@@ -13,11 +12,6 @@
 ## What is Mo Rec?
 
 Mo Rec is a desktop app for recording and editing screen captures with motion-driven presentation tools built in. Instead of sending raw footage to a motion designer just to add zooms, cursor polish, or a styled background, Mo Rec handles that workflow in one place.
-
-Mo Rec runs on:
-- **macOS** 14.0+
-- **Windows** 10 Build 19041+
-- **Linux** on modern distros
 
 ---
 
@@ -69,9 +63,15 @@ Mo Rec features an extension architecture supporting custom frames, wallpapers, 
 
 ## Development
 
+### Prerequisites
+- **Node.js 22** (the version used in CI)
+- **npm** (ships with Node.js)
+- **Git**
+
+### Setup
 ```bash
-# Install dependencies
-npm install
+# Install dependencies from the lockfile
+npm ci
 
 # Run the dev server
 npm run dev
@@ -79,6 +79,17 @@ npm run dev
 # Run tests
 npm test
 ```
+
+Packaging and publishing releases are covered in [RELEASING.md](RELEASING.md).
+
+## Project Documentation
+- [CONTRIBUTING.md](CONTRIBUTING.md) — how to fork, test, and open pull requests
+- [EXTENSIONS.md](EXTENSIONS.md) — building custom frames, wallpapers, themes, and render hooks
+- [RELEASING.md](RELEASING.md) — tagging, packaging, and publishing releases
+
+## Credits
+
+MoRec continues the Recordly project, from which this codebase originates; legacy `.recordly` project files remain fully supported.
 
 ## License
 Mo Rec is licensed under the **AGPL 3.0**.

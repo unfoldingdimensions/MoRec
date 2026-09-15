@@ -243,7 +243,14 @@ async function ensureSourceTree() {
 	}
 
 	ensureTarAvailable();
-	execFileSync("tar", ["-xzf", archivePath, "-C", extractRoot], { stdio: "inherit" });
+	try {
+		execFileSync("tar", ["-xzf", archivePath, "-C", extractRoot], { stdio: "inherit" });
+	} catch (error) {
+		// A truncated/corrupt cached archive would fail every retry; drop it so
+		// the next run re-downloads a fresh copy.
+		await rm(archivePath, { force: true });
+		throw error;
+	}
 
 	if (!existsSync(path.join(extractedSourceDir, "CMakeLists.txt"))) {
 		throw new Error(
@@ -461,6 +468,15 @@ async function main() {
 			await stageRuntimeArtifacts(target, candidateDir, runtimeEntries);
 			console.log(`[build-whisper-runtime] Staged whisper runtime -> ${target.outputDir}`);
 		} catch (error) {
+			// Same policy as the no-CMake branch above: dev postinstalls/CI may
+			// continue without the runtime, but direct release builds must fail
+			// loudly so we never ship a build with broken auto-captions.
+			const isPostinstall = process.env.npm_lifecycle_event === "postinstall";
+			const isCI = process.env.CI === "true";
+			const allowMissing = process.env.WHISPER_RUNTIME_ALLOW_MISSING === "1";
+			if (!isPostinstall && !isCI && !allowMissing) {
+				throw error;
+			}
 			console.warn(
 				`[build-whisper-runtime] Failed to build whisper runtime for ${target.archTag} (${error.message}). Continuing with bundled/available binaries.`,
 			);

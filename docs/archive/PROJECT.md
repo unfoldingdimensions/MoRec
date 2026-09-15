@@ -1,3 +1,5 @@
+> **Archived 2026-09-16** — task specification for the recording reliability & audio lifecycle fixes (all milestones completed August 2026). Kept for history; not a current project specification. Living documentation is in the root docs and `docs/research/`.
+
 # Project: MoRec Recording Reliability & Audio Lifecycle Fixes
 
 ## Architecture

@@ -6,6 +6,7 @@ import { promisify } from "node:util";
 import { app } from "electron";
 import { getFfmpegBinaryPath } from "../ffmpeg/binary";
 import { getBundledWhisperExecutableCandidates } from "../paths/binaries";
+import { getUsableCompanionAudioCandidates } from "../recording/diagnostics";
 import { resolveRecordingSession } from "../project/session";
 import { normalizeVideoSourcePath } from "../utils";
 import { parseSrtCues, parseWhisperJsonCues, shouldRetryWhisperWithoutJson } from "./parser";
@@ -97,6 +98,22 @@ export async function resolveCaptionAudioCandidates(videoPath: string) {
 	};
 
 	pushCandidate(videoPath, "recording");
+
+	// Companion sidecars (Windows .wav, macOS .m4a/.webm) are timeline-aligned with
+	// the recording, and native Windows recordings carry no embedded audio at all,
+	// so try them before the linked webcam track (whose audio is offset by the
+	// webcam start time).
+	const companionCandidates = await getUsableCompanionAudioCandidates(videoPath);
+	for (const companion of companionCandidates) {
+		for (const companionPath of companion.usablePaths) {
+			pushCandidate(
+				companionPath,
+				companionPath === companion.systemPath
+					? "system audio companion track"
+					: "microphone companion track",
+			);
+		}
+	}
 
 	const requestedRecordingSession = await resolveRecordingSession(videoPath);
 	pushCandidate(requestedRecordingSession?.webcamPath, "linked webcam recording");

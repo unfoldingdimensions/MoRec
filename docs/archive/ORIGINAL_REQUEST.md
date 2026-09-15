@@ -1,3 +1,5 @@
+> **Archived 2026-09-16** — the original task brief that started this repo, kept for history. This described a completed task and is not a current project specification; living documentation is in the root docs and `docs/research/`.
+
 # Original User Request
 
 ## Initial Request — 2026-08-19T02:51:03Z
