@@ -239,9 +239,41 @@ export async function resolveProjectMediaSources(
 	}
 }
 
+const STALE_ATOMIC_TEMP_FILE_AGE_MS = 60 * 60 * 1000;
+// Matches the temp names createTemporaryPath generates for project and
+// backup generations.
+const ATOMIC_TEMP_FILE_PATTERN = /^\.morec-(?:project|backup)-\d+-[0-9a-f-]{36}\.tmp$/;
+
+// The atomic writer cleans its temp files in a finally block; a hard crash
+// between the write and the rename strands them. Sweep on Projects-directory
+// access — the age guard protects any concurrent writer in dev (production
+// enforces a single instance).
+async function sweepStaleAtomicTempFiles(directory: string) {
+	let entries: string[];
+	try {
+		entries = await fs.readdir(directory);
+	} catch {
+		return;
+	}
+
+	const staleBefore = Date.now() - STALE_ATOMIC_TEMP_FILE_AGE_MS;
+	await Promise.all(
+		entries
+			.filter((entry) => ATOMIC_TEMP_FILE_PATTERN.test(entry))
+			.map(async (entry) => {
+				const entryPath = path.join(directory, entry);
+				const stats = await fs.stat(entryPath).catch(() => null);
+				if (stats?.isFile() && stats.mtimeMs < staleBefore) {
+					await fs.rm(entryPath, { force: true }).catch(() => undefined);
+				}
+			}),
+	);
+}
+
 export async function getProjectsDir() {
 	const projectsDir = path.join(await getRecordingsDir(), PROJECTS_DIRECTORY_NAME);
 	await fs.mkdir(projectsDir, { recursive: true });
+	await sweepStaleAtomicTempFiles(projectsDir);
 	return projectsDir;
 }
 

@@ -146,6 +146,32 @@ describe("project manager recents + library listing", () => {
 		]);
 	});
 
+	it("sweeps stale atomic temp files from the Projects directory", async () => {
+		const { getProjectsDir } = await import("./manager");
+		const projectsDir = await getProjectsDir();
+
+		const staleTmp = path.join(
+			projectsDir,
+			".morec-project-4242-3f2504e0-4f89-11d3-9a0c-0305e82c3301.tmp",
+		);
+		const freshTmp = path.join(
+			projectsDir,
+			".morec-backup-4242-6ec0bd7f-11c0-43da-975e-2a8ad9ebae0b.tmp",
+		);
+		const unrelatedTmp = path.join(projectsDir, "leftover.tmp");
+		await fs.writeFile(staleTmp, "orphan");
+		await fs.writeFile(freshTmp, "live");
+		await fs.writeFile(unrelatedTmp, "other");
+		const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+		await fs.utimes(staleTmp, twoHoursAgo, twoHoursAgo);
+
+		await getProjectsDir();
+
+		await expect(fs.access(staleTmp)).rejects.toMatchObject({ code: "ENOENT" });
+		await expect(fs.readFile(freshTmp, "utf-8")).resolves.toBe("live");
+		await expect(fs.readFile(unrelatedTmp, "utf-8")).resolves.toBe("other");
+	});
+
 	it("listing includes scanned Projects-directory files and recents", async () => {
 		const { listProjectLibraryEntries } = await import("./manager");
 
