@@ -188,17 +188,19 @@ async function ensureNamedProjectSaveDoesNotOverwriteDifferentProject(
 			};
 		}
 
-		if (existingVideoPath && incomingVideoPath && existingVideoPath !== incomingVideoPath) {
+		// At least one side predates projectId (legacy project files): the
+		// source video is the identity anchor. Equal video paths mean the
+		// user is re-saving their own project — requiring both sides to lack
+		// a projectId here permanently blocked named saves over every
+		// legacy project.
+		if (existingVideoPath && incomingVideoPath) {
+			if (existingVideoPath === incomingVideoPath) {
+				return { success: true };
+			}
+
 			return {
 				success: false,
 				message: "A different project already uses this name",
-			};
-		}
-
-		if (!existingProjectId && !incomingProjectId && existingVideoPath && incomingVideoPath) {
-			return {
-				success: false,
-				message: "Unable to verify project identity for the chosen name",
 			};
 		}
 

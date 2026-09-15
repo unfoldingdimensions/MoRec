@@ -251,6 +251,58 @@ describe("delete-recording-file IPC handler", () => {
 		}
 	});
 
+	it("allows named save over a legacy project (no projectId) with the same source video", async () => {
+		const namedSaveHandler = ipcHandlers.get("save-project-file-named")!;
+		const videoPath = path.join(testRecordingsDir, "recording-legacy-source.mp4");
+		await fs.writeFile(videoPath, "video");
+
+		const targetProjectPath = path.join(testRecordingsDir, "Projects", "Legacy Take.morec");
+		await fs.mkdir(path.dirname(targetProjectPath), { recursive: true });
+		await fs.writeFile(
+			targetProjectPath,
+			JSON.stringify({ version: 1, videoPath, editor: {} }),
+			"utf-8",
+		);
+
+		const result = (await namedSaveHandler(
+			null,
+			{ version: 1, projectId: "incoming-project", videoPath, editor: {} },
+			"Legacy Take",
+			null,
+			"copy",
+		)) as { success: boolean; message?: string };
+
+		expect(result.success).toBe(true);
+		const saved = JSON.parse(await fs.readFile(targetProjectPath, "utf-8"));
+		expect(typeof saved.projectId).toBe("string");
+		expect(saved.videoPath).toBe(videoPath);
+	});
+
+	it("refuses the name when the existing project uses a different source video", async () => {
+		const namedSaveHandler = ipcHandlers.get("save-project-file-named")!;
+		const existingVideoPath = path.join(testRecordingsDir, "recording-existing.mp4");
+		const incomingVideoPath = path.join(testRecordingsDir, "recording-incoming.mp4");
+		await fs.writeFile(existingVideoPath, "video-a");
+		await fs.writeFile(incomingVideoPath, "video-b");
+
+		const targetProjectPath = path.join(testRecordingsDir, "Projects", "Clash.morec");
+		await fs.mkdir(path.dirname(targetProjectPath), { recursive: true });
+		const existingContent = JSON.stringify({ version: 1, videoPath: existingVideoPath, editor: {} });
+		await fs.writeFile(targetProjectPath, existingContent, "utf-8");
+
+		const result = (await namedSaveHandler(
+			null,
+			{ version: 1, projectId: "incoming-project", videoPath: incomingVideoPath, editor: {} },
+			"Clash",
+			null,
+			"copy",
+		)) as { success: boolean; message?: string };
+
+		expect(result.success).toBe(false);
+		expect(result.message).toBe("A different project already uses this name");
+		expect(await fs.readFile(targetProjectPath, "utf8")).toBe(existingContent);
+	});
+
 	it("clears currentVideoPath and currentRecordingSession if the deleted video was active", async () => {
 		const deleteHandler = ipcHandlers.get("delete-recording-file")!;
 		const mainVideo = path.join(testRecordingsDir, "recording-active.mp4");
