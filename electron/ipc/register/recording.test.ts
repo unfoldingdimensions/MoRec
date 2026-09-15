@@ -1,4 +1,7 @@
 import { EventEmitter } from "node:events";
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import { PassThrough } from "node:stream";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { IpcRegistry } from "../../test/ipcRegistry";
@@ -15,6 +18,15 @@ const recordingWindows = {
 	waitForWindowsCaptureStop: vi.fn(async () => "/tmp/morec-native-1.mp4"),
 	attachWindowsCaptureLifecycle: vi.fn(),
 	muxNativeWindowsVideoWithAudio: vi.fn(),
+};
+
+const recordingDiagnostics = {
+	getCompanionAudioFallbackInfo: vi.fn(() => null),
+	getFileSizeIfPresent: vi.fn(async () => 0),
+	recordNativeCaptureDiagnostics: vi.fn(),
+	summarizeMicrophoneChunkTiming: vi.fn(() => null),
+	validateRecordedVideo: vi.fn(),
+	writeRecordingDiagnosticsSnapshot: vi.fn(),
 };
 
 	/** Holds the first start at waitForWindowsCaptureStart (past the mutex). */
@@ -60,6 +72,9 @@ describe("register/recording start orchestration (win32)", () => {
 		vi.spyOn(process, "platform", "get").mockReturnValue("win32");
 
 		for (const fn of Object.values(recordingWindows)) {
+			fn.mockReset();
+		}
+		for (const fn of Object.values(recordingDiagnostics)) {
 			fn.mockReset();
 		}
 		// The availability check precedes every other branch in the start path.
@@ -132,14 +147,7 @@ describe("register/recording start orchestration (win32)", () => {
 		vi.doMock("../ffmpeg/binary", () => ({
 			getFfmpegBinaryPath: vi.fn(() => "/fake/ffmpeg"),
 		}));
-		vi.doMock("../recording/diagnostics", () => ({
-			getCompanionAudioFallbackInfo: vi.fn(() => null),
-			getFileSizeIfPresent: vi.fn(async () => 0),
-			recordNativeCaptureDiagnostics: vi.fn(),
-			summarizeMicrophoneChunkTiming: vi.fn(() => null),
-			validateRecordedVideo: vi.fn(),
-			writeRecordingDiagnosticsSnapshot: vi.fn(),
-		}));
+		vi.doMock("../recording/diagnostics", () => recordingDiagnostics);
 		vi.doMock("../recording/audioFilters", () => ({
 			getBrowserMicSidecarFilters: vi.fn(() => []),
 			shouldKeepRecordingAudioSidecars: vi.fn(() => false),
@@ -254,5 +262,182 @@ describe("register/recording start orchestration (win32)", () => {
 
 		expect(result).toEqual({ success: true, microphoneFallbackRequired: false });
 		expect(spawnMock).toHaveBeenCalledTimes(1);
+	});
+});
+
+describe("register/recording stop recovery (win32)", () => {
+	const registry = new IpcRegistry();
+	let state: typeof import("../state");
+
+	beforeEach(async () => {
+		vi.resetModules();
+		registry.reset();
+		registry.installElectronMock();
+		state = await import("../state");
+		vi.spyOn(process, "platform", "get").mockReturnValue("win32");
+
+		for (const fn of Object.values(recordingWindows)) {
+			fn.mockReset();
+		}
+		for (const fn of Object.values(recordingDiagnostics)) {
+			fn.mockReset();
+		}
+
+		vi.doMock("node:child_process", () => ({
+			spawn: vi.fn(() => new FakeCaptureProcess()),
+			execFile: vi.fn(),
+		}));
+		vi.doMock("../recording/windows", () => recordingWindows);
+		vi.doMock("../recording/mac", () => ({
+			attachNativeCaptureLifecycle: vi.fn(),
+			finalizeStoredVideo: vi.fn(),
+			muxNativeMacRecordingWithAudio: vi.fn(),
+			recoverNativeMacCaptureOutput: vi.fn(),
+			waitForNativeCaptureStart: vi.fn(),
+			waitForNativeCaptureStop: vi.fn(),
+		}));
+		vi.doMock("../recording/diagnostics", () => recordingDiagnostics);
+		vi.doMock("../recording/windowsFallbacks", () => ({
+			shouldStartWindowsBrowserMicrophoneFallback: vi.fn(() => false),
+			shouldUseWindowsBrowserMicrophoneFallback: vi.fn(() => false),
+		}));
+		vi.doMock("../monitorResolver", () => ({
+			getMonitorHandlesAsync: vi.fn(async () => []),
+		}));
+		vi.doMock("../windowsCaptureSelection", () => ({
+			resolveWindowsCaptureTarget: vi.fn(() => ({
+				kind: "display",
+				bounds: { x: 0, y: 0, width: 1920, height: 1080 },
+				displayId: 1,
+			})),
+		}));
+		vi.doMock("../paths/binaries", () => ({
+			ensureNativeCaptureHelperBinary: vi.fn(async () => "/fake/helper"),
+			ensureSwiftHelperBinary: vi.fn(async () => "/fake/helper"),
+			getNativeCaptureHelperBinaryPath: vi.fn(() => "/fake/helper"),
+			getSystemCursorHelperBinaryPath: vi.fn(() => "/fake/cursor"),
+			getSystemCursorHelperSourcePath: vi.fn(() => "/fake/cursor.swift"),
+			getWindowsCaptureExePath: vi.fn(() => "/fake/wgc-capture.exe"),
+		}));
+		vi.doMock("../cursor/bounds", () => ({
+			startWindowBoundsCapture: vi.fn(),
+			stopWindowBoundsCapture: vi.fn(),
+		}));
+		vi.doMock("../cursor/interaction", () => ({
+			startInteractionCapture: vi.fn(),
+			stopInteractionCapture: vi.fn(),
+		}));
+		vi.doMock("../cursor/monitor", () => ({
+			startNativeCursorMonitor: vi.fn(),
+			stopNativeCursorMonitor: vi.fn(),
+		}));
+		vi.doMock("../cursor/telemetry", () => ({
+			normalizeCursorTelemetrySamples: vi.fn((v: unknown) => v),
+			pauseCursorCaptureAtBoundary: vi.fn(),
+			persistPendingCursorTelemetry: vi.fn(async () => undefined),
+			resetCursorCaptureClock: vi.fn(),
+			resumeCursorCapture: vi.fn(),
+			sampleCursorPoint: vi.fn(() => null),
+			snapshotCursorTelemetryForPersistence: vi.fn(),
+			startCursorSampling: vi.fn(),
+			stopCursorCapture: vi.fn(),
+			writeCursorTelemetry: vi.fn(),
+		}));
+		vi.doMock("../ffmpeg/binary", () => ({
+			getFfmpegBinaryPath: vi.fn(() => "/fake/ffmpeg"),
+		}));
+		vi.doMock("../recording/audioFilters", () => ({
+			getBrowserMicSidecarFilters: vi.fn(() => []),
+			shouldKeepRecordingAudioSidecars: vi.fn(() => false),
+		}));
+		vi.doMock("../recording/storagePath", () => ({
+			resolveRecordedVideoStoragePath: vi.fn(async (p: string) => p),
+		}));
+		vi.doMock("../project/manager", () => ({
+			rememberApprovedLocalReadPath: vi.fn(),
+		}));
+		vi.doMock("../utils", async (importOriginal) => {
+			const actual = await importOriginal<typeof import("../utils")>();
+			return {
+				...actual,
+				getScreen: () => ({
+					getAllDisplays: () => [],
+					getPrimaryDisplay: () => ({
+						id: 1,
+						bounds: { x: 0, y: 0, width: 1920, height: 1080 },
+					}),
+				}),
+			};
+		});
+		vi.doMock("../../cursorHider", () => ({
+			hideCursor: vi.fn(() => true),
+			showCursor: vi.fn(),
+		}));
+
+		const { registerRecordingHandlers } = await import("./recording");
+		registerRecordingHandlers();
+	});
+
+	afterEach(async () => {
+		vi.restoreAllMocks();
+		vi.resetModules();
+		state?.setWindowsNativeCaptureActive(false);
+		state?.setWindowsCaptureStopRequested(false);
+		state?.setWindowsCaptureProcess(null);
+		state?.setWindowsCaptureTempPath(null);
+		state?.setWindowsCaptureTargetPath(null);
+		state?.setWindowsSystemAudioPath(null);
+		state?.setWindowsMicAudioPath(null);
+		state?.setWindowsPendingVideoPath(null);
+	});
+
+	it("recovers a stranded temp take when stop is invoked with no active capture", async () => {
+		recordingDiagnostics.validateRecordedVideo.mockResolvedValue({
+			fileSizeBytes: 4096,
+			durationSeconds: 12,
+		});
+		const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "morec-recover-temp-"));
+		const finalRoot = await fs.mkdtemp(path.join(os.tmpdir(), "morec-recover-final-"));
+		try {
+			const tempVideoPath = path.join(tempRoot, "morec-native-999.mp4");
+			const tempMicPath = path.join(tempRoot, "morec-native-999.mic.wav");
+			await fs.writeFile(tempVideoPath, "video-bytes");
+			await fs.writeFile(tempMicPath, "mic-bytes");
+			const finalVideoPath = path.join(finalRoot, "recording-999.mp4");
+			const finalMicPath = path.join(finalRoot, "recording-999.mic.wav");
+			state.setWindowsCaptureTempPath(tempVideoPath);
+			state.setWindowsCaptureTargetPath(finalVideoPath);
+			state.setWindowsMicAudioPath(finalMicPath);
+
+			await expect(registry.invoke("stop-native-screen-recording")).resolves.toEqual({
+				success: true,
+				path: finalVideoPath,
+			});
+			await expect(fs.readFile(finalVideoPath, "utf8")).resolves.toBe("video-bytes");
+			await expect(fs.readFile(finalMicPath, "utf8")).resolves.toBe("mic-bytes");
+			await expect(fs.access(tempVideoPath)).rejects.toThrow();
+			await expect(fs.access(tempMicPath)).rejects.toThrow();
+			// The mux handler picks the recovered take up from the pending path.
+			expect(state.windowsPendingVideoPath).toBe(finalVideoPath);
+			expect(state.windowsCaptureTempPath).toBeNull();
+			expect(state.windowsCaptureTargetPath).toBeNull();
+		} finally {
+			await fs.rm(tempRoot, { recursive: true, force: true }).catch(() => undefined);
+			await fs.rm(finalRoot, { recursive: true, force: true }).catch(() => undefined);
+		}
+	});
+
+	it("reports a Windows-specific failure and clears state when nothing is recoverable", async () => {
+		state.setWindowsCaptureTempPath("C:\\nonexistent\\morec-native-1.mp4");
+
+		await expect(registry.invoke("stop-native-screen-recording")).resolves.toEqual({
+			success: false,
+			message: "No native Windows screen recording is active.",
+		});
+		await expect(registry.invoke("recover-native-screen-recording")).resolves.toEqual({
+			success: false,
+			message: "No recoverable native Windows recording output was found.",
+		});
+		expect(state.windowsCaptureTempPath).toBeNull();
 	});
 });

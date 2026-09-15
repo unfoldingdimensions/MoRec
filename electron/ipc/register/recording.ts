@@ -121,6 +121,7 @@ import {
 	windowsCapturePaused,
 	windowsCaptureProcess,
 	windowsCaptureTargetPath,
+	windowsCaptureTempPath,
 	windowsMicAudioPath,
 	windowsNativeCaptureActive,
 	windowsOrphanedMicAudioPath,
@@ -379,6 +380,112 @@ async function resolveExistingPath(...candidates: Array<string | null | undefine
 	}
 
 	return null;
+}
+
+async function salvageRecoveredCompanionFile(
+	tempAudioPath: string | null,
+	finalAudioPath: string | null,
+) {
+	if (!tempAudioPath) {
+		return;
+	}
+	try {
+		const stat = await fs.stat(tempAudioPath).catch(() => null);
+		if (stat && stat.size > 0 && finalAudioPath && tempAudioPath !== finalAudioPath) {
+			await moveFileWithOverwrite(tempAudioPath, finalAudioPath);
+			const tempJsonPath = `${tempAudioPath}.json`;
+			if (await pathExists(tempJsonPath)) {
+				await moveFileWithOverwrite(tempJsonPath, `${finalAudioPath}.json`);
+			}
+		} else {
+			await fs.rm(tempAudioPath, { force: true }).catch(() => undefined);
+		}
+	} catch (error) {
+		console.warn("[recording] Failed to salvage recovered companion audio:", error);
+	}
+}
+
+// A stop timeout kills the helper with windowsCaptureStopRequested still set,
+// so the crash-salvage lifecycle hook early-returns and the finished take
+// would strand in %TEMP% with no Windows recovery path (the old handler only
+// recovered on macOS). This mirrors the macOS recovery: move the temp video
+// plus companion sidecars to their final names, validate, and hand the result
+// to the renderer as a recovered stop.
+async function recoverNativeWindowsRecordingOutput() {
+	const tempVideoPath = windowsCaptureTempPath;
+	const preferredVideoPath = windowsCaptureTargetPath;
+	const preferredSystemAudioPath = windowsSystemAudioPath;
+	const preferredMicAudioPath = windowsMicAudioPath;
+
+	const clearCaptureState = () => {
+		setWindowsCaptureProcess(null);
+		setWindowsNativeCaptureActive(false);
+		setNativeScreenRecordingActive(false);
+		setWindowsCaptureTargetPath(null);
+		setWindowsCaptureTempPath(null);
+		setWindowsCaptureStopRequested(false);
+		setWindowsCapturePaused(false);
+		setWindowsOrphanedMicAudioPath(null);
+		setWindowsSystemAudioPath(null);
+		setWindowsMicAudioPath(null);
+	};
+
+	if (!tempVideoPath && !preferredVideoPath) {
+		return null;
+	}
+
+	const recordingsDir = await getRecordingsDir();
+	const timestampMatch = path
+		.basename(tempVideoPath ?? preferredVideoPath ?? "")
+		.match(/(\d{10,})/);
+	const finalVideoPath =
+		preferredVideoPath ??
+		path.join(recordingsDir, `recording-${timestampMatch?.[1] ?? Date.now()}.mp4`);
+	const sourceVideoPath = await resolveExistingPath(tempVideoPath, preferredVideoPath);
+
+	if (!sourceVideoPath) {
+		clearCaptureState();
+		return null;
+	}
+
+	const tempSystemAudioPath = tempVideoPath?.replace(/\.mp4$/u, ".system.wav") ?? null;
+	const tempMicAudioPath = tempVideoPath?.replace(/\.mp4$/u, ".mic.wav") ?? null;
+
+	try {
+		if (sourceVideoPath !== finalVideoPath) {
+			await moveFileWithOverwrite(sourceVideoPath, finalVideoPath);
+		}
+		await salvageRecoveredCompanionFile(tempSystemAudioPath, preferredSystemAudioPath);
+		await salvageRecoveredCompanionFile(tempMicAudioPath, preferredMicAudioPath);
+
+		const validation = await validateRecordedVideo(finalVideoPath);
+		clearCaptureState();
+		setWindowsPendingVideoPath(finalVideoPath);
+		await writeWindowsRecordingDiagnostics(finalVideoPath, {
+			phase: "stop",
+			outputPath: finalVideoPath,
+			systemAudioPath: preferredSystemAudioPath,
+			microphonePath: preferredMicAudioPath,
+			details: {
+				fileSizeBytes: validation.fileSizeBytes,
+				durationSeconds: validation.durationSeconds,
+				recoveredAfterStopTimeout: true,
+			},
+		});
+		return { success: true, path: finalVideoPath };
+	} catch (error) {
+		console.error("Failed to recover native Windows capture output:", error);
+		clearCaptureState();
+		await writeWindowsRecordingDiagnostics(finalVideoPath, {
+			phase: "stop",
+			outputPath: finalVideoPath,
+			systemAudioPath: preferredSystemAudioPath,
+			microphonePath: preferredMicAudioPath,
+			error: String(error),
+			details: { recoveredAfterStopTimeout: true },
+		});
+		return null;
+	}
 }
 
 // Guards against concurrent start invocations: IPC handlers interleave, and a
@@ -1131,6 +1238,18 @@ export function registerRecordingHandlers(
 				}
 			}
 
+			// Inactive but a previous stop attempt failed after killing the helper
+			// (e.g. the 45s stop timeout): recover the stranded temp take instead
+			// of reporting "only available on macOS".
+			if (process.platform === "win32") {
+				const recovered = await recoverNativeWindowsRecordingOutput();
+				if (recovered) {
+					return recovered;
+				}
+
+				return { success: false, message: "No native Windows screen recording is active." };
+			}
+
 			if (process.platform !== "darwin") {
 				return {
 					success: false,
@@ -1283,6 +1402,18 @@ export function registerRecordingHandlers(
 	});
 
 	ipcMain.handle("recover-native-screen-recording", async () => {
+		if (process.platform === "win32") {
+			const recovered = await recoverNativeWindowsRecordingOutput();
+			if (recovered) {
+				return recovered;
+			}
+
+			return {
+				success: false,
+				message: "No recoverable native Windows recording output was found.",
+			};
+		}
+
 		if (process.platform !== "darwin") {
 			return {
 				success: false,
