@@ -3,7 +3,14 @@ Version 3, 19 November 2007
 
 Copyright (C) 2026 Mo Rec Contributors
 
-Mo Rec is an independent application.
+Mo Rec is a modified version of Recordly (Copyright (C) 2026 webadderall,
+https://github.com/webadderallorg/Recordly), which itself started as a fork
+of the OpenScreen project authored by Siddharth Vaddem (2025).
+
+Modifications began 2026-08-19. See NOTICE.md for the full attribution and
+modification notice. Recordly's additional license terms are honored: the
+Recordly name and branding are not used, and Recordly is attributed in this
+repository and in the application's user interface.
 
 ---
 PART 1: THE AGPLv3 LICENSE 

@@ -64,7 +64,8 @@
 		"savedMetadataToast": "Opname opgeslagen, maar de sessiemetagegevens konden niet worden opgeslagen.",
 		"editorOpenFailedToast": "Opname opgeslagen, maar de editor kon niet worden geopend. Open de app opnieuw en laad deze vanuit je opnames.",
 		"savedMuxFailedToast": "Opname opgeslagen, maar de bijbehorende audiotrack kon niet worden samengevoegd.",
-		"recoveredMuxFailedToast": "Opname hersteld, maar de bijbehorende audiotrack kon niet worden samengevoegd."
+		"recoveredMuxFailedToast": "Opname hersteld, maar de bijbehorende audiotrack kon niet worden samengevoegd.",
+		"basedOnRecordly": "Gebaseerd op Recordly"
 	},
 	"sourceSelector": {
 		"loadingSources": "Bronnen laden...",

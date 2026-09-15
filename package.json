@@ -2,6 +2,7 @@
 	"name": "morec",
 	"productName": "Mo Rec",
 	"description": "A free, creator-focused screen recorder and editor with auto-zoom, cursor effects, backgrounds, annotations, and more.",
+	"license": "AGPL-3.0-only",
 	"private": true,
 	"version": "0.2.0",
 	"type": "module",

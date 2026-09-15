@@ -64,7 +64,8 @@
 		"savedMetadataToast": "Aufnahme gespeichert, aber die Sitzungsmetadaten konnten nicht gespeichert werden.",
 		"editorOpenFailedToast": "Aufnahme gespeichert, aber der Editor konnte nicht geöffnet werden. Öffne die App erneut und lade sie aus deinen Aufnahmen.",
 		"savedMuxFailedToast": "Aufnahme gespeichert, aber die Tonspur konnte nicht zusammengefügt werden.",
-		"recoveredMuxFailedToast": "Aufnahme wiederhergestellt, aber die Tonspur konnte nicht zusammengefügt werden."
+		"recoveredMuxFailedToast": "Aufnahme wiederhergestellt, aber die Tonspur konnte nicht zusammengefügt werden.",
+		"basedOnRecordly": "Basierend auf Recordly"
 	},
 	"sourceSelector": {
 		"loadingSources": "Quellen werden geladen...",
