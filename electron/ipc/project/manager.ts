@@ -412,13 +412,12 @@ export async function listProjectLibraryEntries() {
 		.sort((left, right) => right.updatedAt - left.updatedAt);
 
 	// Listing the library must not prune recents that are temporarily
-	// unreadable (e.g. on an unmounted drive): keep every known recent path,
-	// with resolved entries first, instead of overwriting with only the
-	// currently readable subset.
+	// unreadable (e.g. on an unmounted drive), and the recents cap must not
+	// evict user-opened projects just because the Projects directory scan
+	// found many files: keep the user's recents list first in its own MRU
+	// order, then append scan entries the recents do not already know.
 	await enqueueRecentProjectsUpdate(() =>
-		saveRecentProjectPaths(
-			Array.from(new Set([...entries.map((entry) => entry.path), ...recentProjectPaths])),
-		),
+		saveRecentProjectPaths([...recentProjectPaths, ...entries.map((entry) => entry.path)]),
 	);
 
 	return {
