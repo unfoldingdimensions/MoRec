@@ -77,6 +77,14 @@ describe("writeProjectFileAtomically", () => {
 		await expectNoTemporaryArtifacts();
 	});
 
+	it("commits binary contents byte-for-byte", async () => {
+		const payload = Buffer.from([0x00, 0x01, 0xfe, 0xff, 0x0d, 0x0a]);
+		await writeProjectFileAtomically(projectPath, payload);
+
+		await expect(fs.readFile(projectPath)).resolves.toEqual(payload);
+		await expectNoTemporaryArtifacts();
+	});
+
 	it("serializes overlapping writes to the same project", async () => {
 		await writeProjectFileAtomically(projectPath, '{"revision":1}');
 

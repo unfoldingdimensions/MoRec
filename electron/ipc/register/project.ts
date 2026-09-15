@@ -12,6 +12,7 @@ import {
 } from "../constants";
 import { getProjectBackupPath, writeProjectFileAtomically } from "../project/atomicSave";
 import {
+	enqueueRecentProjectsUpdate,
 	getProjectsDir,
 	getProjectThumbnailPath,
 	isPathInsideDirectory,
@@ -480,15 +481,17 @@ export function registerProjectHandlers() {
 						.rm(getProjectBackupPath(activeProjectPath), { force: true })
 						.catch(() => undefined);
 
-					const recentProjectPaths = await loadRecentProjectPaths();
-					const filteredRecentProjectPaths: string[] = [];
-					for (const recentProjectPath of recentProjectPaths) {
-						const recentResolvedPath = await resolveComparablePath(recentProjectPath);
-						if (recentResolvedPath !== activeResolvedPath) {
-							filteredRecentProjectPaths.push(recentProjectPath);
+					await enqueueRecentProjectsUpdate(async () => {
+						const currentRecentProjectPaths = await loadRecentProjectPaths();
+						const filteredRecentProjectPaths: string[] = [];
+						for (const recentProjectPath of currentRecentProjectPaths) {
+							const recentResolvedPath = await resolveComparablePath(recentProjectPath);
+							if (recentResolvedPath !== activeResolvedPath) {
+								filteredRecentProjectPaths.push(recentProjectPath);
+							}
 						}
-					}
-					await saveRecentProjectPaths(filteredRecentProjectPaths);
+						await saveRecentProjectPaths(filteredRecentProjectPaths);
+					});
 				}
 
 				setCurrentProjectPath(targetProjectPath);
@@ -790,6 +793,9 @@ export function registerProjectHandlers() {
 				".cursor.json",
 				".telemetry.json",
 				RECORDING_SESSION_MANIFEST_SUFFIX,
+				// The manifest is committed atomically, so its previous generation
+				// is preserved alongside it and must be cleaned up with the rest.
+				`${RECORDING_SESSION_MANIFEST_SUFFIX}.bak`,
 			];
 
 			await Promise.all([

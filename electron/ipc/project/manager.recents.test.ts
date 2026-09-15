@@ -126,6 +126,26 @@ describe("project manager recents + library listing", () => {
 		]);
 	});
 
+	it("keeps every entry when concurrent remembers race", async () => {
+		const { rememberRecentProject, loadRecentProjectPaths } = await import("./manager");
+
+		// The read-modify-write queue serializes these; without it, all three
+		// read the empty store before any write lands and only the last wins.
+		await Promise.all([
+			rememberRecentProject("/disks/race-1.morec"),
+			rememberRecentProject("/disks/race-2.morec"),
+			rememberRecentProject("/disks/race-3.morec"),
+		]);
+
+		const paths = await loadRecentProjectPaths();
+		expect(paths).toHaveLength(3);
+		expect(paths).toEqual([
+			await normalized("/disks/race-3.morec"),
+			await normalized("/disks/race-2.morec"),
+			await normalized("/disks/race-1.morec"),
+		]);
+	});
+
 	it("listing includes scanned Projects-directory files and recents", async () => {
 		const { listProjectLibraryEntries } = await import("./manager");
 

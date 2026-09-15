@@ -4,6 +4,7 @@ import path from "node:path";
 import { app } from "electron";
 import { RECORDINGS_DIR, USER_DATA_PATH } from "../../appPaths";
 import { isSupportedLocalMediaPath } from "../../mediaTypes";
+import { writeProjectFileAtomically } from "./atomicSave";
 import {
 	LEGACY_PROJECT_FILE_EXTENSIONS,
 	MAX_RECENT_PROJECTS,
@@ -247,10 +248,9 @@ export async function getProjectsDir() {
 export async function persistRecordingsDirectorySetting(nextDir: string) {
 	setCustomRecordingsDir(path.resolve(nextDir));
 	setRecordingsDirLoaded(true);
-	await fs.writeFile(
+	await writeProjectFileAtomically(
 		RECORDINGS_SETTINGS_FILE,
 		JSON.stringify({ recordingsDir: path.resolve(nextDir) }, null, 2),
-		"utf-8",
 	);
 }
 
@@ -298,15 +298,29 @@ export async function loadRecentProjectPaths() {
 	}
 }
 
+// Recents are read-modify-written from several IPC handlers (remember on
+// save/load, the library listing, and rename-mode cleanup). Serialize the
+// whole read-modify-write sequence through one queue so concurrent callers
+// cannot drop each other's entries by writing from a stale snapshot.
+let recentProjectsUpdate: Promise<unknown> = Promise.resolve();
+
+export function enqueueRecentProjectsUpdate<T>(update: () => Promise<T>): Promise<T> {
+	const run = recentProjectsUpdate.then(update, update);
+	recentProjectsUpdate = run.then(
+		() => undefined,
+		() => undefined,
+	);
+	return run;
+}
+
 export async function saveRecentProjectPaths(paths: string[]) {
 	const normalizedPaths = Array.from(new Set(paths.map((value) => normalizePath(value)))).slice(
 		0,
 		MAX_RECENT_PROJECTS,
 	);
-	await fs.writeFile(
+	await writeProjectFileAtomically(
 		RECENT_PROJECTS_FILE,
 		JSON.stringify({ paths: normalizedPaths }, null, 2),
-		"utf-8",
 	);
 }
 
@@ -315,8 +329,10 @@ export async function rememberRecentProject(projectPath: string) {
 		return;
 	}
 
-	const existingPaths = await loadRecentProjectPaths();
-	await saveRecentProjectPaths([projectPath, ...existingPaths]);
+	await enqueueRecentProjectsUpdate(async () => {
+		const existingPaths = await loadRecentProjectPaths();
+		await saveRecentProjectPaths([projectPath, ...existingPaths]);
+	});
 }
 
 export async function buildProjectLibraryEntry(
@@ -399,8 +415,10 @@ export async function listProjectLibraryEntries() {
 	// unreadable (e.g. on an unmounted drive): keep every known recent path,
 	// with resolved entries first, instead of overwriting with only the
 	// currently readable subset.
-	await saveRecentProjectPaths(
-		Array.from(new Set([...entries.map((entry) => entry.path), ...recentProjectPaths])),
+	await enqueueRecentProjectsUpdate(() =>
+		saveRecentProjectPaths(
+			Array.from(new Set([...entries.map((entry) => entry.path), ...recentProjectPaths])),
+		),
 	);
 
 	return {

@@ -3,6 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { RECORDING_SESSION_MANIFEST_SUFFIX } from "../constants";
 import type { RecordingSessionData, RecordingSessionManifest } from "../types";
+import { writeProjectFileAtomically } from "./atomicSave";
 import { normalizeVideoSourcePath, parseJsonWithByteOrderMark } from "../utils";
 
 function normalizeRecordingTimeOffsetMs(value: unknown): number {
@@ -38,7 +39,10 @@ export async function persistRecordingSessionManifest(
 		timeOffsetMs: normalizeRecordingTimeOffsetMs(session.timeOffsetMs),
 	};
 
-	await fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2), "utf-8");
+	// The manifest is the only durable record of the webcam link and its sync
+	// offset, and it is most likely to be mid-write during the exact crash it
+	// exists to survive — commit it through the temp+rename writer.
+	await writeProjectFileAtomically(manifestPath, JSON.stringify(manifest, null, 2));
 }
 
 export async function resolveRecordingSessionManifest(
