@@ -659,9 +659,10 @@ export function registerProjectHandlers() {
 				resolvedSession.webcamPath,
 			]);
 
-			if (nextSession.webcamPath) {
-				await persistRecordingSessionManifest(nextSession);
-			}
+			// Persist unconditionally: with no webcam link this removes a stale
+			// manifest still referencing a deleted webcam file, keeping the
+			// two session channels symmetric.
+			await persistRecordingSessionManifest(nextSession);
 
 			if (!options?.preserveProjectPath) {
 				setCurrentProjectPath(null);

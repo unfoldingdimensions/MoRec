@@ -303,6 +303,34 @@ describe("delete-recording-file IPC handler", () => {
 		expect(await fs.readFile(targetProjectPath, "utf8")).toBe(existingContent);
 	});
 
+	it("removes a stale webcam manifest when set-current-video-path has no webcam link", async () => {
+		const handler = ipcHandlers.get("set-current-video-path")!;
+		const videoPath = path.join(testRecordingsDir, "recording-unlink.mp4");
+		await fs.writeFile(videoPath, "video");
+		const webcamPath = path.join(testRecordingsDir, "recording-unlink-webcam.webm");
+		await fs.writeFile(webcamPath, "webcam");
+		const manifestPath = path.join(testRecordingsDir, "recording-unlink.morec-session.json");
+		await fs.writeFile(
+			manifestPath,
+			JSON.stringify({
+				version: 2,
+				videoFileName: "recording-unlink.mp4",
+				webcamFileName: "recording-unlink-webcam.webm",
+				timeOffsetMs: 0,
+			}),
+			"utf-8",
+		);
+
+		// The webcam file is already gone: resolving the session yields no
+		// webcam link, and persisting must clean up the manifest that still
+		// references it.
+		await fs.rm(webcamPath);
+
+		const result = (await handler(null, videoPath)) as { success: boolean };
+		expect(result.success).toBe(true);
+		await expect(fs.access(manifestPath)).rejects.toMatchObject({ code: "ENOENT" });
+	});
+
 	it("clears currentVideoPath and currentRecordingSession if the deleted video was active", async () => {
 		const deleteHandler = ipcHandlers.get("delete-recording-file")!;
 		const mainVideo = path.join(testRecordingsDir, "recording-active.mp4");
