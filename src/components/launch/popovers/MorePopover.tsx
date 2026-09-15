@@ -186,7 +186,7 @@ export function MorePopover({
 						userSelect: "text",
 					}}
 				>
-					v{appVersion}
+					{t("recording.basedOnRecordly", "Based on Recordly")} · v{appVersion}
 				</div>
 			)}
 		</HudPopover>

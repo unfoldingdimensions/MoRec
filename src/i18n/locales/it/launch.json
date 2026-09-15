@@ -64,7 +64,8 @@
 		"savedMetadataToast": "Registrazione salvata, ma i metadati della sessione non sono stati salvati.",
 		"editorOpenFailedToast": "Registrazione salvata, ma non è stato possibile aprire l'editor. Riapri l'app e caricala dalle tue registrazioni.",
 		"savedMuxFailedToast": "Registrazione salvata, ma non è stato possibile unire l'audio complementare.",
-		"recoveredMuxFailedToast": "Registrazione recuperata, ma non è stato possibile unire l'audio complementare."
+		"recoveredMuxFailedToast": "Registrazione recuperata, ma non è stato possibile unire l'audio complementare.",
+		"basedOnRecordly": "Basato su Recordly"
 	},
 	"sourceSelector": {
 		"loadingSources": "Caricamento sorgenti...",
