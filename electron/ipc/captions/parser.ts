@@ -50,7 +50,11 @@ export function parseWhisperJsonWords(tokens: unknown): CaptionWordPayload[] {
 			}
 
 			if (tokenStartMs == null || tokenEndMs == null || tokenEndMs <= tokenStartMs) {
-				return [];
+				// whisper.cpp can emit zero-duration or offset-less special tokens.
+				// Skip them instead of discarding every word timing in the segment,
+				// which would silently downgrade the whole transcript to the
+				// silence-only segmentation path.
+				continue;
 			}
 
 			const previousWord = words.length > 0 ? words[words.length - 1] : null;
