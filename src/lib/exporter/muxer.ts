@@ -124,7 +124,10 @@ export class VideoMuxer {
 
 		this.output = new Output({
 			format: new Mp4OutputFormat({
-				fastStart: false,
+				// Moov-at-front for in-memory outputs is free; on the streaming IPC
+				// target 'in-memory' would buffer the whole (multi-GiB) file, and
+				// 'reserve' needs a known size bound, so streams keep moov-at-end.
+				fastStart: this.target instanceof BufferTarget ? "in-memory" : false,
 			}),
 			target: this.target,
 		});
