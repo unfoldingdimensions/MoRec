@@ -95,7 +95,9 @@ describe("AudioProcessor offline render preparation", () => {
 		expect(prepared.companionEntries).toHaveLength(1);
 		expect(prepared.companionEntries[0]?.buffer).toBe(micBuffer);
 		expect(prepared.companionEntries[0]?.gain).toBe(1);
-		expect(decodeAudioFromUrl).toHaveBeenCalledWith("file:///tmp/recording.mp4");
+		// The embedded decode receives the expected media duration for progress
+		// reporting; sidecar decodes do not.
+		expect(decodeAudioFromUrl).toHaveBeenCalledWith("file:///tmp/recording.mp4", 10);
 		expect(decodeAudioFromUrl).toHaveBeenCalledWith("/tmp/recording.mic.wav");
 		expect(decodeAudioFromUrl).not.toHaveBeenCalledWith("/tmp/recording.mp4");
 	});

@@ -876,8 +876,13 @@ export class AudioProcessor {
 		});
 
 		// Decode embedded source audio separately from companion sidecars.
+		// The expected duration feeds decode-progress reporting so the
+		// finalization watchdog sees movement during long decodes.
+		const expectedMainAudioDurationSec = resolvedPlan.includeEmbeddedInExport
+			? await this.getMediaDurationSec(videoUrl).catch(() => undefined)
+			: undefined;
 		const mainBuffer = resolvedPlan.includeEmbeddedInExport
-			? await this.decodeAudioFromUrl(videoUrl)
+			? await this.decodeAudioFromUrl(videoUrl, expectedMainAudioDurationSec)
 			: null;
 		const mainBufferGain = resolveSourceTrackGain(sourceAudioTrackSettings, "mixed");
 		const mainBufferEntry = mainBuffer ? { buffer: mainBuffer, gain: mainBufferGain } : null;
@@ -1276,9 +1281,12 @@ export class AudioProcessor {
 	// Decode audio from a URL using streaming WebCodecs decode with bulk fallback.
 	// Streaming decode avoids holding the full compressed file in memory alongside
 	// the decoded AudioBuffer, reducing peak memory for large recordings.
-	private async decodeAudioFromUrl(url: string): Promise<AudioBuffer | null> {
+	private async decodeAudioFromUrl(
+		url: string,
+		expectedDurationSec?: number,
+	): Promise<AudioBuffer | null> {
 		try {
-			const buffer = await this.streamDecodeFromUrl(url);
+			const buffer = await this.streamDecodeFromUrl(url, expectedDurationSec);
 			if (buffer) return buffer;
 		} catch (error) {
 			console.warn(
@@ -1292,7 +1300,13 @@ export class AudioProcessor {
 
 	// Streaming decode via WebDemuxer + AudioDecoder. Decodes audio chunk-by-chunk
 	// without loading the entire compressed file into a contiguous ArrayBuffer.
-	private async streamDecodeFromUrl(url: string): Promise<AudioBuffer | null> {
+	// When expectedDurationSec is provided, decode progress is reported through
+	// onProgress so the finalization watchdog sees movement during long decodes
+	// instead of timing out a healthy export.
+	private async streamDecodeFromUrl(
+		url: string,
+		expectedDurationSec?: number,
+	): Promise<AudioBuffer | null> {
 		const source = await resolveMediaElementSource(url);
 		let demuxer: WebDemuxer | null = null;
 
@@ -1334,12 +1348,35 @@ export class AudioProcessor {
 					decodeCapacityWaiters.add(resolve);
 				});
 
+			let decodedSeconds = 0;
+			let lastDecodeProgressAt = 0;
+			const reportDecodeProgress = (durationUs: number) => {
+				if (!this.onProgress) {
+					return;
+				}
+				decodedSeconds += durationUs / 1_000_000;
+				const now = Date.now();
+				// Throttle to ~1Hz; creep 0.02→0.19 so the value strictly increases
+				// with decoded audio time and keeps the finalization watchdog fed.
+				if (now - lastDecodeProgressAt >= 1000 && expectedDurationSec) {
+					lastDecodeProgressAt = now;
+					const fraction = Math.min(
+						0.19,
+						0.02 +
+							0.17 *
+								Math.min(1, decodedSeconds / Math.max(expectedDurationSec, 0.001)),
+					);
+					this.onProgress(Math.max(0.001, fraction));
+				}
+			};
+
 			const decoder = new AudioDecoder({
 				output: (data: AudioData) => {
 					try {
 						const frames = data.numberOfFrames;
 						const dataChannels = Math.min(data.numberOfChannels, numChannels);
 						const format = data.format;
+						reportDecodeProgress(data.duration ?? (frames / sampleRate) * 1_000_000);
 
 						if (format?.includes("planar")) {
 							for (let ch = 0; ch < dataChannels; ch++) {
