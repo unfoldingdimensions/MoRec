@@ -58,12 +58,28 @@ export function isPathInsideDirectory(candidatePath: string, directoryPath: stri
 // matters; before the load completes this falls back to the default
 // recordings directory.
 function getAllowedLocalReadPrefixes() {
-	return [
-		customRecordingsDir ?? RECORDINGS_DIR,
-		USER_DATA_PATH,
-		getAssetRootPath(),
-		app.getPath("temp"),
-	];
+	return [customRecordingsDir ?? RECORDINGS_DIR, USER_DATA_PATH, getAssetRootPath()];
+}
+
+// The system temp directory is shared with every other application, so it is
+// not an allowed prefix wholesale — that would admit other apps' temp files
+// to read-local-file. Only Mo Rec's own temp artifacts pass: the FIRST path
+// segment under the temp root must carry the app's naming prefix
+// (morec-export-*, morec-native-*, morec-captions-*, .morec-* atomic-save
+// temps).
+function isAllowedTempPath(candidatePath: string) {
+	const relative = path.relative(normalizePath(app.getPath("temp")), candidatePath);
+	if (
+		relative === "" ||
+		path.isAbsolute(relative) ||
+		relative === ".." ||
+		relative.startsWith(`..${path.sep}`)
+	) {
+		return false;
+	}
+
+	const firstSegment = relative.split(path.sep)[0];
+	return firstSegment.startsWith("morec-") || firstSegment.startsWith(".morec-");
 }
 
 export function isAllowedLocalReadPath(candidatePath: string) {
@@ -91,6 +107,7 @@ export function isAllowedLocalReadPath(candidatePath: string) {
 	// for read-local-file and the local media URL handler.
 	const lexicalAllowed =
 		allowedPrefixes.some((prefix) => isPathInsideDirectory(normalizedCandidatePath, prefix)) ||
+		isAllowedTempPath(normalizedCandidatePath) ||
 		approvedLocalReadPaths.has(normalizedCandidatePath);
 	if (!lexicalAllowed) {
 		return false;
@@ -102,6 +119,7 @@ export function isAllowedLocalReadPath(candidatePath: string) {
 
 	return (
 		allowedPrefixes.some((prefix) => isPathInsideDirectory(canonicalCandidatePath, prefix)) ||
+		isAllowedTempPath(canonicalCandidatePath) ||
 		approvedLocalReadPaths.has(canonicalCandidatePath)
 	);
 }

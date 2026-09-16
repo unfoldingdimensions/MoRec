@@ -268,4 +268,25 @@ describe("local read approval gates", () => {
 			true,
 		);
 	});
+
+	it("only admits morec-prefixed first segments under the temp root", async () => {
+		const { isAllowedLocalReadPath } = await import("./manager");
+
+		// A file directly under the temp root is not an app artifact.
+		await expect(isAllowedLocalReadPath(path.join(tempPath, "notes.txt"))).toBe(false);
+		// The app's own temp artifacts keep working.
+		await expect(
+			isAllowedLocalReadPath(path.join(tempPath, "morec-export-x", "file.mp4")),
+		).toBe(true);
+		await expect(isAllowedLocalReadPath(path.join(tempPath, ".morec-session", "file"))).toBe(
+			true,
+		);
+		// Other applications' temp trees stay rejected.
+		await expect(isAllowedLocalReadPath(path.join(tempPath, "OtherApp", "secret"))).toBe(false);
+		// Non-temp prefixes are unaffected.
+		await expect(isAllowedLocalReadPath(path.join(recordingsDir, "recording-4.mp4"))).toBe(
+			true,
+		);
+		await expect(isAllowedLocalReadPath(path.join(userDataPath, "project.morec"))).toBe(true);
+	});
 });
