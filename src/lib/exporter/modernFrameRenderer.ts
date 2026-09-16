@@ -632,6 +632,10 @@ export class FrameRenderer {
 
 		this.annotationScaleFactor = this.calculateAnnotationScaleFactor();
 		this.annotationAssets = await preloadAnnotationAssets(this.config.annotationRegions ?? []);
+		// Populate layoutCache before rasterizing annotation sprites: their
+		// positions/sizes are maskRect-relative, and layoutCache is otherwise
+		// only built lazily inside the first renderFrame call.
+		this.updateLayout();
 		await this.setupAnnotationLayer();
 		this.setupCaptionResources();
 
