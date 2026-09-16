@@ -25,6 +25,9 @@ describe("resolveWhisperExecutablePath execution-consent gate", () => {
 		tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "morec-whisper-gate-"));
 		fakeExecutablePath = path.join(tempRoot, "fake-whisper.exe");
 		await fs.writeFile(fakeExecutablePath, "definitely not a real whisper binary");
+		// POSIX X_OK is a real permission bit (Windows maps it to a read check),
+		// so the fake binary must be executable for the gate's own check to pass.
+		await fs.chmod(fakeExecutablePath, 0o755);
 
 		savedWhisperCppPathEnv = process.env["WHISPER_CPP_PATH"];
 		delete process.env["WHISPER_CPP_PATH"];
