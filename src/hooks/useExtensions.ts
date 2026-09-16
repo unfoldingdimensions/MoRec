@@ -18,6 +18,26 @@ import { createExtensionModuleUrl } from "@/lib/extensions/fileUrls";
 
 const electronAPI = typeof window === "undefined" ? undefined : window.electronAPI;
 
+/**
+ * Whether an extensions:enable result means the main process did NOT enable
+ * the extension — the user declined the consent dialog
+ * (`{ success: false, reason: "cancelled" }`), the id is unknown (`false`),
+ * or any other `success: false` shape. The consent decision must hold in the
+ * renderer too: a refused enable must never lead to activation.
+ */
+function isEnableRefusal(result: unknown): boolean {
+	if (result === false) return true;
+	if (typeof result !== "object" || result === null) return false;
+	return (result as { success?: unknown }).success === false;
+}
+
+/** Mirror of isEnableRefusal: only an explicit success counts as enabled. */
+function isEnableSuccess(result: unknown): boolean {
+	if (result === true) return true;
+	if (typeof result !== "object" || result === null) return false;
+	return (result as { success?: unknown }).success === true;
+}
+
 export interface UseExtensionsResult {
 	/** All discovered extensions */
 	extensions: ExtensionInfo[];
@@ -30,7 +50,7 @@ export interface UseExtensionsResult {
 	/** Toggle an extension on/off */
 	toggleExtension: (id: string) => Promise<void>;
 	/** Install an extension from a folder */
-	installFromFolder: () => Promise<boolean>;
+	installFromFolder: () => Promise<{ installed: boolean; enabled: boolean }>;
 	/** Uninstall an extension */
 	uninstall: (id: string) => Promise<boolean>;
 	/** Open the extensions directory in Finder/Explorer */
@@ -47,7 +67,7 @@ export interface UseExtensionsResult {
 	marketplaceInstall: (
 		extensionId: string,
 		downloadUrl: string,
-	) => Promise<{ success: boolean; error?: string }>;
+	) => Promise<{ success: boolean; error?: string; enabled: boolean }>;
 	/** Submit extension for review */
 	marketplaceSubmit: (extensionId: string) => Promise<{ success: boolean; error?: string }>;
 	/** Fetch pending reviews (admin) */
@@ -131,7 +151,20 @@ export function useExtensions(): UseExtensionsResult {
 					if (!ext) return;
 
 					try {
-						await electronAPI?.extensionsEnable(id);
+						const enableResult = await electronAPI?.extensionsEnable(id);
+
+						// Honor the consent decision: a declined consent dialog (or
+						// any failed enable) must leave the extension deactivated.
+						if (isEnableRefusal(enableResult)) {
+							setExtensions((prev) =>
+								prev.map((candidate) =>
+									candidate.manifest.id === id
+										? { ...candidate, status: "disabled" }
+										: candidate,
+								),
+							);
+							return;
+						}
 
 						const moduleUrl = createExtensionModuleUrl(ext.path, ext.manifest.main);
 						await extensionHost.activateExtension(ext, moduleUrl);
@@ -163,18 +196,24 @@ export function useExtensions(): UseExtensionsResult {
 		[activeIds, extensions],
 	);
 
-	const installFromFolder = useCallback(async (): Promise<boolean> => {
-		if (!electronAPI?.extensionsInstallFromFolder) return false;
+	const installFromFolder = useCallback(async (): Promise<{
+		installed: boolean;
+		enabled: boolean;
+	}> => {
+		if (!electronAPI?.extensionsInstallFromFolder) {
+			return { installed: false, enabled: false };
+		}
 		const result = await electronAPI.extensionsInstallFromFolder();
 		if (result?.success) {
 			const extensionId = result.extension?.manifest?.id;
+			let enabled = false;
 			if (typeof extensionId === "string") {
-				await electronAPI?.extensionsEnable(extensionId);
+				enabled = isEnableSuccess(await electronAPI?.extensionsEnable(extensionId));
 			}
 			await discoverAndSync();
-			return true;
+			return { installed: true, enabled };
 		}
-		return false;
+		return { installed: false, enabled: false };
 	}, [discoverAndSync]);
 
 	const uninstall = useCallback(
@@ -226,14 +265,15 @@ export function useExtensions(): UseExtensionsResult {
 	const marketplaceInstall = useCallback(
 		async (extensionId: string, downloadUrl: string) => {
 			if (!electronAPI?.extensionsMarketplaceInstall) {
-				return { success: false, error: "Not available" };
+				return { success: false, enabled: false, error: "Not available" };
 			}
 			const result = await electronAPI.extensionsMarketplaceInstall(extensionId, downloadUrl);
 			if (result.success) {
-				await electronAPI?.extensionsEnable(extensionId);
+				const enabled = isEnableSuccess(await electronAPI?.extensionsEnable(extensionId));
 				await discoverAndSync();
+				return { ...result, enabled };
 			}
-			return result;
+			return { ...result, enabled: false };
 		},
 		[discoverAndSync],
 	);

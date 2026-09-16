@@ -16,11 +16,11 @@ const extensionsFacade = vi.hoisted(() => ({
 	ready: true,
 	refresh: vi.fn(async () => undefined),
 	toggleExtension: vi.fn(async () => true),
-	installFromFolder: vi.fn(async () => true),
+	installFromFolder: vi.fn(async () => ({ installed: true, enabled: true })),
 	uninstall: vi.fn(async () => true),
 	openDirectory: vi.fn(async () => undefined),
 	marketplaceSearch: vi.fn(async () => ({ extensions: [] as never[], total: 0 })),
-	marketplaceInstall: vi.fn(async () => ({ success: true })),
+	marketplaceInstall: vi.fn(async () => ({ success: true, enabled: true })),
 }));
 
 vi.mock("sonner", () => ({ toast }));
@@ -84,7 +84,8 @@ describe("ExtensionManager", () => {
 			extensions: [],
 			total: 0,
 		});
-		extensionsFacade.marketplaceInstall.mockResolvedValue({ success: true });
+		extensionsFacade.marketplaceInstall.mockResolvedValue({ success: true, enabled: true });
+		extensionsFacade.installFromFolder.mockResolvedValue({ installed: true, enabled: true });
 		extensionsFacade.refresh.mockResolvedValue(undefined);
 	});
 
@@ -162,6 +163,56 @@ describe("ExtensionManager", () => {
 			);
 			expect(toast.success).toHaveBeenCalledWith(
 				expect.stringContaining("Cool Extension"),
+			);
+		});
+	});
+
+	it("does not claim a marketplace install is enabled when the enable step was declined", async () => {
+		const user = userEvent.setup();
+		extensionsFacade.marketplaceSearch.mockResolvedValue({
+			extensions: [makeMarketplaceExtension()],
+			total: 1,
+		});
+		extensionsFacade.marketplaceInstall.mockResolvedValue({ success: true, enabled: false });
+		await renderManager();
+
+		const installButton = await screen.findByRole("button", { name: "Install" });
+		await user.click(installButton);
+		await waitFor(() => {
+			expect(toast.error).toHaveBeenCalledWith(expect.stringContaining("Failed to enable"));
+		});
+		expect(toast.success).not.toHaveBeenCalledWith(
+			expect.stringContaining("Installed and enabled"),
+		);
+	});
+
+	it("does not claim a folder install is enabled when the enable step was declined", async () => {
+		const user = userEvent.setup();
+		extensionsFacade.installFromFolder.mockResolvedValue({ installed: true, enabled: false });
+		await renderManager();
+
+		await user.click(screen.getByText(/Installed/i));
+		const installButton = await screen.findByRole("button", { name: "Install" });
+		await user.click(installButton);
+		await waitFor(() => {
+			expect(toast.error).toHaveBeenCalledWith(expect.stringContaining("Failed to enable"));
+		});
+		expect(toast.success).not.toHaveBeenCalledWith(
+			expect.stringContaining("installed and enabled"),
+		);
+	});
+
+	it("toasts installed-and-enabled when a folder install enables the extension", async () => {
+		const user = userEvent.setup();
+		extensionsFacade.installFromFolder.mockResolvedValue({ installed: true, enabled: true });
+		await renderManager();
+
+		await user.click(screen.getByText(/Installed/i));
+		const installButton = await screen.findByRole("button", { name: "Install" });
+		await user.click(installButton);
+		await waitFor(() => {
+			expect(toast.success).toHaveBeenCalledWith(
+				expect.stringContaining("installed and enabled"),
 			);
 		});
 	});

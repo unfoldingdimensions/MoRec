@@ -22,6 +22,7 @@ describe("delete-recording-file IPC handler", () => {
 
 	let mockCurrentVideoPath: string | null = null;
 	let mockCurrentRecordingSession: unknown = null;
+	let mockApprovedPaths: Set<string>;
 
 	beforeEach(async () => {
 		testTempRoot = await makeTempDir("morec-ipc-root-");
@@ -36,6 +37,7 @@ describe("delete-recording-file IPC handler", () => {
 		ipcHandlers.clear();
 		mockCurrentVideoPath = null;
 		mockCurrentRecordingSession = null;
+		mockApprovedPaths = new Set<string>();
 
 		vi.resetModules();
 
@@ -43,8 +45,11 @@ describe("delete-recording-file IPC handler", () => {
 			app: {
 				getAppPath: () => testTempRoot,
 				getPath: (name: string) => {
+					// Keep the temp prefix a leaf directory so the approval-gate
+					// prefix checks below are meaningful (everything else in this
+					// suite lives under testTempRoot, which is inside os.tmpdir()).
+					if (name === "temp") return path.join(testTempRoot, "temp");
 					if (name === "userData") return testUserDataDir;
-					if (name === "temp") return os.tmpdir();
 					return testTempRoot;
 				},
 				isPackaged: false,
@@ -87,7 +92,7 @@ describe("delete-recording-file IPC handler", () => {
 			get currentProjectPath() {
 				return null;
 			},
-			approvedLocalReadPaths: new Set<string>(),
+			approvedLocalReadPaths: mockApprovedPaths,
 			customRecordingsDir: null,
 			recordingsDirLoaded: true,
 			setCurrentVideoPath: (val: string | null) => {
@@ -301,6 +306,31 @@ describe("delete-recording-file IPC handler", () => {
 		expect(result.success).toBe(false);
 		expect(result.message).toBe("A different project already uses this name");
 		expect(await fs.readFile(targetProjectPath, "utf8")).toBe(existingContent);
+	});
+
+	it("set-current-video-path does not approve renderer-supplied paths outside the recordings directory", async () => {
+		const handler = ipcHandlers.get("set-current-video-path")!;
+		const outsideVideo = path.join(testOutsideDir, "recording-secret.mp4");
+		await fs.writeFile(outsideVideo, "confidential");
+
+		const result = (await handler(null, outsideVideo)) as { success: boolean };
+		expect(result.success).toBe(true);
+		expect(mockCurrentVideoPath).toBe(outsideVideo);
+
+		// The renderer-controlled path must not enter the read allowlist: the
+		// media server and read-local-file keep rejecting it.
+		expect(mockApprovedPaths.size).toBe(0);
+	});
+
+	it("set-current-video-path approves recordings-directory paths for local reads", async () => {
+		const handler = ipcHandlers.get("set-current-video-path")!;
+		const mainVideo = path.join(testRecordingsDir, "recording-approved.mp4");
+		await fs.writeFile(mainVideo, "video");
+
+		const result = (await handler(null, mainVideo)) as { success: boolean };
+		expect(result.success).toBe(true);
+
+		expect(mockApprovedPaths.has(path.resolve(mainVideo))).toBe(true);
 	});
 
 	it("removes a stale webcam manifest when set-current-video-path has no webcam link", async () => {
@@ -567,6 +597,62 @@ describe("delete-recording-file IPC handler", () => {
 			// Subdirectory should still exist
 			const stat = await fs.stat(subfolder);
 			expect(stat.isDirectory()).toBe(true);
+		});
+	});
+
+	describe("reveal-in-folder IPC handler", () => {
+		it("refuses renderer-chosen paths outside the read policy without touching the shell", async () => {
+			const handler = ipcHandlers.get("reveal-in-folder")!;
+			const outsideFile = path.join(testOutsideDir, "outside-secret.txt");
+			await fs.writeFile(outsideFile, "confidential");
+
+			const { shell } = await import("electron");
+
+			const result = (await handler(null, outsideFile)) as {
+				success: boolean;
+				error?: string;
+			};
+
+			expect(result.success).toBe(false);
+			expect(result.error).toBe("Path is not approved for local reads");
+			expect(shell.showItemInFolder).not.toHaveBeenCalled();
+			expect(shell.openPath).not.toHaveBeenCalled();
+		});
+
+		it("reveals approved paths (app-managed trees)", async () => {
+			const handler = ipcHandlers.get("reveal-in-folder")!;
+			const exportedFile = path.join(testUserDataDir, "exports", "clip.mp4");
+			await fs.mkdir(path.dirname(exportedFile), { recursive: true });
+			await fs.writeFile(exportedFile, "video");
+
+			const { shell } = await import("electron");
+
+			const result = await handler(null, exportedFile) as { success: boolean };
+
+			expect(result.success).toBe(true);
+			expect(shell.showItemInFolder).toHaveBeenCalledWith(exportedFile);
+		});
+	});
+
+	describe("approveUserPath realpath pairing", () => {
+		it("admits both the lexical and realpath spellings of an approved file so canonical policy checks pass", async () => {
+			const realDir = path.join(testTempRoot, "approval-real");
+			const linkDir = path.join(testTempRoot, "approval-link");
+			await fs.mkdir(realDir, { recursive: true });
+			const approvedFile = path.join(realDir, "clip.mp4");
+			await fs.writeFile(approvedFile, "video");
+			await fs.symlink(realDir, linkDir, process.platform === "win32" ? "junction" : "dir");
+			const linkSpelling = path.join(linkDir, "clip.mp4");
+
+			const { approveUserPath } = await import("../utils");
+			const { isAllowedLocalReadPath } = await import("../project/manager");
+
+			approveUserPath(linkSpelling);
+
+			expect(isAllowedLocalReadPath(path.resolve(linkSpelling))).toBe(true);
+			expect(isAllowedLocalReadPath(path.resolve(approvedFile))).toBe(true);
+			// Pairing must not widen the approval beyond the same file.
+			expect(isAllowedLocalReadPath(path.join(testOutsideDir, "clip.mp4"))).toBe(false);
 		});
 	});
 });

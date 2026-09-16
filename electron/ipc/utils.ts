@@ -1,4 +1,5 @@
 import fs from "node:fs/promises";
+import { realpathSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -6,6 +7,7 @@ import { app } from "electron";
 import { RECORDINGS_DIR } from "../appPaths";
 import { AUTO_RECORDING_PREFIX, RECORDINGS_SETTINGS_FILE } from "./constants";
 import {
+	approvedLocalExecutablePaths,
 	approvedLocalReadPaths,
 	customRecordingsDir,
 	recordingsDirLoaded,
@@ -154,9 +156,27 @@ export function getMacPrivacySettingsUrl(pane: "screen" | "accessibility" | "mic
 export function approveUserPath(filePath: string | null | undefined): void {
 	if (!filePath) return;
 	try {
-		approvedLocalReadPaths.add(path.resolve(filePath));
+		const resolved = path.resolve(filePath);
+		approvedLocalReadPaths.add(resolved);
+		// Pair the realpath spelling so canonical-branch policy checks pass for
+		// the same approved file (junctions, mapped drives). Non-existent paths
+		// stay lexical-only.
+		approvedLocalReadPaths.add(realpathSync(resolved));
 	} catch {
 		// Ignore invalid paths; later reads will surface the underlying error.
+	}
+}
+
+// Consents to EXECUTING a file — deliberately separate from `approveUserPath`,
+// which only consents to reading a file as data. Only call this for paths the
+// user explicitly picked as an executable in a native dialog (e.g. the Whisper
+// runtime picker); never for media files, which must stay read-only consents.
+export function approveUserExecutablePath(filePath: string | null | undefined): void {
+	if (!filePath) return;
+	try {
+		approvedLocalExecutablePaths.add(path.resolve(filePath));
+	} catch {
+		// Ignore invalid paths; later execution will surface the underlying error.
 	}
 }
 

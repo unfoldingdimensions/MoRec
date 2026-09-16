@@ -8,6 +8,7 @@ import { getFfmpegBinaryPath } from "../ffmpeg/binary";
 import { getBundledWhisperExecutableCandidates } from "../paths/binaries";
 import { getUsableCompanionAudioCandidates } from "../recording/diagnostics";
 import { resolveRecordingSession } from "../project/session";
+import { approvedLocalExecutablePaths } from "../state";
 import { normalizeVideoSourcePath } from "../utils";
 import type { CaptionCuePayload } from "../types";
 import { parseSrtCues, parseWhisperJsonCues, shouldRetryWhisperWithoutJson } from "./parser";
@@ -42,8 +43,21 @@ export async function isExecutableFile(filePath: string) {
 }
 
 export async function resolveWhisperExecutablePath(preferredPath?: string | null) {
+	// Threat model: `preferredPath` comes from the renderer and this function's
+	// return value is handed to execFile. A compromised renderer must not be able
+	// to point it at an arbitrary binary, so the preferred path only counts when
+	// the user granted EXECUTION consent for it via the native Whisper executable
+	// picker (`approvedLocalExecutablePaths`). Read consent (`approvedLocalReadPaths`,
+	// granted by media pickers) does NOT qualify: a user can be talked into picking
+	// a disguised executable as an "image" or "video", and read-consenting it must
+	// never make it executable. An unapproved path falls through to the bundled,
+	// env-var, and PATH candidates as if no preference had been sent.
+	const preferred = preferredPath?.trim() || null;
+	const preferredIsApprovedExecutable =
+		preferred !== null && approvedLocalExecutablePaths.has(path.resolve(preferred));
+
 	const candidatePaths = [
-		preferredPath?.trim() || null,
+		preferredIsApprovedExecutable ? preferred : null,
 		...getBundledWhisperExecutableCandidates(),
 		process.env["WHISPER_CPP_PATH"]?.trim() || null,
 		process.platform === "darwin" ? "/opt/homebrew/bin/whisper-cli" : null,

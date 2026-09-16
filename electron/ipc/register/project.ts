@@ -15,6 +15,7 @@ import {
 	enqueueRecentProjectsUpdate,
 	getProjectsDir,
 	getProjectThumbnailPath,
+	isAllowedLocalReadPath,
 	isPathInsideDirectory,
 	isTrustedProjectPath,
 	listProjectLibraryEntries,
@@ -248,6 +249,15 @@ async function ensureNamedProjectSaveDoesNotOverwriteDifferentProject(
 export function registerProjectHandlers() {
 	ipcMain.handle("reveal-in-folder", async (_, filePath: string) => {
 		try {
+			// The renderer is untrusted: revealing an arbitrary path would open
+			// Explorer on any file it names. Only paths that already satisfy the
+			// local-read policy (app-managed trees or an approved path) may be
+			// revealed, and the directory fallback below then stays inside the
+			// same approved file's parent.
+			const resolvedPath = path.resolve(filePath);
+			if (!isAllowedLocalReadPath(resolvedPath)) {
+				return { success: false, error: "Path is not approved for local reads" };
+			}
 			// shell.showItemInFolder doesn't return a value, it throws on error
 			shell.showItemInFolder(filePath);
 			return { success: true };
@@ -670,7 +680,13 @@ export function registerProjectHandlers() {
 			options?: { preserveProjectPath?: boolean; hideOverlayCursorByDefault?: boolean },
 		) => {
 			setCurrentVideoPath(normalizeVideoSourcePath(path) ?? path);
-			approveUserPath(currentVideoPath);
+			// The renderer is untrusted: only bless the path for local reads when
+			// it already satisfies the read policy (app-managed trees or an
+			// already-approved path). Approving unconditionally here let a
+			// compromised renderer add arbitrary files to the read allowlist.
+			if (currentVideoPath && isAllowedLocalReadPath(currentVideoPath)) {
+				approveUserPath(currentVideoPath);
+			}
 			const resolvedSession = (await resolveRecordingSession(currentVideoPath)) ?? {
 				videoPath: currentVideoPath!,
 				webcamPath: null,

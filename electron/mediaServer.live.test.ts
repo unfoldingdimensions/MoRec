@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { closeMediaServer, ensureMediaServer } from "./mediaServer";
+import { buildMediaUrl, closeMediaServer, ensureMediaServer } from "./mediaServer";
 import { approvedLocalReadPaths } from "./ipc/state";
 
 /**
@@ -32,7 +32,7 @@ describe("mediaServer (live HTTP)", () => {
 
 	async function getVideoUrl() {
 		const base = await ensureMediaServer();
-		return `${base}/video?path=${encodeURIComponent(mediaFile)}`;
+		return buildMediaUrl(base, mediaFile);
 	}
 
 	it("serves an approved file over HTTP", async () => {
@@ -47,7 +47,8 @@ describe("mediaServer (live HTTP)", () => {
 		const base = await ensureMediaServer();
 
 		expect((await fetch(`${base}/other`)).status).toBe(404);
-		expect((await fetch(`${base}/video`)).status).toBe(400);
+		// /video without the capability token is rejected before the path check.
+		expect((await fetch(`${base}/video`)).status).toBe(403);
 	});
 
 	it("returns 403 for paths that are not approved", async () => {
@@ -55,7 +56,7 @@ describe("mediaServer (live HTTP)", () => {
 		const unapproved = path.join(tempRoot, "secret.txt");
 		await fs.writeFile(unapproved, "nope");
 
-		const response = await fetch(`${base}/video?path=${encodeURIComponent(unapproved)}`);
+		const response = await fetch(buildMediaUrl(base, unapproved));
 		expect(response.status).toBe(403);
 	});
 

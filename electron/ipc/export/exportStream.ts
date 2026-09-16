@@ -17,7 +17,23 @@ type ExportStreamSession = {
 
 const exportStreamSessions = new Map<string, ExportStreamSession>();
 
-const EXTENSION_ALLOWLIST = /^[a-z0-9]{1,8}$/;
+// Exact, lowercase media/asset extensions the renderer legitimately streams
+// through this IPC (video exports, image exports, and the filename-derived
+// "bin" fallback in the editor's blob-save path). A shape-only regex would also
+// admit executable staging extensions (exe, bat, cmd, com, dll, msi, ps1, js,
+// vbs), letting a compromised renderer materialize a runnable temp file via the
+// export pipeline; an exact allowlist keeps that staging primitive closed.
+const EXPORT_STREAM_EXTENSIONS = new Set([
+	"mp4",
+	"webm",
+	"gif",
+	"jpg",
+	"png",
+	"webp",
+	"avif",
+	"bmp",
+	"bin",
+]);
 const SESSION_DIR_PREFIX = "morec-export-";
 
 // Paths that the export pipeline itself produced (stream temp files plus any
@@ -52,7 +68,7 @@ export async function openExportStream(options?: { extension?: string }): Promis
 	tempPath: string;
 }> {
 	const extension = options?.extension ?? "mp4";
-	if (!EXTENSION_ALLOWLIST.test(extension)) {
+	if (!EXPORT_STREAM_EXTENSIONS.has(extension)) {
 		throw new Error(`Invalid export stream extension: ${extension}`);
 	}
 	const streamId = generateStreamId();

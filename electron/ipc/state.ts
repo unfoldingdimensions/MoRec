@@ -21,6 +21,14 @@ export let currentRecordingSession: RecordingSessionData | null = null;
 // ── Security: approved read paths ─────────────────────────────────────────────
 export const approvedLocalReadPaths = new Set<string>();
 
+// ── Security: approved executable paths ───────────────────────────────────────
+// Deliberately a SEPARATE set from `approvedLocalReadPaths`: read consent
+// (media pickers) vouches for reading a file as data, never for executing it.
+// Only the native executable picker adds entries here, so a media file the user
+// approved for reading can never be executed just because it landed in the read
+// set — and a session read-set rebuild cannot revoke execution consent.
+export const approvedLocalExecutablePaths = new Set<string>();
+
 // ── Native macOS capture ──────────────────────────────────────────────────────
 export let nativeScreenRecordingActive = false;
 export let nativeCaptureProcess: ChildProcessWithoutNullStreams | null = null;

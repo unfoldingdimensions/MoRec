@@ -170,6 +170,14 @@ export function registerSettingsHandlers() {
 				return { success: false };
 			}
 
+			// JSON.parse-produced plain objects revive "__proto__"
+			// own-properties harmlessly, but the live cache object must never
+			// be assigned them: store["__proto__"] = value would retarget the
+			// cache's prototype chain for the whole main process.
+			if (key === "__proto__" || key === "constructor" || key === "prototype") {
+				return { success: false };
+			}
+
 			const store = getAppSettingsStore();
 			store[key] = value;
 			scheduleSaveAppSettings();
@@ -248,6 +256,12 @@ export function registerSettingsHandlers() {
 		return getBrowserMicrophoneProfileFromEnv();
 	});
 
+	// Only whitelisted preference keys (typed strictly below) may ever come
+	// from the renderer. The same settings file also stores the recordings
+	// directory that getRecordingsDir() trusts (it seeds the local-read
+	// allowlist prefix), so a raw renderer object must never be merged in:
+	// recordingsDir is set exclusively through the main-process directory
+	// picker.
 	ipcMain.handle(
 		"set-recording-preferences",
 		async (
@@ -261,6 +275,23 @@ export function registerSettingsHandlers() {
 			},
 		) => {
 			try {
+				const sanitized: Record<string, unknown> = {};
+				if (typeof prefs?.microphoneEnabled === "boolean") {
+					sanitized.microphoneEnabled = prefs.microphoneEnabled;
+				}
+				if (typeof prefs?.microphoneDeviceId === "string") {
+					sanitized.microphoneDeviceId = prefs.microphoneDeviceId;
+				}
+				if (typeof prefs?.systemAudioEnabled === "boolean") {
+					sanitized.systemAudioEnabled = prefs.systemAudioEnabled;
+				}
+				if (typeof prefs?.webcamEnabled === "boolean") {
+					sanitized.webcamEnabled = prefs.webcamEnabled;
+				}
+				if (typeof prefs?.webcamDeviceId === "string") {
+					sanitized.webcamDeviceId = prefs.webcamDeviceId;
+				}
+
 				let existing: Record<string, unknown> = {};
 				try {
 					const content = await fs.readFile(RECORDINGS_SETTINGS_FILE, "utf-8");
@@ -268,7 +299,7 @@ export function registerSettingsHandlers() {
 				} catch {
 					// file doesn't exist yet
 				}
-				const merged = { ...existing, ...prefs };
+				const merged = { ...existing, ...sanitized };
 				await fs.writeFile(
 					RECORDINGS_SETTINGS_FILE,
 					JSON.stringify(merged, null, 2),

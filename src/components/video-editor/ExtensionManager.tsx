@@ -673,9 +673,15 @@ export default function ExtensionManager() {
 	const hasAutoSearchedBrowseRef = useRef(false);
 
 	const handleInstallFromFolder = useCallback(async () => {
-		const success = await installFromFolder();
-		if (success) {
-			toast.success(t("toast.installedAndEnabled"));
+		const result = await installFromFolder();
+		if (result.installed) {
+			if (result.enabled) {
+				toast.success(t("toast.installedAndEnabled"));
+			} else {
+				// Enable was declined (consent dialog) or failed — the install
+				// feedback must not claim the extension was enabled.
+				toast.error(t("toast.enableFailed"));
+			}
 		}
 	}, [installFromFolder, t]);
 
@@ -756,7 +762,12 @@ export default function ExtensionManager() {
 			try {
 				const result = await marketplaceInstall(ext.id, ext.downloadUrl);
 				if (result.success) {
-					toast.success(t("toast.marketplaceInstalled", undefined, { name: ext.name }));
+					if (result.enabled) {
+						toast.success(t("toast.marketplaceInstalled", undefined, { name: ext.name }));
+					} else {
+						// Consent declined for the enable step — installed only.
+						toast.error(t("toast.enableFailed"));
+					}
 					// Update the marketplace results to show installed state
 					setMarketplaceResults((prev) =>
 						prev.map((e) => (e.id === ext.id ? { ...e, installed: true } : e)),

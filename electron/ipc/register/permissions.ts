@@ -1,15 +1,19 @@
 import { ipcMain, shell, systemPreferences } from "electron";
+import { normalizeExternalHttpUrl } from "../../navigationPolicy";
 import { getMacPrivacySettingsUrl } from "../utils";
 
 export function registerPermissionHandlers() {
 	ipcMain.handle("open-external-url", async (_, url: string) => {
 		try {
-			// Security: only allow http/https URLs to prevent file:// or custom protocol abuse
-			const parsed = new URL(url);
-			if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
-				return { success: false, error: `Blocked non-HTTP URL: ${parsed.protocol}` };
+			// Security: only the normalized href of an http(s) URL with a host and
+			// no userinfo may reach shell.openExternal — validating the raw
+			// renderer string with one parser and opening it with another (the
+			// OS shell) lets crafted strings smuggle a different destination.
+			const safeUrl = normalizeExternalHttpUrl(url);
+			if (!safeUrl) {
+				return { success: false, error: "Blocked non-HTTP URL" };
 			}
-			await shell.openExternal(url);
+			await shell.openExternal(safeUrl);
 			return { success: true };
 		} catch (error) {
 			console.error("Failed to open URL:", error);
