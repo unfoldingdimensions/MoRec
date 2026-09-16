@@ -6,6 +6,7 @@ import { app } from "electron";
 import { RECORDINGS_DIR } from "../appPaths";
 import { AUTO_RECORDING_PREFIX, RECORDINGS_SETTINGS_FILE } from "./constants";
 import {
+	approvedLocalExecutablePaths,
 	approvedLocalReadPaths,
 	customRecordingsDir,
 	recordingsDirLoaded,
@@ -157,6 +158,19 @@ export function approveUserPath(filePath: string | null | undefined): void {
 		approvedLocalReadPaths.add(path.resolve(filePath));
 	} catch {
 		// Ignore invalid paths; later reads will surface the underlying error.
+	}
+}
+
+// Consents to EXECUTING a file — deliberately separate from `approveUserPath`,
+// which only consents to reading a file as data. Only call this for paths the
+// user explicitly picked as an executable in a native dialog (e.g. the Whisper
+// runtime picker); never for media files, which must stay read-only consents.
+export function approveUserExecutablePath(filePath: string | null | undefined): void {
+	if (!filePath) return;
+	try {
+		approvedLocalExecutablePaths.add(path.resolve(filePath));
+	} catch {
+		// Ignore invalid paths; later execution will surface the underlying error.
 	}
 }
 

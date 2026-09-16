@@ -136,4 +136,24 @@ describe("exportStream", () => {
 			/Invalid export stream extension/,
 		);
 	});
+
+	it("accepts exactly the media/asset extensions the renderer sends and rejects executable staging extensions", async () => {
+		// Media/asset extensions the renderer legitimately streams.
+		for (const extension of ["mp4", "webm", "gif", "jpg", "png", "webp", "avif", "bmp", "bin"]) {
+			const { streamId, tempPath } = await openExportStream({ extension });
+			openedTempPaths.push(tempPath);
+			expect(hasExportStream(streamId)).toBe(true);
+			expect(tempPath.endsWith(`.${extension}`)).toBe(true);
+			await closeExportStream(streamId, { abort: true });
+		}
+
+		// Executable staging extensions must never open a stream: a compromised
+		// renderer must not be able to materialize a runnable temp file via the
+		// export pipeline.
+		for (const extension of ["exe", "bat", "cmd", "com", "ps1", "js", "vbs", "dll", "msi"]) {
+			await expect(openExportStream({ extension })).rejects.toThrow(
+				/Invalid export stream extension/,
+			);
+		}
+	});
 });

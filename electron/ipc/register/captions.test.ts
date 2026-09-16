@@ -12,6 +12,7 @@ describe("register/captions handlers", () => {
 	const registry = new IpcRegistry();
 	const mocks = {
 		approveUserPath: vi.fn(),
+		approveUserExecutablePath: vi.fn(),
 		setCurrentProjectPath: vi.fn(),
 		getWhisperSmallModelStatus: vi.fn(),
 		downloadWhisperSmallModel: vi.fn(),
@@ -50,6 +51,7 @@ describe("register/captions handlers", () => {
 		}));
 		vi.doMock("../utils", () => ({
 			approveUserPath: mocks.approveUserPath,
+			approveUserExecutablePath: mocks.approveUserExecutablePath,
 			getRecordingsDir: async () => "/userdata/recordings",
 		}));
 		vi.doMock("../constants", () => ({
@@ -129,6 +131,9 @@ describe("register/captions handlers", () => {
 			success: true,
 			path: "/tools/whisper.exe",
 		});
+		// The executable picker grants EXECUTION consent, never read consent.
+		expect(mocks.approveUserExecutablePath).toHaveBeenCalledWith("/tools/whisper.exe");
+		expect(mocks.approveUserPath).not.toHaveBeenCalled();
 
 		await pickDialogResult({ canceled: true, filePaths: [] });
 		expect(await registry.invoke("open-whisper-model-picker")).toEqual({

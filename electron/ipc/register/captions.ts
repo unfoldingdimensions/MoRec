@@ -10,7 +10,7 @@ import {
 import { LEGACY_PROJECT_FILE_EXTENSIONS, PROJECT_FILE_EXTENSION } from "../constants";
 import { hasProjectFileExtension, loadProjectFromPath } from "../project/manager";
 import { setCurrentProjectPath } from "../state";
-import { approveUserPath, getRecordingsDir } from "../utils";
+import { approveUserExecutablePath, approveUserPath, getRecordingsDir } from "../utils";
 
 const VIDEO_FILE_EXTENSIONS = ["webm", "mp4", "mov", "avi", "mkv"];
 const PROJECT_FILE_EXTENSIONS = [PROJECT_FILE_EXTENSION, ...LEGACY_PROJECT_FILE_EXTENSIONS];
@@ -130,7 +130,9 @@ export function registerCaptionHandlers() {
 				return { success: false, canceled: true };
 			}
 
-			approveUserPath(result.filePaths[0]);
+			// Execution consent (not read consent): this path is what the caption
+			// pipeline execFile's. Nothing in the app reads the executable as data.
+			approveUserExecutablePath(result.filePaths[0]);
 			return { success: true, path: result.filePaths[0] };
 		} catch (error) {
 			console.error("Failed to open Whisper executable picker:", error);
