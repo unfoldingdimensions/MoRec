@@ -1,6 +1,31 @@
 import { describe, expect, it } from "vitest";
 import type { CaptionCuePayload } from "../types";
-import { parseSilenceIntervals, resegmentCuesBySilence } from "./silence";
+import { padSpans, parseSilenceIntervals, resegmentCuesBySilence } from "./silence";
+
+describe("padSpans", () => {
+	it("pads isolated spans by the edge pad on both sides", () => {
+		const spans = [
+			{ startMs: 1_000, endMs: 2_000 },
+			{ startMs: 5_000, endMs: 6_000 },
+		];
+		padSpans(spans, 80);
+		expect(spans).toEqual([
+			{ startMs: 920, endMs: 2_080 },
+			{ startMs: 4_920, endMs: 6_080 },
+		]);
+	});
+
+	it("never lets word-derived straddling spans overlap after padding", () => {
+		// A stretched whisper word makes piece 2 start before piece 1 ends.
+		const spans = [
+			{ startMs: 0, endMs: 2_000 },
+			{ startMs: 1_000, endMs: 3_000 },
+		];
+		padSpans(spans, 80);
+		expect(spans[1].startMs).toBeGreaterThanOrEqual(spans[0].endMs);
+		expect(spans[1].endMs).toBeGreaterThan(spans[1].startMs);
+	});
+});
 
 describe("parseSilenceIntervals", () => {
 	it("pairs silence_start / silence_end lines into ms intervals", () => {

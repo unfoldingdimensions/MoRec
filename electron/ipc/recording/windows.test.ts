@@ -1,8 +1,21 @@
 import { EventEmitter } from "node:events";
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import { PassThrough } from "node:stream";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { setWindowsCaptureOutputBuffer, setWindowsCaptureTargetPath } from "../state";
-import { waitForWindowsCaptureStop } from "./windows";
+import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
+import {
+	setWindowsCaptureOutputBuffer,
+	setWindowsCaptureStopRequested,
+	setWindowsCaptureTargetPath,
+	setWindowsCaptureTempPath,
+	setWindowsMicAudioPath,
+	setWindowsNativeCaptureActive,
+	setWindowsSystemAudioPath,
+	windowsMicAudioPath,
+	windowsSystemAudioPath,
+} from "../state";
+import { attachWindowsCaptureLifecycle, waitForWindowsCaptureStop } from "./windows";
 
 vi.mock("electron", () => ({
 	app: {
@@ -98,5 +111,79 @@ describe("waitForWindowsCaptureStop", () => {
 			),
 		).rejects.toThrow("Timed out waiting for native Windows capture to stop");
 		expect(proc.kill).toHaveBeenCalledTimes(1);
+	});
+});
+
+describe("attachWindowsCaptureLifecycle crash salvage", () => {
+	let tempRoot: string;
+	let recordingsRoot: string;
+
+	beforeEach(() => {
+		setWindowsCaptureOutputBuffer("");
+		setWindowsCaptureStopRequested(false);
+		setWindowsNativeCaptureActive(true);
+	});
+
+	afterEach(async () => {
+		setWindowsNativeCaptureActive(false);
+		setWindowsCaptureStopRequested(false);
+		setWindowsCaptureTempPath(null);
+		setWindowsCaptureTargetPath(null);
+		setWindowsSystemAudioPath(null);
+		setWindowsMicAudioPath(null);
+		await fs.rm(tempRoot, { recursive: true, force: true }).catch(() => undefined);
+		await fs.rm(recordingsRoot, { recursive: true, force: true }).catch(() => undefined);
+	});
+
+	async function stageCrashedSession() {
+		tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "morec-crash-temp-"));
+		recordingsRoot = await fs.mkdtemp(path.join(os.tmpdir(), "morec-crash-final-"));
+		const tempVideoPath = path.join(tempRoot, "morec-native-123.mp4");
+		const tempSystemPath = path.join(tempRoot, "morec-native-123.system.wav");
+		const tempMicPath = path.join(tempRoot, "morec-native-123.mic.wav");
+		const tempMicJsonPath = `${tempMicPath}.json`;
+		await fs.writeFile(tempVideoPath, "video-bytes");
+		await fs.writeFile(tempSystemPath, "system-bytes");
+		await fs.writeFile(tempMicPath, "mic-bytes");
+		await fs.writeFile(tempMicJsonPath, '{"startDelayMs":42}');
+
+		const finalVideoPath = path.join(recordingsRoot, "recording-123.mp4");
+		const finalSystemPath = path.join(recordingsRoot, "recording-123.system.wav");
+		const finalMicPath = path.join(recordingsRoot, "recording-123.mic.wav");
+		setWindowsCaptureTempPath(tempVideoPath);
+		setWindowsCaptureTargetPath(finalVideoPath);
+		setWindowsSystemAudioPath(finalSystemPath);
+		setWindowsMicAudioPath(finalMicPath);
+		return { tempVideoPath, tempSystemPath, tempMicPath, tempMicJsonPath, finalVideoPath };
+	}
+
+	it("moves temp companion wavs (and timing json) next to the salvaged video", async () => {
+		const staged = await stageCrashedSession();
+		const proc = new FakeCaptureProcess();
+		attachWindowsCaptureLifecycle(proc as unknown as Parameters<
+			typeof attachWindowsCaptureLifecycle
+		>[0]);
+
+		proc.emit("close", 1);
+		await new Promise((resolve) => setTimeout(resolve, 50));
+
+		// Video salvaged to the final path; companions too; json follows the mic wav.
+		await expect(fs.readFile(staged.finalVideoPath, "utf8")).resolves.toBe("video-bytes");
+		await expect(
+			fs.readFile(path.join(recordingsRoot, "recording-123.system.wav"), "utf8"),
+		).resolves.toBe("system-bytes");
+		await expect(
+			fs.readFile(path.join(recordingsRoot, "recording-123.mic.wav"), "utf8"),
+		).resolves.toBe("mic-bytes");
+		await expect(
+			fs.readFile(path.join(recordingsRoot, "recording-123.mic.wav.json"), "utf8"),
+		).resolves.toBe('{"startDelayMs":42}');
+		// Nothing left behind in %TEMP%.
+		await expect(fs.access(staged.tempVideoPath)).rejects.toThrow();
+		await expect(fs.access(staged.tempSystemPath)).rejects.toThrow();
+		await expect(fs.access(staged.tempMicPath)).rejects.toThrow();
+		// Stale companion state cleared so a later stop/recover cannot see them.
+		expect(windowsSystemAudioPath).toBeNull();
+		expect(windowsMicAudioPath).toBeNull();
 	});
 });

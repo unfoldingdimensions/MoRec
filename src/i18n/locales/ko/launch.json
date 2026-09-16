@@ -64,7 +64,8 @@
 		"savedMetadataToast": "녹화가 저장되었지만 세션 메타데이터를 저장하지 못했습니다.",
 		"editorOpenFailedToast": "녹화가 저장되었지만 편집기를 열 수 없습니다. 앱을 다시 열고 녹화 목록에서 불러오세요.",
 		"savedMuxFailedToast": "녹화가 저장되었지만 오디오 트랙을 결합하지 못했습니다.",
-		"recoveredMuxFailedToast": "녹화가 복구되었지만 오디오 트랙을 결합하지 못했습니다."
+		"recoveredMuxFailedToast": "녹화가 복구되었지만 오디오 트랙을 결합하지 못했습니다.",
+		"basedOnRecordly": "Recordly 기반"
 	},
 	"sourceSelector": {
 		"loadingSources": "소스를 불러오는 중...",

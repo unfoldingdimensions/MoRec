@@ -39,12 +39,17 @@ import {
 	getSystemCursorHelperSourcePath,
 	getWindowsCaptureExePath,
 } from "../paths/binaries";
-import { isAllowedLocalReadPath, rememberApprovedLocalReadPath } from "../project/manager";
-import { writeProjectFileAtomically } from "../project/atomicSave";
 import {
-	getBrowserMicSidecarFilters,
-	shouldKeepRecordingAudioSidecars,
-} from "../recording/audioFilters";
+	isAllowedLocalReadPath,
+	isPathInsideDirectory,
+	rememberApprovedLocalReadPath,
+} from "../project/manager";
+import { writeProjectFileAtomically } from "../project/atomicSave";
+	import {
+		getBrowserMicSidecarFilters,
+		getBrowserMicSidecarTimeoutMs,
+		shouldKeepRecordingAudioSidecars,
+	} from "../recording/audioFilters";
 import {
 	getCompanionAudioFallbackInfo,
 	getFileSizeIfPresent,
@@ -72,10 +77,11 @@ import {
 	waitForWindowsCaptureStart,
 	waitForWindowsCaptureStop,
 } from "../recording/windows";
-import {
-	shouldStartWindowsBrowserMicrophoneFallback,
-	shouldUseWindowsBrowserMicrophoneFallback,
-} from "../recording/windowsFallbacks";
+	import {
+		shouldStartWindowsBrowserMicrophoneFallback,
+		shouldUseWindowsBrowserMicrophoneFallback,
+		WINDOWS_MIC_CAPTURE_INIT_WARNING,
+	} from "../recording/windowsFallbacks";
 import {
 	cachedSystemCursorAssets,
 	cachedSystemCursorAssetsSourceMtimeMs,
@@ -120,6 +126,7 @@ import {
 	windowsCapturePaused,
 	windowsCaptureProcess,
 	windowsCaptureTargetPath,
+	windowsCaptureTempPath,
 	windowsMicAudioPath,
 	windowsNativeCaptureActive,
 	windowsOrphanedMicAudioPath,
@@ -380,6 +387,112 @@ async function resolveExistingPath(...candidates: Array<string | null | undefine
 	return null;
 }
 
+async function salvageRecoveredCompanionFile(
+	tempAudioPath: string | null,
+	finalAudioPath: string | null,
+) {
+	if (!tempAudioPath) {
+		return;
+	}
+	try {
+		const stat = await fs.stat(tempAudioPath).catch(() => null);
+		if (stat && stat.size > 0 && finalAudioPath && tempAudioPath !== finalAudioPath) {
+			await moveFileWithOverwrite(tempAudioPath, finalAudioPath);
+			const tempJsonPath = `${tempAudioPath}.json`;
+			if (await pathExists(tempJsonPath)) {
+				await moveFileWithOverwrite(tempJsonPath, `${finalAudioPath}.json`);
+			}
+		} else {
+			await fs.rm(tempAudioPath, { force: true }).catch(() => undefined);
+		}
+	} catch (error) {
+		console.warn("[recording] Failed to salvage recovered companion audio:", error);
+	}
+}
+
+// A stop timeout kills the helper with windowsCaptureStopRequested still set,
+// so the crash-salvage lifecycle hook early-returns and the finished take
+// would strand in %TEMP% with no Windows recovery path (the old handler only
+// recovered on macOS). This mirrors the macOS recovery: move the temp video
+// plus companion sidecars to their final names, validate, and hand the result
+// to the renderer as a recovered stop.
+async function recoverNativeWindowsRecordingOutput() {
+	const tempVideoPath = windowsCaptureTempPath;
+	const preferredVideoPath = windowsCaptureTargetPath;
+	const preferredSystemAudioPath = windowsSystemAudioPath;
+	const preferredMicAudioPath = windowsMicAudioPath;
+
+	const clearCaptureState = () => {
+		setWindowsCaptureProcess(null);
+		setWindowsNativeCaptureActive(false);
+		setNativeScreenRecordingActive(false);
+		setWindowsCaptureTargetPath(null);
+		setWindowsCaptureTempPath(null);
+		setWindowsCaptureStopRequested(false);
+		setWindowsCapturePaused(false);
+		setWindowsOrphanedMicAudioPath(null);
+		setWindowsSystemAudioPath(null);
+		setWindowsMicAudioPath(null);
+	};
+
+	if (!tempVideoPath && !preferredVideoPath) {
+		return null;
+	}
+
+	const recordingsDir = await getRecordingsDir();
+	const timestampMatch = path
+		.basename(tempVideoPath ?? preferredVideoPath ?? "")
+		.match(/(\d{10,})/);
+	const finalVideoPath =
+		preferredVideoPath ??
+		path.join(recordingsDir, `recording-${timestampMatch?.[1] ?? Date.now()}.mp4`);
+	const sourceVideoPath = await resolveExistingPath(tempVideoPath, preferredVideoPath);
+
+	if (!sourceVideoPath) {
+		clearCaptureState();
+		return null;
+	}
+
+	const tempSystemAudioPath = tempVideoPath?.replace(/\.mp4$/u, ".system.wav") ?? null;
+	const tempMicAudioPath = tempVideoPath?.replace(/\.mp4$/u, ".mic.wav") ?? null;
+
+	try {
+		if (sourceVideoPath !== finalVideoPath) {
+			await moveFileWithOverwrite(sourceVideoPath, finalVideoPath);
+		}
+		await salvageRecoveredCompanionFile(tempSystemAudioPath, preferredSystemAudioPath);
+		await salvageRecoveredCompanionFile(tempMicAudioPath, preferredMicAudioPath);
+
+		const validation = await validateRecordedVideo(finalVideoPath);
+		clearCaptureState();
+		setWindowsPendingVideoPath(finalVideoPath);
+		await writeWindowsRecordingDiagnostics(finalVideoPath, {
+			phase: "stop",
+			outputPath: finalVideoPath,
+			systemAudioPath: preferredSystemAudioPath,
+			microphonePath: preferredMicAudioPath,
+			details: {
+				fileSizeBytes: validation.fileSizeBytes,
+				durationSeconds: validation.durationSeconds,
+				recoveredAfterStopTimeout: true,
+			},
+		});
+		return { success: true, path: finalVideoPath };
+	} catch (error) {
+		console.error("Failed to recover native Windows capture output:", error);
+		clearCaptureState();
+		await writeWindowsRecordingDiagnostics(finalVideoPath, {
+			phase: "stop",
+			outputPath: finalVideoPath,
+			systemAudioPath: preferredSystemAudioPath,
+			microphonePath: preferredMicAudioPath,
+			error: String(error),
+			details: { recoveredAfterStopTimeout: true },
+		});
+		return null;
+	}
+}
+
 // Guards against concurrent start invocations: IPC handlers interleave, and a
 // second start used to kill the first helper mid-start (active is only set
 // after waitForWindowsCaptureStart resolves), failing both recordings.
@@ -464,6 +577,16 @@ export function registerRecordingHandlers(
 					};
 
 					if (captureTarget.kind === "invalid-window") {
+						// The staged target/temp paths were set before the target was
+						// resolved; clear them so the failure leaves no stale capture
+						// state behind for a later stop/recover call to trip over.
+						setWindowsCaptureTargetPath(null);
+						setWindowsCaptureTempPath(null);
+						setWindowsSystemAudioPath(null);
+						setWindowsMicAudioPath(null);
+						setWindowsOrphanedMicAudioPath(null);
+						setWindowsCaptureStopRequested(false);
+						setWindowsCapturePaused(false);
 						return {
 							success: false,
 							message:
@@ -579,6 +702,17 @@ export function registerRecordingHandlers(
 					});
 
 					await waitForWindowsCaptureStart(wcProc);
+					// The helper prints WASAPI mic-init warnings to stderr before
+					// "Recording started" on stdout, but the two pipes deliver
+					// independently. Give stderr a brief settle before the one-shot
+					// fallback decision so a failed mic init is always visible.
+					if (
+						options?.capturesMicrophone &&
+						!browserMicFallbackRequested &&
+						!captureOutput.includes(WINDOWS_MIC_CAPTURE_INIT_WARNING)
+					) {
+						await new Promise((resolve) => setTimeout(resolve, 150));
+					}
 					const microphoneFallbackRequired =
 						browserMicFallbackRequested ||
 						shouldUseWindowsBrowserMicrophoneFallback(captureOutput, options);
@@ -1130,6 +1264,18 @@ export function registerRecordingHandlers(
 				}
 			}
 
+			// Inactive but a previous stop attempt failed after killing the helper
+			// (e.g. the 45s stop timeout): recover the stranded temp take instead
+			// of reporting "only available on macOS".
+			if (process.platform === "win32") {
+				const recovered = await recoverNativeWindowsRecordingOutput();
+				if (recovered) {
+					return recovered;
+				}
+
+				return { success: false, message: "No native Windows screen recording is active." };
+			}
+
 			if (process.platform !== "darwin") {
 				return {
 					success: false,
@@ -1282,6 +1428,18 @@ export function registerRecordingHandlers(
 	});
 
 	ipcMain.handle("recover-native-screen-recording", async () => {
+		if (process.platform === "win32") {
+			const recovered = await recoverNativeWindowsRecordingOutput();
+			if (recovered) {
+				return recovered;
+			}
+
+			return {
+				success: false,
+				message: "No recoverable native Windows recording output was found.",
+			};
+		}
+
 		if (process.platform !== "darwin") {
 			return {
 				success: false,
@@ -1589,7 +1747,31 @@ export function registerRecordingHandlers(
 			const baseName = normalizedVideoPath.replace(/\.[^.]+$/, "");
 			const sidecarPath = `${baseName}.mic.wav`;
 			const sourceWebmPath = `${baseName}.mic.source.webm`;
-			const tempWebmPath = `${sourceWebmPath}.tmp`;
+			// Write confinement: the renderer supplies videoPath, so every file
+			// this handler writes (wav, temp webm, metadata json) is derived from
+			// it and must stay inside the recordings directory.
+			const recordingsDir = await getRecordingsDir();
+			const resolvedRecordingsDir = await fs
+				.realpath(recordingsDir)
+				.catch(() => path.resolve(recordingsDir));
+			if (!videoPath || !isPathInsideDirectory(path.resolve(videoPath), resolvedRecordingsDir)) {
+				console.warn(
+					"Rejected microphone sidecar store outside the recordings directory:",
+					videoPath,
+				);
+				return {
+					success: false,
+					error: "Microphone sidecars can only be stored in the recordings directory",
+				};
+			}
+			// Unique per call: two interleaved store calls for the same video must
+			// not share (and truncate) each other's input file mid-transcode.
+			const tempWebmPath = `${sourceWebmPath}.${Date.now()}-${Math.random()
+				.toString(36)
+				.slice(2, 8)}.tmp`;
+			// The wav is transcoded to a temp path and renamed into place so
+			// companion-audio readers never stat a half-written file.
+			const tempSidecarPath = `${sidecarPath}.tmp`;
 
 			try {
 				await fs.writeFile(tempWebmPath, Buffer.from(audioData));
@@ -1614,10 +1796,14 @@ export function registerRecordingHandlers(
 						].join(","),
 						"-c:a",
 						"pcm_s16le",
-						sidecarPath,
+						tempSidecarPath,
 					],
-					{ timeout: 120000, maxBuffer: 10 * 1024 * 1024 },
+					{
+						timeout: getBrowserMicSidecarTimeoutMs(audioData.byteLength),
+						maxBuffer: 10 * 1024 * 1024,
+					},
 				);
+				await fs.rename(tempSidecarPath, sidecarPath);
 				if (shouldKeepRecordingAudioSidecars()) {
 					await fs.rename(tempWebmPath, sourceWebmPath).catch(async () => {
 						await fs.copyFile(tempWebmPath, sourceWebmPath);
@@ -1711,6 +1897,7 @@ export function registerRecordingHandlers(
 			} catch (error) {
 				await Promise.all([
 					fs.rm(tempWebmPath, { force: true }).catch(() => undefined),
+					fs.rm(tempSidecarPath, { force: true }).catch(() => undefined),
 					fs.rm(sidecarPath, { force: true }).catch(() => undefined),
 				]);
 				console.error("Failed to store microphone sidecar:", error);

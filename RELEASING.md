@@ -4,6 +4,21 @@ This repository now uses `electron-builder` + `electron-updater` for macOS, Wind
 
 For this Electron app, that is the right path instead of wiring Sparkle.framework directly. On macOS, `electron-updater` handles the release metadata and update flow that Sparkle would otherwise cover in a native app, while still sharing the same GitHub Releases pipeline used by Windows and Linux.
 
+## Current release status (2026-09-16)
+
+- No releases have been published from this repository yet. Tag `v0.2.0` matches `package.json`.
+- `release.yml` fires when a GitHub release is **published**. Without the Apple signing/notarization secrets listed below, the macOS leg cannot build and the workflow will fail — set those secrets before publishing the first release.
+- There is no Homebrew cask file in this repo by design: `homebrew-tap.yml` generates the cask (correct repo, version, and real checksums) into the tap repository after a release. The workflow needs the `HOMEBREW_TAP_TOKEN` secret and an `unfoldingdimensions/homebrew-tap` repository to exist before it can run.
+
+### License compliance for releases (AGPL)
+
+Publishing a release **conveys** the software under the AGPLv3. Before every release:
+
+- Tag the exact source the binaries were built from; this repository is the Complete Corresponding Source offer, so it must stay publicly accessible.
+- Ship `LICENSE.md` and `NOTICE.md` with the binary artifacts (add them to `electron-builder` files/extraResources if they are not picked up automatically).
+- The bundled `ffmpeg-static` binary is GPL-3.0-or-later: its license text and upstream source offer must accompany the artifacts (see the Bundled third-party components table in `NOTICE.md`).
+- If MoRec is ever offered as a hosted network service to other people, AGPLv3 §13 requires offering those users the Corresponding Source of the running version.
+
 ## What the release workflow does
 
 When you publish a GitHub release tagged like `v1.2.3`, `.github/workflows/release.yml` will:

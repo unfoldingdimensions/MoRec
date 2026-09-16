@@ -10,7 +10,7 @@ on:
       tap_repo:
         description: "Tap repository in owner/repo format"
         required: false
-        default: "morec/homebrew-tap"
+        default: "unfoldingdimensions/homebrew-tap"
         type: string
 
 permissions:
@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
-      TAP_REPO: ${{ github.event.inputs.tap_repo || vars.HOMEBREW_TAP_REPO || 'morec/homebrew-tap' }}
+      TAP_REPO: ${{ github.event.inputs.tap_repo || vars.HOMEBREW_TAP_REPO || 'unfoldingdimensions/homebrew-tap' }}
       AUTO_MERGE_TAP_PR: ${{ vars.HOMEBREW_TAP_AUTO_MERGE || 'true' }}
     steps:
       - name: Validate token

@@ -78,6 +78,49 @@ export function estimateCompanionAudioStartDelaySeconds(
 	return estimatedDelaySeconds;
 }
 
+/** Largest plausibly-inferred preview delay; larger inferred gaps collapse to 0. */
+const MAX_INFERRED_PREVIEW_START_DELAY_SECONDS = 5;
+
+/**
+ * Preview-side companion audio start delay.
+ *
+ * A recorded startDelayMs (capture-time ground truth: the WGC helper's sidecar
+ * .json or the browser-mic fallback's measured acquisition delay) applies
+ * as-is, matching what the export encoder schedules. Only delays inferred
+ * from a duration shortfall go through the plausibility clamps, so a bogus
+ * inference can never push a whole track off the timeline.
+ */
+export function resolveCompanionPreviewStartDelaySeconds(options: {
+	timelineDuration?: number | null;
+	audioDuration?: number | null;
+	recordedStartDelayMs?: number | null;
+}): number {
+	const { timelineDuration, audioDuration, recordedStartDelayMs } = options;
+	const hasRecordedDelay =
+		Number.isFinite(recordedStartDelayMs) && (recordedStartDelayMs ?? 0) >= 0;
+	const rawStartDelaySeconds = estimateCompanionAudioStartDelaySeconds(
+		timelineDuration,
+		audioDuration,
+		recordedStartDelayMs,
+	);
+	if (hasRecordedDelay) {
+		return rawStartDelaySeconds;
+	}
+
+	if (
+		Number.isFinite(timelineDuration) &&
+		(rawStartDelaySeconds >= Math.max(0, (timelineDuration ?? 0) - 0.01) ||
+			rawStartDelaySeconds >
+				Math.max(
+					MAX_INFERRED_PREVIEW_START_DELAY_SECONDS,
+					(timelineDuration ?? 0) * 0.9,
+				))
+	) {
+		return 0;
+	}
+	return rawStartDelaySeconds;
+}
+
 export function getMediaSyncPlaybackRate({
 	basePlaybackRate,
 	currentTime,

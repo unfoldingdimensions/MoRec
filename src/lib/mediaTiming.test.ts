@@ -7,6 +7,7 @@ import {
 	getEffectiveRecordingDurationMs,
 	getEffectiveVideoStreamDurationSeconds,
 	getMediaSyncPlaybackRate,
+	resolveCompanionPreviewStartDelaySeconds,
 	resolvePreviewMediaDuration,
 } from "./mediaTiming";
 
@@ -61,6 +62,57 @@ describe("estimateCompanionAudioStartDelaySeconds", () => {
 		expect(estimateCompanionAudioStartDelaySeconds(10, 9.99)).toBe(0);
 		expect(estimateCompanionAudioStartDelaySeconds(10, 10.5)).toBe(0);
 		expect(estimateCompanionAudioStartDelaySeconds(600, 565)).toBe(0);
+	});
+});
+
+describe("resolveCompanionPreviewStartDelaySeconds", () => {
+	it("applies a recorded delay as-is regardless of magnitude", () => {
+		expect(
+			resolveCompanionPreviewStartDelaySeconds({
+				timelineDuration: 10,
+				audioDuration: 2,
+				recordedStartDelayMs: 3_500,
+			}),
+		).toBeCloseTo(3.5);
+		// An 8 s recorded delay would be discarded if it were merely inferred.
+		expect(
+			resolveCompanionPreviewStartDelaySeconds({
+				timelineDuration: 10,
+				audioDuration: 2,
+				recordedStartDelayMs: 8_000,
+			}),
+		).toBeCloseTo(8);
+		expect(
+			resolveCompanionPreviewStartDelaySeconds({
+				timelineDuration: 10,
+				audioDuration: 2,
+				recordedStartDelayMs: 0,
+			}),
+		).toBe(0);
+	});
+
+	it("collapses implausible inferred delays to zero", () => {
+		expect(
+			resolveCompanionPreviewStartDelaySeconds({ timelineDuration: 600, audioDuration: 565 }),
+		).toBe(0);
+		expect(
+			resolveCompanionPreviewStartDelaySeconds({ timelineDuration: 10, audioDuration: 10.5 }),
+		).toBe(0);
+	});
+
+	it("keeps small plausible inferred delays", () => {
+		expect(
+			resolveCompanionPreviewStartDelaySeconds({ timelineDuration: 10, audioDuration: 9.6 }),
+		).toBeCloseTo(0.4);
+	});
+
+	it("returns zero when durations are unknown", () => {
+		expect(
+			resolveCompanionPreviewStartDelaySeconds({
+				timelineDuration: Number.NaN,
+				audioDuration: 9.6,
+			}),
+		).toBe(0);
 	});
 });
 

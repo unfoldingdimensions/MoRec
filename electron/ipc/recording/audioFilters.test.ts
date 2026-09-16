@@ -2,8 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import {
 	BROWSER_MIC_SIDECAR_FILTERS,
+	BROWSER_MIC_SIDECAR_MAX_TIMEOUT_MS,
+	BROWSER_MIC_SIDECAR_MIN_TIMEOUT_MS,
 	BROWSER_MIC_SIDECAR_NO_AGC_GAIN_FILTERS,
 	getBrowserMicSidecarFilters,
+	getBrowserMicSidecarTimeoutMs,
 	RECORDING_AUDIO_SIDECAR_DEBUG_ENV,
 	shouldKeepRecordingAudioSidecars,
 	WINDOWS_NATIVE_MIC_PRE_FILTERS,
@@ -70,5 +73,23 @@ describe("browser microphone sidecar post-processing", () => {
 			"speechnorm=p=0.92:e=12:c=2:r=0.0005:f=0.001",
 		);
 		expect(BROWSER_MIC_SIDECAR_NO_AGC_GAIN_FILTERS).toContain("alimiter=limit=0.92:level=0");
+	});
+});
+
+describe("browser microphone sidecar transcode timeout", () => {
+	it("scales the budget with the source size and stays within bounds", () => {
+		// A 1-hour opus voice track (~14 MB) gets 8 minutes, not 2.
+		expect(getBrowserMicSidecarTimeoutMs(14 * 1024 * 1024)).toBe(8 * 60_000);
+		// Huge sources cap at 30 minutes instead of spawning zombie ffmpeg jobs.
+		expect(getBrowserMicSidecarTimeoutMs(1024 * 1024 * 1024)).toBe(
+			BROWSER_MIC_SIDECAR_MAX_TIMEOUT_MS,
+		);
+	});
+
+	it("keeps the previous 2-minute floor for short recordings", () => {
+		expect(getBrowserMicSidecarTimeoutMs(0)).toBe(BROWSER_MIC_SIDECAR_MIN_TIMEOUT_MS);
+		expect(getBrowserMicSidecarTimeoutMs(3 * 1024 * 1024)).toBe(
+			BROWSER_MIC_SIDECAR_MIN_TIMEOUT_MS,
+		);
 	});
 });

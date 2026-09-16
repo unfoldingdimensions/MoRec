@@ -4,8 +4,8 @@ import { resolveMediaElementSource } from "@/lib/exporter/localMediaSource";
 import {
 	clampMediaTimeToDuration,
 	enablePitchPreservingPlayback,
-	estimateCompanionAudioStartDelaySeconds,
 	getMediaSyncPlaybackRate,
+	resolveCompanionPreviewStartDelaySeconds,
 	resolvePreviewMediaDuration,
 } from "@/lib/mediaTiming";
 import type { AudioRegion, SpeedRegion } from "../types";
@@ -415,21 +415,11 @@ export function useAudioPreviewSync({
 
 			enablePitchPreservingPlayback(audio);
 			const audioDuration = resolvePreviewMediaDuration(audio.duration, duration);
-			const isMicCompanionTrack = /\.mic\./i.test(sourceAudioPath);
-			const rawStartDelaySeconds = estimateCompanionAudioStartDelaySeconds(
-				duration,
+			const startDelaySeconds = resolveCompanionPreviewStartDelaySeconds({
+				timelineDuration: duration,
 				audioDuration,
-				sourceAudioFallbackStartDelayMsByPath[sourceAudioPath],
-			);
-			const maxPreviewStartDelaySeconds = isMicCompanionTrack ? 2 : 5;
-			const startDelaySeconds = isMicCompanionTrack
-				? 0
-				: Number.isFinite(duration) &&
-						(rawStartDelaySeconds >= Math.max(0, duration - 0.01) ||
-							rawStartDelaySeconds >
-								Math.max(maxPreviewStartDelaySeconds, duration * 0.9))
-					? 0
-					: rawStartDelaySeconds;
+				recordedStartDelayMs: sourceAudioFallbackStartDelayMsByPath[sourceAudioPath],
+			});
 			const beforeAudioStart = currentTime + 0.001 < startDelaySeconds;
 			const targetTime = clampMediaTimeToDuration(
 				currentTime - startDelaySeconds,

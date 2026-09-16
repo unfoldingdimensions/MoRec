@@ -5,6 +5,14 @@ import { VersionedWaveformCache } from "./waveformCache";
 
 const MAX_WAVEFORM_PEAKS = 200_000;
 const MAX_WAVEFORM_CACHE_ENTRIES = 24;
+/**
+ * Fetch ceiling for peak generation. decodeAudioData materializes the whole
+ * file as float32 PCM (a WAV sidecar roughly doubles in memory), so past this
+ * size the renderer can OOM; degrade to "no waveform" instead - playback and
+ * captions are unaffected. Callers already treat generate() failures as
+ * best-effort.
+ */
+const MAX_WAVEFORM_SOURCE_BYTES = 384 * 1024 * 1024;
 
 export class WaveformGenerator {
 	private audioContext: AudioContext;
@@ -94,7 +102,17 @@ export class WaveformGenerator {
 				throw new Error(`Failed to load media: ${response.status}`);
 			}
 
+			const contentLength = Number.parseInt(response.headers.get("content-length") ?? "", 10);
+			if (Number.isFinite(contentLength) && contentLength > MAX_WAVEFORM_SOURCE_BYTES) {
+				throw new Error(
+					`Waveform source too large to decode (${Math.round(contentLength / (1024 * 1024))} MB).`,
+				);
+			}
+
 			const arrayBuffer = await response.arrayBuffer();
+			if (arrayBuffer.byteLength > MAX_WAVEFORM_SOURCE_BYTES) {
+				throw new Error("Waveform source too large to decode.");
+			}
 			const decoded = await this.audioContext.decodeAudioData(arrayBuffer);
 			const adaptivePeakCount = Math.max(peakCount, Math.floor(decoded.duration * 500));
 			const boundedPeakCount = Math.min(adaptivePeakCount, MAX_WAVEFORM_PEAKS);

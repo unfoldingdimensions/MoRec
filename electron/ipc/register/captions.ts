@@ -119,7 +119,9 @@ export function registerCaptionHandlers() {
 				filters: [
 					{
 						name: "Executables",
-						extensions: process.platform === "win32" ? ["exe", "cmd", "bat"] : ["*"],
+						// .bat/.cmd are excluded: Node refuses to spawn them via execFile
+						// without a shell, so picking one would fail at transcription time.
+						extensions: process.platform === "win32" ? ["exe"] : ["*"],
 					},
 					{ name: "All Files", extensions: ["*"] },
 				],
