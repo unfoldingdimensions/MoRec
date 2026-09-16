@@ -39,7 +39,7 @@ import {
 	getSystemCursorHelperSourcePath,
 	getWindowsCaptureExePath,
 } from "../paths/binaries";
-import { rememberApprovedLocalReadPath } from "../project/manager";
+import { isAllowedLocalReadPath, rememberApprovedLocalReadPath } from "../project/manager";
 import { writeProjectFileAtomically } from "../project/atomicSave";
 import {
 	getBrowserMicSidecarFilters,
@@ -1570,7 +1570,23 @@ export function registerRecordingHandlers(
 				pauseIntervals?: unknown;
 			},
 		) => {
-			const baseName = videoPath.replace(/\.[^.]+$/, "");
+			// videoPath is renderer-supplied; every sidecar file below is derived from
+			// it, so the gate must run before anything touches the filesystem. This
+			// mirrors the storagePath validation store-recorded-video applies and
+			// keeps a compromised renderer from aiming the mic sidecar (or the
+			// diagnostics snapshot) at arbitrary absolute/UNC paths. Recordings live
+			// under the recordings dir (a policy prefix), export temps under the temp
+			// prefix, and dialog-picked external videos are in the read-approval set,
+			// so legitimate callers pass.
+			const normalizedVideoPath = normalizeVideoSourcePath(videoPath);
+			if (!normalizedVideoPath || !isAllowedLocalReadPath(normalizedVideoPath)) {
+				return {
+					success: false,
+					error: "Video path is missing or not approved for microphone sidecar storage",
+				};
+			}
+
+			const baseName = normalizedVideoPath.replace(/\.[^.]+$/, "");
 			const sidecarPath = `${baseName}.mic.wav`;
 			const sourceWebmPath = `${baseName}.mic.source.webm`;
 			const tempWebmPath = `${sourceWebmPath}.tmp`;
@@ -1675,10 +1691,10 @@ export function registerRecordingHandlers(
 						);
 					}
 				}
-				await writeRecordingDiagnosticsSnapshot(videoPath, {
+				await writeRecordingDiagnosticsSnapshot(normalizedVideoPath, {
 					backend: "browser-store",
 					phase: "mic-sidecar",
-					outputPath: videoPath,
+					outputPath: normalizedVideoPath,
 					microphonePath: sidecarPath,
 					details: {
 						sourceBytes: audioData.byteLength,
@@ -1825,7 +1841,9 @@ export function registerRecordingHandlers(
 
 	ipcMain.handle("get-cursor-telemetry", async (_, videoPath?: string) => {
 		const targetVideoPath = normalizeVideoSourcePath(videoPath ?? currentVideoPath);
-		if (!targetVideoPath) {
+		// Unapproved paths answer exactly like the "no path" case so the gate
+		// cannot double as an oracle for which paths exist on disk.
+		if (!targetVideoPath || !isAllowedLocalReadPath(targetVideoPath)) {
 			return { success: true, samples: [] };
 		}
 
@@ -1861,6 +1879,17 @@ export function registerRecordingHandlers(
 					samples: [],
 					message: "No video path available for cursor telemetry",
 					error: "Missing video path",
+				};
+			}
+
+			// Same policy gate as the read path: never write or delete
+			// <videoPath>.cursor.json outside app-managed/approved locations.
+			if (!isAllowedLocalReadPath(targetVideoPath)) {
+				return {
+					success: false,
+					samples: [],
+					message: "Video path is not approved for cursor telemetry",
+					error: "Unapproved video path",
 				};
 			}
 

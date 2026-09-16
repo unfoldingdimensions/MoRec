@@ -1,4 +1,7 @@
 import { EventEmitter } from "node:events";
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import { PassThrough } from "node:stream";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { IpcRegistry } from "../../test/ipcRegistry";
@@ -254,5 +257,166 @@ describe("register/recording start orchestration (win32)", () => {
 
 		expect(result).toEqual({ success: true, microphoneFallbackRequired: false });
 		expect(spawnMock).toHaveBeenCalledTimes(1);
+	});
+});
+
+/**
+ * Path-policy gate tests: `store-microphone-sidecar` and the cursor telemetry
+ * handlers derive every file location from the renderer-supplied video path,
+ * so each handler must pass the real `isAllowedLocalReadPath` gate from
+ * `../project/manager` before touching the filesystem. The electron mock
+ * points the policy prefixes (userData/temp) inside a throwaway fixture root,
+ * leaving an `outside` directory beyond every prefix to act as the unapproved
+ * renderer-chosen path.
+ */
+describe("register/recording renderer path gates", () => {
+	let fixtureRoot: string;
+	const registry = new IpcRegistry({
+		app: {
+			getPath: (name: string) => {
+				if (name === "temp") return path.join(fixtureRoot, "temp");
+				if (name === "userData") return path.join(fixtureRoot, "userData");
+				return fixtureRoot;
+			},
+		},
+	});
+	let execFileMock: ReturnType<typeof vi.fn>;
+	let diagnosticsMock: {
+		getCompanionAudioFallbackInfo: ReturnType<typeof vi.fn>;
+		getFileSizeIfPresent: ReturnType<typeof vi.fn>;
+		recordNativeCaptureDiagnostics: ReturnType<typeof vi.fn>;
+		summarizeMicrophoneChunkTiming: ReturnType<typeof vi.fn>;
+		validateRecordedVideo: ReturnType<typeof vi.fn>;
+		writeRecordingDiagnosticsSnapshot: ReturnType<typeof vi.fn>;
+	};
+
+	const makeOutsideVideoPath = async () => {
+		const outsideDir = path.join(fixtureRoot, "outside");
+		await fs.mkdir(outsideDir, { recursive: true });
+		return path.join(outsideDir, "clip.webm");
+	};
+
+	beforeEach(async () => {
+		fixtureRoot = await fs.mkdtemp(path.join(os.tmpdir(), "morec-recording-gates-"));
+		vi.resetModules();
+		registry.reset();
+		registry.installElectronMock();
+
+		// promisify(execFile) needs a callback-style mock; resolving mimics a
+		// successful ffmpeg run without spawning a real binary.
+		execFileMock = vi.fn((_file, _args, _options, callback) => callback(null, "", ""));
+		vi.doMock("node:child_process", () => ({
+			spawn: vi.fn(),
+			execFile: execFileMock,
+		}));
+		vi.doMock("../ffmpeg/binary", () => ({
+			getFfmpegBinaryPath: vi.fn(() => "/fake/ffmpeg"),
+		}));
+		diagnosticsMock = {
+			getCompanionAudioFallbackInfo: vi.fn(() => null),
+			getFileSizeIfPresent: vi.fn(async () => 0),
+			recordNativeCaptureDiagnostics: vi.fn(),
+			summarizeMicrophoneChunkTiming: vi.fn(() => null),
+			validateRecordedVideo: vi.fn(),
+			writeRecordingDiagnosticsSnapshot: vi.fn(async () => null),
+		};
+		vi.doMock("../recording/diagnostics", () => diagnosticsMock);
+
+		const { registerRecordingHandlers } = await import("./recording");
+		registerRecordingHandlers();
+	});
+
+	afterEach(async () => {
+		vi.restoreAllMocks();
+		vi.resetModules();
+		vi.doUnmock("electron");
+		vi.doUnmock("node:child_process");
+		vi.doUnmock("../ffmpeg/binary");
+		vi.doUnmock("../recording/diagnostics");
+		await fs.rm(fixtureRoot, { recursive: true, force: true });
+	});
+
+	it("store-microphone-sidecar writes nothing and fails for an unapproved path", async () => {
+		const videoPath = await makeOutsideVideoPath();
+		await fs.writeFile(videoPath, "video");
+		const baseName = videoPath.replace(/\.[^.]+$/, "");
+		// Pre-place a derived target so an unguarded write would be visible.
+		const sidecarPath = `${baseName}.mic.wav`;
+		await fs.writeFile(sidecarPath, "do-not-touch");
+
+		const result = (await registry.invoke(
+			"store-microphone-sidecar",
+			new ArrayBuffer(8),
+			videoPath,
+		)) as { success: boolean };
+
+		expect(result.success).toBe(false);
+		expect(await fs.readFile(sidecarPath, "utf-8")).toBe("do-not-touch");
+		await expect(fs.access(`${baseName}.mic.source.webm.tmp`)).rejects.toMatchObject({
+			code: "ENOENT",
+		});
+		await expect(fs.access(`${baseName}.mic.wav.json`)).rejects.toMatchObject({
+			code: "ENOENT",
+		});
+		await expect(fs.access(`${baseName}.recording-diagnostics.json`)).rejects.toMatchObject({
+			code: "ENOENT",
+		});
+		expect(execFileMock).not.toHaveBeenCalled();
+		expect(diagnosticsMock.writeRecordingDiagnosticsSnapshot).not.toHaveBeenCalled();
+	});
+
+	it("store-microphone-sidecar proceeds for a recording inside the recordings dir", async () => {
+		const recordingsDir = path.join(fixtureRoot, "userData", "recordings");
+		await fs.mkdir(recordingsDir, { recursive: true });
+		const videoPath = path.join(recordingsDir, "recording-42.webm");
+		await fs.writeFile(videoPath, "video");
+
+		const result = (await registry.invoke(
+			"store-microphone-sidecar",
+			new ArrayBuffer(8),
+			videoPath,
+		)) as { success: boolean; path?: string };
+
+		expect(result.success).toBe(true);
+		const expectedSidecar = `${videoPath.replace(/\.[^.]+$/, "")}.mic.wav`;
+		expect(result.path).toBe(expectedSidecar);
+		expect(execFileMock).toHaveBeenCalledTimes(1);
+		const ffmpegArgs = execFileMock.mock.calls[0][1] as string[];
+		expect(ffmpegArgs[ffmpegArgs.length - 1]).toBe(expectedSidecar);
+		await expect(
+			fs.access(`${videoPath.replace(/\.[^.]+$/, "")}.mic.source.webm.tmp`),
+		).rejects.toMatchObject({ code: "ENOENT" });
+	});
+
+	it("set-cursor-telemetry fails without writing for an unapproved path", async () => {
+		const videoPath = await makeOutsideVideoPath();
+
+		const result = (await registry.invoke("set-cursor-telemetry", videoPath, [
+			{ timeMs: 10, cx: 0.25, cy: 0.75 },
+		])) as { success: boolean; samples: unknown[] };
+
+		expect(result.success).toBe(false);
+		expect(result.samples).toEqual([]);
+		// The real writeCursorTelemetry would have created this for non-empty samples.
+		await expect(fs.access(`${videoPath}.cursor.json`)).rejects.toMatchObject({
+			code: "ENOENT",
+		});
+	});
+
+	it("get-cursor-telemetry reports no samples for an unapproved path", async () => {
+		const videoPath = await makeOutsideVideoPath();
+		await fs.writeFile(`${videoPath}.cursor.json`, "secret-telemetry", "utf-8");
+		// ENOENT and a rejected read look identical to the renderer, so observe
+		// the read itself: an unapproved telemetry file must never be opened.
+		const readFileSpy = vi.spyOn(
+			await import("node:fs/promises").then((m) => m.default),
+			"readFile",
+		);
+
+		expect(await registry.invoke("get-cursor-telemetry", videoPath)).toEqual({
+			success: true,
+			samples: [],
+		});
+		expect(readFileSpy).not.toHaveBeenCalled();
 	});
 });
