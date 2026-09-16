@@ -270,4 +270,26 @@ describe("extension IPC consent gates", () => {
 			true,
 		);
 	});
+
+	describe("admin review channel registration", () => {
+		it("does not register the admin review channels when MOREC_ADMIN_KEY is unset", async () => {
+			delete process.env.MOREC_ADMIN_KEY;
+			await registerHandlers();
+
+			expect(registry.getHandler("extensions:reviews-list")).toBeUndefined();
+			expect(registry.getHandler("extensions:review-update")).toBeUndefined();
+		});
+
+		it("registers the admin review channels only when MOREC_ADMIN_KEY is set", async () => {
+			process.env.MOREC_ADMIN_KEY = "test-admin-key";
+			try {
+				await registerHandlers();
+
+				expect(registry.getHandler("extensions:reviews-list")).toBeDefined();
+				expect(registry.getHandler("extensions:review-update")).toBeDefined();
+			} finally {
+				delete process.env.MOREC_ADMIN_KEY;
+			}
+		});
+	});
 });

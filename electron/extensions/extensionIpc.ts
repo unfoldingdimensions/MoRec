@@ -269,30 +269,35 @@ export function registerExtensionIpcHandlers(): void {
 
 	// ── Admin Review System ─────────────────────────────────────────────
 
-	// Fetch pending reviews (admin only)
-	ipcMain.handle(
-		"extensions:reviews-list",
-		async (
-			_event,
-			params: {
-				status?: MarketplaceReviewStatus;
-				page?: number;
-				pageSize?: number;
+	// The admin surface ships disabled: registering it unconditionally would
+	// expose marketplace moderation to every renderer. It only exists when the
+	// operator configures MOREC_ADMIN_KEY for the environment.
+	if (process.env.MOREC_ADMIN_KEY) {
+		// Fetch pending reviews (admin only)
+		ipcMain.handle(
+			"extensions:reviews-list",
+			async (
+				_event,
+				params: {
+					status?: MarketplaceReviewStatus;
+					page?: number;
+					pageSize?: number;
+				},
+			) => {
+				try {
+					return await fetchPendingReviews(params);
+				} catch (error: unknown) {
+					return { reviews: [], total: 0, error: getErrorMessage(error) };
+				}
 			},
-		) => {
-			try {
-				return await fetchPendingReviews(params);
-			} catch (error: unknown) {
-				return { reviews: [], total: 0, error: getErrorMessage(error) };
-			}
-		},
-	);
+		);
 
-	// Update review status (admin only)
-	ipcMain.handle(
-		"extensions:review-update",
-		async (_event, reviewId: string, status: MarketplaceReviewStatus, notes?: string) => {
-			return updateReviewStatus(reviewId, status, notes);
-		},
-	);
+		// Update review status (admin only)
+		ipcMain.handle(
+			"extensions:review-update",
+			async (_event, reviewId: string, status: MarketplaceReviewStatus, notes?: string) => {
+				return updateReviewStatus(reviewId, status, notes);
+			},
+		);
+	}
 }
