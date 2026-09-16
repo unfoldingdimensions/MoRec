@@ -3669,14 +3669,16 @@ export async function exportNativeStaticLayoutVideo(
 					? buildNativePrecompositedStaticLayoutArgs({
 							...fullConfig,
 							staticBackgroundPath,
-							maskPath,
-						})
-					: buildNativeCpuPrecompositedStaticLayoutArgs({
-							...fullConfig,
-							staticBackgroundPath,
-							maskPath,
-						}),
-				15 * 60 * 1000,
+						maskPath,
+					})
+						: buildNativeCpuPrecompositedStaticLayoutArgs({
+								...fullConfig,
+								staticBackgroundPath,
+								maskPath,
+							}),
+				// Duration-scaled: a weak CPU can encode far below realtime, so a
+				// flat 15-minute cap would kill long healthy renders.
+				Math.max(15 * 60 * 1000, options.durationSec * 2000),
 				session,
 			);
 			metrics.chunkExecMs += fullResult.elapsedMs;
@@ -3728,10 +3730,14 @@ export async function exportNativeStaticLayoutVideo(
 				await runCpuStaticLayoutFullRun();
 			} else {
 				try {
+					const fullRunTimeoutMs = Math.max(
+						15 * 60 * 1000,
+						options.durationSec * 2000,
+					);
 					const primaryResult = await runFfmpegWithMetrics(
 						ffmpegPath,
 						buildNativeCudaOverlayStaticLayoutArgs(fullConfig),
-						15 * 60 * 1000,
+						fullRunTimeoutMs,
 						session,
 					);
 					let fullResult = primaryResult;
@@ -3746,7 +3752,7 @@ export async function exportNativeStaticLayoutVideo(
 						fullResult = await runFfmpegWithMetrics(
 							ffmpegPath,
 							buildNativeCudaScaleCpuPadStaticLayoutArgs(fullConfig),
-							15 * 60 * 1000,
+							fullRunTimeoutMs,
 							session,
 						);
 					}
@@ -3848,7 +3854,8 @@ export async function exportNativeStaticLayoutVideo(
 								listPath: concatListPath,
 								outputPath: videoOnlyPath,
 							}),
-							15 * 60 * 1000,
+							// Copy-mode concat is I/O-bound; scale with duration.
+							Math.max(15 * 60 * 1000, options.durationSec * 1000),
 							session,
 						);
 						metrics.concatExecMs = getNowMs() - concatStartedAt;
@@ -4243,7 +4250,16 @@ export async function muxNativeVideoExportAudio(
 
 	try {
 		const ffmpegExecStartedAt = getNowMs();
-		await runFfmpegAudioMux(ffmpegPath, args, 15 * 60 * 1000, options, onProgress, session);
+		await runFfmpegAudioMux(
+			ffmpegPath,
+			args,
+			// Copy/encode mux scales with output duration; flat 15 minutes could
+			// kill a legitimate huge-file mux on slow I/O.
+			Math.max(15 * 60 * 1000, (options.outputDurationSec ?? 0) * 1000),
+			options,
+			onProgress,
+			session,
+		);
 		metrics.ffmpegExecMs = getNowMs() - ffmpegExecStartedAt;
 		console.info("[native-video-export] Audio mux completed", {
 			ffmpegExecMs: metrics.ffmpegExecMs,
