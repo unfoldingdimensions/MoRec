@@ -850,9 +850,12 @@ export class AudioProcessor {
 
 		// Decode embedded source audio separately from companion sidecars.
 		// The expected duration feeds decode-progress reporting so the
-		// finalization watchdog sees movement during long decodes.
+		// finalization watchdog sees movement during long decodes; the media
+		// (video timeline) duration is also the reference companion start-delay
+		// inference is measured against.
+		const mediaDurationSec = await this.getMediaDurationSec(videoUrl).catch(() => 0);
 		const expectedMainAudioDurationSec = resolvedPlan.includeEmbeddedInExport
-			? await this.getMediaDurationSec(videoUrl).catch(() => undefined)
+			? mediaDurationSec || undefined
 			: undefined;
 		const mainBuffer = resolvedPlan.includeEmbeddedInExport
 			? await this.decodeAudioFromUrl(videoUrl, expectedMainAudioDurationSec)
@@ -867,9 +870,9 @@ export class AudioProcessor {
 			startDelaySec: number;
 			gain: number;
 		}> = [];
-		const refDuration =
-			mainBuffer?.duration ??
-			(resolvedPlan.playbackPaths.length > 0 ? await this.getMediaDurationSec(videoUrl) : 0);
+		// Measure against the video timeline, not the embedded audio's own
+		// duration — embedded audio length can differ slightly from the video.
+		const refDuration = resolvedPlan.playbackPaths.length > 0 ? mediaDurationSec : 0;
 		for (const audioPath of resolvedPlan.playbackPaths) {
 			if (this.cancelled) throw new Error("Export cancelled");
 			const buffer = await this.decodeAudioFromUrl(audioPath);
