@@ -261,6 +261,21 @@ describe("AudioProcessor offline render preparation", () => {
 		}
 	});
 
+	it("reports that no audio was written when the source has no decodable audio track", async () => {
+		const processor = new AudioProcessor();
+		const demuxer = {
+			getDecoderConfig: vi.fn(() => {
+				throw new Error("no audio track");
+			}),
+		};
+		const muxer = { addAudioChunk: vi.fn() };
+
+		await expect(
+			processor.process(demuxer as never, muxer as never, "file:///tmp/recording.mp4"),
+		).resolves.toBe(false);
+		expect(muxer.addAudioChunk).not.toHaveBeenCalled();
+	});
+
 	it("streams the rendered edited audio to an export temp instead of a Blob when the bridge is available", async () => {
 		const processor = new AudioProcessor() as unknown as OfflineRenderTestHarness;
 		const renderedBuffer = fakeStreamableAudioBuffer([new Float32Array([0.5, -0.5])]);

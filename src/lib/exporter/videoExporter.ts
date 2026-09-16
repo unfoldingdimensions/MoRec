@@ -397,6 +397,7 @@ export class VideoExporter {
 				throw this.encoderError;
 			}
 
+			let audioProcessingWroteAudio = !hasAudio;
 			if (hasAudio && !shouldUseFfmpegAudioFallback && !this.cancelled) {
 				const demuxer = this.streamingDecoder.getDemuxer();
 				if (demuxer || hasAudioRegions || hasSourceAudioFallback) {
@@ -406,7 +407,7 @@ export class VideoExporter {
 					});
 					this.reportFinalizingProgress(totalFrames, 99, 0);
 					await this.measureFinalizationStage("audioProcessingMs", async () => {
-						await this.awaitWithFinalizationTimeout(
+						audioProcessingWroteAudio = await this.awaitWithFinalizationTimeout(
 							this.audioProcessor!.process(
 								demuxer,
 								this.muxer!,
@@ -437,11 +438,13 @@ export class VideoExporter {
 				),
 			);
 
-			if (shouldUseFfmpegAudioFallback) {
+			if (shouldUseFfmpegAudioFallback || !audioProcessingWroteAudio) {
 				console.warn(
-					shouldUsePitchPreservingFfmpegAudio
-						? "[VideoExporter] Using FFmpeg audio muxing for pitch-preserving speed edits."
-						: "[VideoExporter] Browser AAC encoding is unavailable; falling back to FFmpeg audio muxing.",
+					shouldUseFfmpegAudioFallback
+						? shouldUsePitchPreservingFfmpegAudio
+							? "[VideoExporter] Using FFmpeg audio muxing for pitch-preserving speed edits."
+							: "[VideoExporter] Browser AAC encoding is unavailable; falling back to FFmpeg audio muxing."
+						: "[VideoExporter] Renderer audio processing produced no audio; remuxing with FFmpeg audio instead of shipping a silent track.",
 				);
 				const result = await this.finalizeExportWithFfmpegAudio(
 					muxerResult,

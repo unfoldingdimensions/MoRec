@@ -237,6 +237,7 @@ type TrimLikeRegion = TrimRegion | ClipRegion;
 export class AudioProcessor {
 	private cancelled = false;
 	private onProgress?: (progress: number) => void;
+	private muxedAnyAudioChunk = false;
 
 	private isPassthroughAudioCodec(codec: string | undefined): boolean {
 		if (!codec) {
@@ -292,6 +293,7 @@ export class AudioProcessor {
 							},
 				);
 				wroteAudio = true;
+				this.muxedAnyAudioChunk = true;
 			}
 		} finally {
 			if (reader) {
@@ -315,7 +317,44 @@ export class AudioProcessor {
 		this.onProgress = callback;
 	}
 
+	/**
+	 * Processes the source audio into the muxer and reports whether any audio
+	 * chunk was actually written. Callers use the return value to reroute
+	 * finalization through the FFmpeg audio mux instead of shipping an export
+	 * with a silent, empty audio track when the source codec/config cannot be
+	 * decoded or encoded in the renderer.
+	 */
 	async process(
+		demuxer: WebDemuxer | null,
+		muxer: VideoMuxer,
+		videoUrl: string,
+		trimRegions?: TrimLikeRegion[],
+		speedRegions?: SpeedRegion[],
+		readEndSec?: number,
+		audioRegions?: AudioRegion[],
+		sourceAudioFallbackPaths?: string[],
+		sourceAudioFallbackStartDelayMsByPath?: Record<string, number>,
+		sourceAudioTrackSettings?: SourceAudioTrackSettings,
+		clipRegions?: ClipRegion[],
+	): Promise<boolean> {
+		this.muxedAnyAudioChunk = false;
+		await this.runAudioPipeline(
+			demuxer,
+			muxer,
+			videoUrl,
+			trimRegions,
+			speedRegions,
+			readEndSec,
+			audioRegions,
+			sourceAudioFallbackPaths,
+			sourceAudioFallbackStartDelayMsByPath,
+			sourceAudioTrackSettings,
+			clipRegions,
+		);
+		return this.muxedAnyAudioChunk;
+	}
+
+	private async runAudioPipeline(
 		demuxer: WebDemuxer | null,
 		muxer: VideoMuxer,
 		videoUrl: string,
@@ -651,6 +690,7 @@ export class AudioProcessor {
 							return;
 						}
 						await muxer.addAudioChunk(chunk, meta);
+						this.muxedAnyAudioChunk = true;
 					})
 					.catch((error) => {
 						muxError = error instanceof Error ? error : new Error(String(error));
@@ -972,6 +1012,7 @@ export class AudioProcessor {
 						if (this.cancelled) return;
 						await muxer.addAudioChunk(chunk, !wroteFirstChunk ? meta : undefined);
 						wroteFirstChunk = true;
+						this.muxedAnyAudioChunk = true;
 					})
 					.catch((error) => {
 						muxError = error instanceof Error ? error : new Error(String(error));
