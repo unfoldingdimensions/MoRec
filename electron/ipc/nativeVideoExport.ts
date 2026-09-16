@@ -6,7 +6,9 @@ import { getSquirclePathPoints } from "../../src/lib/geometry/squircle";
 import { ATEMPO_FILTER_EPSILON, buildAtempoFilters } from "./ffmpeg/filters";
 
 const NATIVE_EXPORT_INPUT_BYTES_PER_PIXEL = 4;
-const MIN_EDITED_TRACK_TEMPO_SPEED = 0.5;
+// buildAtempoFilters chains atempo steps, so the full UI speed range
+// (0.25x-2x) is safe for the edited-track filtergraph.
+const MIN_EDITED_TRACK_TEMPO_SPEED = 0.25;
 const MAX_EDITED_TRACK_TEMPO_SPEED = 2;
 
 export type NativeExportEncodingMode = "fast" | "balanced" | "quality";

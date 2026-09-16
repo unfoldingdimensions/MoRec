@@ -1,6 +1,8 @@
 import type { AudioRegion, SpeedRegion, TrimRegion } from "@/components/video-editor/types";
 
-const MIN_FILTERGRAPH_SPEED = 0.5;
+// buildAtempoFilters chains atempo steps, so the full UI speed range
+// (0.25x-2x) is safe for the filtergraph fast path.
+const MIN_FILTERGRAPH_SPEED = 0.25;
 const MAX_FILTERGRAPH_SPEED = 2;
 
 export type EditedTrackStrategy = "filtergraph-fast-path" | "offline-render-fallback";
