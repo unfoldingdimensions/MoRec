@@ -161,6 +161,8 @@ export interface ExportResult {
 	blob?: Blob;
 	filePath?: string;
 	error?: string;
+	/** True when the export ended because the user cancelled it — not an error. */
+	cancelled?: boolean;
 	metrics?: ExportMetrics;
 }
 

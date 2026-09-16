@@ -743,6 +743,7 @@ export class ModernVideoExporter {
 					return {
 						success: false,
 						error: "Export cancelled",
+						cancelled: true,
 						metrics: this.buildExportMetrics(),
 					};
 				}
@@ -916,6 +917,7 @@ export class ModernVideoExporter {
 						return {
 							success: false,
 							error: "Export cancelled",
+							cancelled: true,
 							metrics: this.buildExportMetrics(),
 						};
 					}
@@ -2519,6 +2521,7 @@ export class ModernVideoExporter {
 				return {
 					success: false,
 					error: "Export cancelled",
+					cancelled: true,
 					metrics: this.buildExportMetrics(),
 				};
 			}
@@ -2570,6 +2573,7 @@ export class ModernVideoExporter {
 				return {
 					success: false,
 					error: "Export cancelled",
+					cancelled: true,
 					metrics: this.buildExportMetrics(),
 				};
 			}

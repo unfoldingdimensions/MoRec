@@ -347,6 +347,7 @@ export class VideoExporter {
 				return {
 					success: false,
 					error: "Export cancelled",
+					cancelled: true,
 					metrics: this.buildExportMetrics(),
 				};
 			}
@@ -472,6 +473,7 @@ export class VideoExporter {
 				return {
 					success: false,
 					error: "Export cancelled",
+					cancelled: true,
 					metrics: this.buildExportMetrics(),
 				};
 			}
