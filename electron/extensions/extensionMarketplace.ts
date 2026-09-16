@@ -62,6 +62,26 @@ function getAdminKey(): string | undefined {
 	return process.env.MOREC_ADMIN_KEY;
 }
 
+/**
+ * Whether a download URL points at a trusted marketplace origin.
+ * Non-packaged (dev) builds additionally allow a local marketplace server.
+ * Shared with the IPC consent gate so the dialog and the downloader can
+ * never disagree about which URLs may be installed.
+ */
+export function isTrustedDownloadOrigin(downloadUrl: string): boolean {
+	const allowedOrigins = [
+		"https://marketplace.morec.app",
+		"https://morec.app",
+		...(app.isPackaged ? [] : ["http://localhost:3001"]),
+	];
+	try {
+		const url = new URL(downloadUrl);
+		return allowedOrigins.some((o) => url.origin === o);
+	} catch {
+		return false;
+	}
+}
+
 // ---------------------------------------------------------------------------
 // HTTP helpers
 // ---------------------------------------------------------------------------
@@ -173,18 +193,13 @@ export async function downloadAndInstallExtension(
 	downloadUrl: string,
 ): Promise<{ success: boolean; error?: string }> {
 	// Validate download URL against allowed marketplace origins
-	const allowedOrigins = [
-		"https://marketplace.morec.app",
-		"https://morec.app",
-		...(app.isPackaged ? [] : ["http://localhost:3001"]),
-	];
-	try {
-		const url = new URL(downloadUrl);
-		if (!allowedOrigins.some((o) => url.origin === o)) {
+	if (!isTrustedDownloadOrigin(downloadUrl)) {
+		try {
+			const url = new URL(downloadUrl);
 			return { success: false, error: `Untrusted download origin: ${url.origin}` };
+		} catch {
+			return { success: false, error: "Invalid download URL" };
 		}
-	} catch {
-		return { success: false, error: "Invalid download URL" };
 	}
 
 	// The id flows into temp-directory paths; reject separators and other

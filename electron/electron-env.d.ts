@@ -905,7 +905,8 @@ interface Window {
 		extensionsDiscover: () => Promise<RendererExtensionInfo[]>;
 		extensionsList: () => Promise<RendererExtensionInfo[]>;
 		extensionsGet: (id: string) => Promise<RendererExtensionInfo | null>;
-		extensionsEnable: (id: string) => Promise<{ success: boolean; error?: string }>;
+		/** Resolves `true` on success, `false` for unknown ids, or a refusal object when the consent dialog is declined. */
+		extensionsEnable: (id: string) => Promise<boolean | { success: false; reason: string }>;
 		extensionsDisable: (id: string) => Promise<{ success: boolean; error?: string }>;
 		extensionsInstallFromFolder: () => Promise<{
 			success: boolean;
@@ -928,7 +929,7 @@ interface Window {
 		extensionsMarketplaceInstall: (
 			extensionId: string,
 			downloadUrl: string,
-		) => Promise<{ success: boolean; error?: string }>;
+		) => Promise<{ success: boolean; error?: string; reason?: string }>;
 		extensionsMarketplaceSubmit: (
 			extensionId: string,
 		) => Promise<{ success: boolean; reviewId?: string; error?: string }>;
