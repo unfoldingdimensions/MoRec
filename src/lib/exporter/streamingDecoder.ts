@@ -169,6 +169,24 @@ export class StreamingVideoDecoder {
 			}
 		}
 
+		// The whole pipeline lays out frames at square pixels. Anamorphic
+		// sources would export silently distorted, so refuse them up front
+		// with a clear error instead. "0:0"/"0:1" means unspecified = square.
+		if (videoStream?.sample_aspect_ratio) {
+			const [sarNum, sarDen] = videoStream.sample_aspect_ratio.split(":");
+			const num = Number(sarNum);
+			const den = Number(sarDen);
+			if (Number.isFinite(num) && Number.isFinite(den) && num > 0 && den > 0) {
+				const sampleAspect = num / den;
+				if (Math.abs(sampleAspect - 1) > 0.01) {
+					throw new Error(
+						`Anamorphic (non-square pixel) sources are not supported: sample aspect ratio ${sampleAspect.toFixed(3)}. ` +
+							"Re-encode the recording to square pixels and try again.",
+					);
+				}
+			}
+		}
+
 		this.metadata = {
 			width: videoStream?.width || 1920,
 			height: videoStream?.height || 1080,
