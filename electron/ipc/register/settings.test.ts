@@ -164,6 +164,38 @@ describe("register/settings handlers", () => {
 			expect(await registry.invoke("app-settings:set", 42, "x")).toEqual({ success: false });
 		});
 
+		it("rejects prototype-polluting keys and leaves the store uncorrupted", async () => {
+			expect(
+				await registry.invoke("app-settings:set", "__proto__", { polluted: true }),
+			).toEqual({ success: false });
+			expect(await registry.invoke("app-settings:set", "constructor", "x")).toEqual({
+				success: false,
+			});
+			expect(await registry.invoke("app-settings:set", "prototype", "x")).toEqual({
+				success: false,
+			});
+
+			// The store is uncorrupted: the blocked keys read back as absent.
+			expect(await registry.invoke("app-settings:get", "__proto__")).toEqual({
+				success: true,
+				value: null,
+			});
+			expect(await registry.invoke("app-settings:get", "constructor")).toEqual({
+				success: true,
+				value: null,
+			});
+		});
+
+		it("still persists a normal key alongside the rejections", async () => {
+			expect(await registry.invoke("app-settings:set", "layout", "grid")).toEqual({
+				success: true,
+			});
+			expect(await registry.invoke("app-settings:get", "layout")).toEqual({
+				success: true,
+				value: "grid",
+			});
+		});
+
 		it("flushes pending debounced settings on before-quit", async () => {
 			await registry.invoke("app-settings:set", "key", "value");
 			registry.emitAppEvent("before-quit");

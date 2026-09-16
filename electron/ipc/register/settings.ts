@@ -170,6 +170,14 @@ export function registerSettingsHandlers() {
 				return { success: false };
 			}
 
+			// JSON.parse-produced plain objects revive "__proto__"
+			// own-properties harmlessly, but the live cache object must never
+			// be assigned them: store["__proto__"] = value would retarget the
+			// cache's prototype chain for the whole main process.
+			if (key === "__proto__" || key === "constructor" || key === "prototype") {
+				return { success: false };
+			}
+
 			const store = getAppSettingsStore();
 			store[key] = value;
 			scheduleSaveAppSettings();
