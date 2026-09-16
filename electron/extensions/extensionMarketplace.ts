@@ -86,6 +86,51 @@ export function isTrustedDownloadOrigin(downloadUrl: string): boolean {
 // HTTP helpers
 // ---------------------------------------------------------------------------
 
+/**
+ * HTTP redirect statuses we are willing to follow (after re-validating the
+ * target origin). 304 and other 3xx codes are returned to the caller as-is.
+ */
+const FOLLOWED_REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
+
+/**
+ * Fetch `url` while keeping every redirect hop on an allowed origin. Unlike
+ * the default `fetch` behaviour (which follows redirects to any origin), each
+ * Location target is resolved and re-checked with `isAllowedOrigin` before the
+ * next request is sent, so a compromised marketplace server or CDN path cannot
+ * bounce a download to attacker infrastructure.
+ */
+export async function fetchWithTrustedRedirects(
+	url: string,
+	init: RequestInit | undefined,
+	isAllowedOrigin: (candidate: string) => boolean,
+	maxRedirects = 5,
+): Promise<Response> {
+	let currentUrl = url;
+	for (let hop = 0; hop <= maxRedirects; hop++) {
+		let parsed: URL;
+		try {
+			parsed = new URL(currentUrl);
+		} catch {
+			throw new Error("Invalid download URL");
+		}
+		if (!isAllowedOrigin(parsed.origin)) {
+			throw new Error(`Untrusted download origin: ${parsed.origin}`);
+		}
+
+		const response = await fetch(currentUrl, { ...init, redirect: "manual" });
+		if (!FOLLOWED_REDIRECT_STATUSES.has(response.status)) {
+			return response;
+		}
+
+		const location = response.headers.get("location");
+		if (!location) {
+			throw new Error(`Redirect response ${response.status} has no Location header`);
+		}
+		currentUrl = new URL(location, parsed).toString();
+	}
+	throw new Error("Too many redirects while downloading extension");
+}
+
 async function marketplaceFetch<T>(
 	endpoint: string,
 	options: { method?: string; body?: unknown; timeout?: number; admin?: boolean } = {},
@@ -108,12 +153,16 @@ async function marketplaceFetch<T>(
 			headers["X-Admin-Key"] = key;
 		}
 
-		const response = await fetch(url, {
-			method: options.method ?? "GET",
-			headers,
-			body: options.body ? JSON.stringify(options.body) : undefined,
-			signal: controller.signal,
-		});
+		const response = await fetchWithTrustedRedirects(
+			url,
+			{
+				method: options.method ?? "GET",
+				headers,
+				body: options.body ? JSON.stringify(options.body) : undefined,
+				signal: controller.signal,
+			},
+			isTrustedDownloadOrigin,
+		);
 
 		if (!response.ok) {
 			const text = await response.text().catch(() => "");
@@ -221,12 +270,20 @@ export async function downloadAndInstallExtension(
 
 		let response: Response;
 		try {
-			response = await fetch(downloadUrl, {
-				signal: controller.signal,
-				headers: {
-					"X-MoRec-Version": app.getVersion(),
+			// NOTE: artifact integrity is not verified client-side — the origin
+			// allowlist and zip-slip checks below do not attest to the archive's
+			// contents. Checksums for downloaded zips remain a server-side gap
+			// (finding M5, documented).
+			response = await fetchWithTrustedRedirects(
+				downloadUrl,
+				{
+					signal: controller.signal,
+					headers: {
+						"X-MoRec-Version": app.getVersion(),
+					},
 				},
-			});
+				isTrustedDownloadOrigin,
+			);
 		} finally {
 			clearTimeout(timeoutId);
 		}
