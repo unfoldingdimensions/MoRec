@@ -1,4 +1,5 @@
 import fs from "node:fs/promises";
+import { realpathSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -155,7 +156,12 @@ export function getMacPrivacySettingsUrl(pane: "screen" | "accessibility" | "mic
 export function approveUserPath(filePath: string | null | undefined): void {
 	if (!filePath) return;
 	try {
-		approvedLocalReadPaths.add(path.resolve(filePath));
+		const resolved = path.resolve(filePath);
+		approvedLocalReadPaths.add(resolved);
+		// Pair the realpath spelling so canonical-branch policy checks pass for
+		// the same approved file (junctions, mapped drives). Non-existent paths
+		// stay lexical-only.
+		approvedLocalReadPaths.add(realpathSync(resolved));
 	} catch {
 		// Ignore invalid paths; later reads will surface the underlying error.
 	}

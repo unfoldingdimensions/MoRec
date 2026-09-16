@@ -599,4 +599,60 @@ describe("delete-recording-file IPC handler", () => {
 			expect(stat.isDirectory()).toBe(true);
 		});
 	});
+
+	describe("reveal-in-folder IPC handler", () => {
+		it("refuses renderer-chosen paths outside the read policy without touching the shell", async () => {
+			const handler = ipcHandlers.get("reveal-in-folder")!;
+			const outsideFile = path.join(testOutsideDir, "outside-secret.txt");
+			await fs.writeFile(outsideFile, "confidential");
+
+			const { shell } = await import("electron");
+
+			const result = (await handler(null, outsideFile)) as {
+				success: boolean;
+				error?: string;
+			};
+
+			expect(result.success).toBe(false);
+			expect(result.error).toBe("Path is not approved for local reads");
+			expect(shell.showItemInFolder).not.toHaveBeenCalled();
+			expect(shell.openPath).not.toHaveBeenCalled();
+		});
+
+		it("reveals approved paths (app-managed trees)", async () => {
+			const handler = ipcHandlers.get("reveal-in-folder")!;
+			const exportedFile = path.join(testUserDataDir, "exports", "clip.mp4");
+			await fs.mkdir(path.dirname(exportedFile), { recursive: true });
+			await fs.writeFile(exportedFile, "video");
+
+			const { shell } = await import("electron");
+
+			const result = await handler(null, exportedFile) as { success: boolean };
+
+			expect(result.success).toBe(true);
+			expect(shell.showItemInFolder).toHaveBeenCalledWith(exportedFile);
+		});
+	});
+
+	describe("approveUserPath realpath pairing", () => {
+		it("admits both the lexical and realpath spellings of an approved file so canonical policy checks pass", async () => {
+			const realDir = path.join(testTempRoot, "approval-real");
+			const linkDir = path.join(testTempRoot, "approval-link");
+			await fs.mkdir(realDir, { recursive: true });
+			const approvedFile = path.join(realDir, "clip.mp4");
+			await fs.writeFile(approvedFile, "video");
+			await fs.symlink(realDir, linkDir, process.platform === "win32" ? "junction" : "dir");
+			const linkSpelling = path.join(linkDir, "clip.mp4");
+
+			const { approveUserPath } = await import("../utils");
+			const { isAllowedLocalReadPath } = await import("../project/manager");
+
+			approveUserPath(linkSpelling);
+
+			expect(isAllowedLocalReadPath(path.resolve(linkSpelling))).toBe(true);
+			expect(isAllowedLocalReadPath(path.resolve(approvedFile))).toBe(true);
+			// Pairing must not widen the approval beyond the same file.
+			expect(isAllowedLocalReadPath(path.join(testOutsideDir, "clip.mp4"))).toBe(false);
+		});
+	});
 });
