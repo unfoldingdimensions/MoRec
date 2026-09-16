@@ -410,6 +410,7 @@ interface Window {
 				editedTrackStrategy?: "filtergraph-fast-path" | "offline-render-fallback";
 				editedTrackSegments?: Array<{ startMs: number; endMs: number; speed: number }>;
 				editedAudioData?: ArrayBuffer;
+				editedAudioPath?: string | null;
 				editedAudioMimeType?: string | null;
 			};
 		}) => Promise<{
@@ -458,6 +459,7 @@ interface Window {
 				editedTrackStrategy?: "filtergraph-fast-path" | "offline-render-fallback";
 				editedTrackSegments?: Array<{ startMs: number; endMs: number; speed: number }>;
 				editedAudioData?: ArrayBuffer;
+				editedAudioPath?: string | null;
 				editedAudioMimeType?: string | null;
 			},
 		) => Promise<{
@@ -482,6 +484,7 @@ interface Window {
 				editedTrackStrategy?: "filtergraph-fast-path" | "offline-render-fallback";
 				editedTrackSegments?: Array<{ startMs: number; endMs: number; speed: number }>;
 				editedAudioData?: ArrayBuffer;
+				editedAudioPath?: string | null;
 				editedAudioMimeType?: string | null;
 			},
 		) => Promise<{
@@ -502,6 +505,7 @@ interface Window {
 				editedTrackStrategy?: "filtergraph-fast-path" | "offline-render-fallback";
 				editedTrackSegments?: Array<{ startMs: number; endMs: number; speed: number }>;
 				editedAudioData?: ArrayBuffer;
+				editedAudioPath?: string | null;
 				editedAudioMimeType?: string | null;
 			},
 		) => Promise<{

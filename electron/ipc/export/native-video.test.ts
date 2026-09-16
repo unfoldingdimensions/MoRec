@@ -47,6 +47,7 @@ vi.mock("node:child_process", () => ({
 }));
 
 import { app } from "electron";
+import { isOwnedExportPath, registerOwnedExportPath } from "../export/exportStream";
 import {
 	buildExperimentalNvidiaCudaStaticLayoutArgs,
 	buildExperimentalWindowsGpuStaticLayoutArgs,
@@ -64,6 +65,7 @@ import {
 	hasNvidiaGpuDeviceInGpuInfo,
 	mapNvidiaCudaWrapperProgressPercentage,
 	muxExportedVideoAudioBuffer,
+	muxNativeVideoExportAudio,
 	type NativeStaticLayoutExportOptions,
 	normalizeNativeStaticLayoutBackground,
 	parseFfmpegDurationSeconds,
@@ -1449,5 +1451,54 @@ describe("parseFfmpegFrameRate", () => {
 		expect(parseFfmpegFrameRate("Video: h264, 1920x1080, 59.94 fps, 60 tbr")).toBe(59.94);
 		expect(parseFfmpegFrameRate("Video: h264, 1920x1080, 30 tbr")).toBe(30);
 		expect(parseFfmpegFrameRate("Video: h264")).toBeNull();
+	});
+});
+
+describe("muxNativeVideoExportAudio edited-audio path gate", () => {
+	it("rejects edited audio paths that are not app-managed export temps", async () => {
+		await expect(
+			muxNativeVideoExportAudio("C:\\temp\\video.mp4", {
+				audioMode: "edited-track",
+				editedTrackStrategy: "offline-render-fallback",
+				editedAudioPath: "C:\\temp\\not-registered.wav",
+			}),
+		).rejects.toThrow("not an app-managed export temp");
+	});
+
+	it("accepts an owned edited audio path and releases ownership after the mux", async () => {
+		const childProcess = await import("node:child_process");
+		const spawnMock = vi.mocked(childProcess.spawn);
+		const ownedPath = "C:\\temp\\morec-owned-edited-audio.wav";
+		const tempRoot = process.env.TEMP ?? process.cwd();
+		const videoPath = `${tempRoot}\\morec-mux-gate-test.mp4`;
+		registerOwnedExportPath(ownedPath);
+		expect(isOwnedExportPath(ownedPath)).toBe(true);
+
+		spawnMock.mockImplementation(
+			() =>
+				({
+					stderr: { on: () => undefined },
+					stdout: { on: () => undefined },
+					once: (event: string, handler: (...args: unknown[]) => void) => {
+						if (event === "close") {
+							setImmediate(() => handler(0, null));
+						}
+					},
+					kill: () => undefined,
+				}) as never,
+		);
+
+		try {
+			const result = await muxNativeVideoExportAudio(videoPath, {
+				audioMode: "edited-track",
+				editedTrackStrategy: "offline-render-fallback",
+				editedAudioPath: ownedPath,
+			});
+
+			expect(result.outputPath).toBe(videoPath.replace(/\.mp4$/, "-final.mp4"));
+			expect(isOwnedExportPath(ownedPath)).toBe(false);
+		} finally {
+			spawnMock.mockRestore();
+		}
 	});
 });

@@ -52,6 +52,17 @@ function fakeAudioBuffer(channels: Float32Array[]): AudioBuffer {
 	} as AudioBuffer;
 }
 
+function fakeStreamableAudioBuffer(channels: Float32Array[]): AudioBuffer {
+	const frames = channels[0]?.length ?? 0;
+	return {
+		numberOfChannels: channels.length,
+		length: frames,
+		sampleRate: 48_000,
+		duration: frames / 48_000,
+		getChannelData: (channel: number) => channels[channel],
+	} as unknown as AudioBuffer;
+}
+
 describe("AudioProcessor offline render preparation", () => {
 	it("keeps embedded source audio separate from external companion sidecars", async () => {
 		const processor = new AudioProcessor() as unknown as OfflineRenderTestHarness;
@@ -244,6 +255,119 @@ describe("AudioProcessor offline render preparation", () => {
 
 			expect(observedPeak).toBeLessThanOrEqual(0.986);
 		} finally {
+			(
+				globalThis as unknown as { OfflineAudioContext: typeof OfflineAudioContext }
+			).OfflineAudioContext = originalOfflineAudioContext;
+		}
+	});
+
+	it("streams the rendered edited audio to an export temp instead of a Blob when the bridge is available", async () => {
+		const processor = new AudioProcessor() as unknown as OfflineRenderTestHarness;
+		const renderedBuffer = fakeStreamableAudioBuffer([new Float32Array([0.5, -0.5])]);
+		vi.spyOn(processor, "prepareOfflineRender").mockResolvedValue({
+			mainBufferEntry: null,
+			companionEntries: [],
+			regionEntries: [],
+			mutedSourceOutputRangesSec: [],
+			slices: [],
+			outputDurationMs: 100,
+			numChannels: 1,
+		});
+
+		const writes: Array<{ position: number; bytes: Uint8Array }> = [];
+		const electronApi = {
+			openExportStream: vi.fn(async () => ({
+				success: true,
+				streamId: "stream-1",
+				tempPath: "C:\\temp\\morec-export-stream-1.wav",
+			})),
+			writeExportStreamChunk: vi.fn(
+				async (_streamId: string, position: number, chunk: Uint8Array) => {
+					writes.push({ position, bytes: chunk });
+					return { success: true };
+				},
+			),
+			closeExportStream: vi.fn(async () => ({
+				success: true,
+				tempPath: "C:\\temp\\morec-export-stream-1.wav",
+				bytesWritten: 46,
+			})),
+		};
+		const originalWindow = (globalThis as { window?: unknown }).window;
+		(globalThis as { window?: unknown }).window = { electronAPI: electronApi };
+		const originalOfflineAudioContext = globalThis.OfflineAudioContext;
+		(
+			globalThis as unknown as { OfflineAudioContext: typeof OfflineAudioContext }
+		).OfflineAudioContext = class {
+			constructor() {}
+
+			startRendering() {
+				return Promise.resolve(renderedBuffer);
+			}
+		} as unknown as typeof OfflineAudioContext;
+
+		try {
+			const result = await processor.renderEditedAudioTrack("file:///tmp/recording.mp4");
+
+			expect(result.kind).toBe("temp-file");
+			if (result.kind !== "temp-file") {
+				return;
+			}
+			expect(result.tempPath).toBe("C:\\temp\\morec-export-stream-1.wav");
+			expect(electronApi.openExportStream).toHaveBeenCalledWith({ extension: "wav" });
+			expect(electronApi.closeExportStream).toHaveBeenCalledWith("stream-1");
+			// WAV header (44 bytes) written first, then the rendered PCM.
+			expect(writes[0]?.position).toBe(0);
+			expect(writes[0]?.bytes.byteLength).toBe(44);
+			expect(writes[1]?.position).toBe(44);
+			expect(writes[1]?.bytes.byteLength).toBe(4);
+			expect(result.byteLength).toBe(4);
+		} finally {
+			(globalThis as { window?: unknown }).window = originalWindow;
+			(
+				globalThis as unknown as { OfflineAudioContext: typeof OfflineAudioContext }
+			).OfflineAudioContext = originalOfflineAudioContext;
+		}
+	});
+
+	it("falls back to rendering a WAV blob when the export-stream bridge is unavailable", async () => {
+		const processor = new AudioProcessor() as unknown as OfflineRenderTestHarness;
+		const renderedBuffer = fakeStreamableAudioBuffer([new Float32Array([0.25])]);
+		vi.spyOn(processor, "prepareOfflineRender").mockResolvedValue({
+			mainBufferEntry: null,
+			companionEntries: [],
+			regionEntries: [],
+			mutedSourceOutputRangesSec: [],
+			slices: [],
+			outputDurationMs: 100,
+			numChannels: 1,
+		});
+
+		const originalWindow = (globalThis as { window?: unknown }).window;
+		(globalThis as { window?: unknown }).window = { electronAPI: {} };
+		const originalOfflineAudioContext = globalThis.OfflineAudioContext;
+		(
+			globalThis as unknown as { OfflineAudioContext: typeof OfflineAudioContext }
+		).OfflineAudioContext = class {
+			constructor() {}
+
+			startRendering() {
+				return Promise.resolve(renderedBuffer);
+			}
+		} as unknown as typeof OfflineAudioContext;
+
+		try {
+			const result = await processor.renderEditedAudioTrack("file:///tmp/recording.mp4");
+
+			expect(result.kind).toBe("blob");
+			if (result.kind !== "blob") {
+				return;
+			}
+			expect(result.blob.type).toBe("audio/wav");
+			const bytes = new Uint8Array(await result.blob.arrayBuffer());
+			expect(bytes.byteLength).toBe(46);
+		} finally {
+			(globalThis as { window?: unknown }).window = originalWindow;
 			(
 				globalThis as unknown as { OfflineAudioContext: typeof OfflineAudioContext }
 			).OfflineAudioContext = originalOfflineAudioContext;

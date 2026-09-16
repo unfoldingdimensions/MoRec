@@ -8,6 +8,7 @@ import type { Readable, Writable } from "node:stream";
 import { promisify } from "node:util";
 import type { WebContents } from "electron";
 import { app, powerSaveBlocker } from "electron";
+import { isOwnedExportPath, releaseOwnedExportPath } from "../export/exportStream";
 import { getFfmpegBinaryPath, getFfprobeBinaryPath } from "../ffmpeg/binary";
 import type {
 	NativeExportEncodingMode,
@@ -4105,24 +4106,45 @@ export async function muxNativeVideoExportAudio(
 	const metrics: NativeVideoAudioMuxMetrics = {};
 	const tempArtifacts: string[] = [];
 	let audioInputPath = options.audioSourcePath ?? null;
+	let streamedEditedAudioPath: string | null = null;
 	const useEditedTrackFiltergraph =
 		audioMode === "edited-track" && options.editedTrackStrategy === "filtergraph-fast-path";
 
 	if (audioMode === "edited-track" && !useEditedTrackFiltergraph) {
-		if (!options.editedAudioData) {
+		// Preferred path: the renderer already streamed the rendered WAV into an
+		// app-managed export temp, so large edited audio never crosses the IPC
+		// boundary as an ArrayBuffer.
+		const editedAudioPath =
+			typeof options.editedAudioPath === "string" && options.editedAudioPath.trim().length > 0
+				? options.editedAudioPath
+				: null;
+		if (editedAudioPath) {
+			const resolvedEditedAudioPath = path.resolve(editedAudioPath);
+			if (!isOwnedExportPath(resolvedEditedAudioPath)) {
+				throw new Error("Edited audio path is not an app-managed export temp");
+			}
+			streamedEditedAudioPath = resolvedEditedAudioPath;
+			audioInputPath = resolvedEditedAudioPath;
+			try {
+				const editedAudioStat = await fs.stat(resolvedEditedAudioPath);
+				metrics.tempEditedAudioBytes = editedAudioStat.size;
+			} catch {
+				// Size is metric-only; a missing file surfaces from the mux itself.
+			}
+		} else if (options.editedAudioData) {
+			const extension = getEditedAudioExtension(options.editedAudioMimeType);
+			audioInputPath = path.join(
+				app.getPath("temp"),
+				`morec-export-audio-${Date.now()}-${Math.random().toString(36).slice(2, 8)}${extension}`,
+			);
+			const tempAudioWriteStartedAt = getNowMs();
+			await fs.writeFile(audioInputPath, Buffer.from(options.editedAudioData));
+			metrics.tempEditedAudioWriteMs = getNowMs() - tempAudioWriteStartedAt;
+			metrics.tempEditedAudioBytes = options.editedAudioData.byteLength;
+			tempArtifacts.push(audioInputPath);
+		} else {
 			throw new Error("Edited audio data is missing for native export");
 		}
-
-		const extension = getEditedAudioExtension(options.editedAudioMimeType);
-		audioInputPath = path.join(
-			app.getPath("temp"),
-			`morec-export-audio-${Date.now()}-${Math.random().toString(36).slice(2, 8)}${extension}`,
-		);
-		const tempAudioWriteStartedAt = getNowMs();
-		await fs.writeFile(audioInputPath, Buffer.from(options.editedAudioData));
-		metrics.tempEditedAudioWriteMs = getNowMs() - tempAudioWriteStartedAt;
-		metrics.tempEditedAudioBytes = options.editedAudioData.byteLength;
-		tempArtifacts.push(audioInputPath);
 	}
 
 	if (!audioInputPath) {
@@ -4164,6 +4186,10 @@ export async function muxNativeVideoExportAudio(
 		await Promise.allSettled(
 			tempArtifacts.map((artifactPath) => removeTemporaryExportFile(artifactPath)),
 		);
+		if (streamedEditedAudioPath) {
+			await removeTemporaryExportFile(streamedEditedAudioPath);
+			releaseOwnedExportPath(streamedEditedAudioPath);
+		}
 	}
 }
 

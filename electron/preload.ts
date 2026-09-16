@@ -302,6 +302,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
 			editedTrackStrategy?: "filtergraph-fast-path" | "offline-render-fallback";
 			editedTrackSegments?: Array<{ startMs: number; endMs: number; speed: number }>;
 			editedAudioData?: ArrayBuffer;
+			editedAudioPath?: string | null;
 			editedAudioMimeType?: string | null;
 		};
 	}) => {
@@ -382,6 +383,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
 			editedTrackStrategy?: "filtergraph-fast-path" | "offline-render-fallback";
 			editedTrackSegments?: Array<{ startMs: number; endMs: number; speed: number }>;
 			editedAudioData?: ArrayBuffer;
+			editedAudioPath?: string | null;
 			editedAudioMimeType?: string | null;
 		},
 	) => {
@@ -430,6 +432,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
 			editedTrackStrategy?: "filtergraph-fast-path" | "offline-render-fallback";
 			editedTrackSegments?: Array<{ startMs: number; endMs: number; speed: number }>;
 			editedAudioData?: ArrayBuffer;
+			editedAudioPath?: string | null;
 			editedAudioMimeType?: string | null;
 		},
 	) => {
@@ -452,6 +455,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
 			editedTrackStrategy?: "filtergraph-fast-path" | "offline-render-fallback";
 			editedTrackSegments?: Array<{ startMs: number; endMs: number; speed: number }>;
 			editedAudioData?: ArrayBuffer;
+			editedAudioPath?: string | null;
 			editedAudioMimeType?: string | null;
 		},
 	) => {

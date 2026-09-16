@@ -23,6 +23,81 @@ const OFFLINE_ENCODE_CHUNK_FRAMES = 1024;
 const OFFLINE_CHUNK_DURATION_SEC = 30;
 const OFFLINE_MIX_SOFT_LIMITER_THRESHOLD = 0.9;
 const OFFLINE_MIX_SOFT_LIMITER_CEILING = 0.985;
+const EXPORT_STREAM_PCM_WRITE_BYTES = 4 * 1024 * 1024;
+
+export type EditedAudioRenderResult =
+	| { kind: "blob"; blob: Blob }
+	| { kind: "temp-file"; tempPath: string; byteLength: number };
+
+export type EditedAudioFinishFields = {
+	editedAudioData?: ArrayBuffer;
+	editedAudioPath?: string;
+	editedAudioMimeType?: string | null;
+};
+
+export async function resolveEditedAudioFinishFields(
+	result: EditedAudioRenderResult,
+): Promise<EditedAudioFinishFields> {
+	if (result.kind === "temp-file") {
+		return {
+			editedAudioPath: result.tempPath,
+			editedAudioMimeType: "audio/wav",
+		};
+	}
+	return {
+		editedAudioData: await result.blob.arrayBuffer(),
+		editedAudioMimeType: result.blob.type || null,
+	};
+}
+
+type ExportStreamSession = {
+	streamId: string;
+	tempPath: string;
+	position: number;
+	write: (bytes: Uint8Array) => Promise<void>;
+	close: () => Promise<void>;
+	abort: () => Promise<void>;
+};
+
+async function openEditedAudioExportStream(extension: string): Promise<ExportStreamSession | null> {
+	const api = typeof window === "undefined" ? undefined : window.electronAPI;
+	if (!api?.openExportStream || !api.writeExportStreamChunk || !api.closeExportStream) {
+		return null;
+	}
+
+	const openResult = await api.openExportStream({ extension });
+	if (!openResult.success || !openResult.streamId || !openResult.tempPath) {
+		return null;
+	}
+
+	const streamId = openResult.streamId;
+	const session: ExportStreamSession = {
+		streamId,
+		tempPath: openResult.tempPath,
+		position: 0,
+		write: async (bytes: Uint8Array) => {
+			const writeResult = await api.writeExportStreamChunk!(
+				streamId,
+				session.position,
+				bytes,
+			);
+			if (!writeResult.success) {
+				throw new Error(writeResult.error || "Failed to write edited audio stream chunk");
+			}
+			session.position += bytes.byteLength;
+		},
+		close: async () => {
+			const closeResult = await api.closeExportStream!(streamId);
+			if (!closeResult.success || !closeResult.tempPath) {
+				throw new Error(closeResult.error || "Failed to close edited audio export stream");
+			}
+		},
+		abort: async () => {
+			await api.closeExportStream!(streamId, { abort: true }).catch(() => undefined);
+		},
+	};
+	return session;
+}
 
 function softLimitSample(sample: number): number {
 	const magnitude = Math.abs(sample);
@@ -70,6 +145,16 @@ function resolveSourceTrackGain(
 	}
 	const normalizeGain = settings.normalize ? SOURCE_AUDIO_NORMALIZE_GAIN : 1;
 	return Math.max(0, Math.min(2, settings.volume * normalizeGain));
+}
+
+function concatArrayBuffers(parts: ArrayBuffer[], totalBytes: number): Uint8Array {
+	const merged = new Uint8Array(totalBytes);
+	let offset = 0;
+	for (const part of parts) {
+		merged.set(new Uint8Array(part), offset);
+		offset += part.byteLength;
+	}
+	return merged;
 }
 
 export function getSourceTrackIdFromPath(audioPath: string): SourceTrackId {
@@ -375,7 +460,7 @@ export class AudioProcessor {
 		sourceAudioFallbackStartDelayMsByPath?: Record<string, number>,
 		sourceAudioTrackSettings?: SourceAudioTrackSettings,
 		clipRegions?: ClipRegion[],
-	): Promise<Blob> {
+	): Promise<EditedAudioRenderResult> {
 		const sortedTrims = trimRegions
 			? [...trimRegions].sort((a, b) => a.startMs - b.startMs)
 			: [];
@@ -403,7 +488,27 @@ export class AudioProcessor {
 			sourceAudioTrackSettings,
 			clipRegions,
 		);
-		return this.renderToWavBlobChunked(prepared);
+
+		// Stream the rendered WAV straight to an app-managed export temp so long
+		// edited tracks never materialize as a full Blob + ArrayBuffer pair.
+		const stream = await openEditedAudioExportStream("wav");
+		if (stream) {
+			try {
+				const byteLength = await this.renderToWavExportStream(prepared, stream);
+				if (this.cancelled) {
+					await stream.abort();
+					throw new Error("Export cancelled");
+				}
+				await stream.close();
+				return { kind: "temp-file", tempPath: stream.tempPath, byteLength };
+			} catch (error) {
+				await stream.abort();
+				throw error;
+			}
+		}
+
+		const blob = await this.renderToWavBlobChunked(prepared);
+		return { kind: "blob", blob };
 	}
 
 	// Legacy trim-only path used when no speed regions are configured.
@@ -924,6 +1029,50 @@ export class AudioProcessor {
 		return new Blob(pcmParts, { type: "audio/wav" });
 	}
 
+	// Render the timeline as WAV bytes straight into an export-stream session.
+	// Only ~EXPORT_STREAM_PCM_WRITE_BYTES of PCM is buffered at a time, so the
+	// full rendered track never exists in renderer memory.
+	private async renderToWavExportStream(
+		prepared: PreparedOfflineRender,
+		stream: ExportStreamSession,
+	): Promise<number> {
+		const totalOutputSec = Math.max(prepared.outputDurationMs / 1000, 0.01);
+		const totalFrames = Math.ceil(totalOutputSec * OFFLINE_AUDIO_SAMPLE_RATE);
+		const numChannels = prepared.numChannels;
+
+		await stream.write(
+			new Uint8Array(
+				this.createWavHeader(OFFLINE_AUDIO_SAMPLE_RATE, numChannels, totalFrames),
+			),
+		);
+
+		let pendingParts: ArrayBuffer[] = [];
+		let pendingBytes = 0;
+		let writtenBytes = 0;
+		const flushPending = async () => {
+			if (pendingBytes === 0) {
+				return;
+			}
+			await stream.write(concatArrayBuffers(pendingParts, pendingBytes));
+			writtenBytes += pendingBytes;
+			pendingParts = [];
+			pendingBytes = 0;
+		};
+
+		await this.renderChunked(prepared, totalOutputSec, async (rendered) => {
+			for (const part of this.audioBufferToPcmParts(rendered)) {
+				pendingParts.push(part);
+				pendingBytes += part.byteLength;
+				if (pendingBytes >= EXPORT_STREAM_PCM_WRITE_BYTES) {
+					await flushPending();
+				}
+			}
+		});
+		await flushPending();
+
+		return writtenBytes;
+	}
+
 	// Shared chunked rendering loop. Processes the timeline in
 	// OFFLINE_CHUNK_DURATION_SEC segments, calling onChunk for each rendered buffer.
 	private async renderChunked(
@@ -1236,7 +1385,9 @@ export class AudioProcessor {
 
 			if (totalFrames === 0) return null;
 
-			// Build AudioBuffer from accumulated chunks
+			// Build AudioBuffer from accumulated chunks. Release each chunk as it is
+			// copied so the decoded PCM set shrinks while the buffer fills instead
+			// of holding both full copies until this function returns.
 			const audioBuffer = new AudioBuffer({
 				length: totalFrames,
 				numberOfChannels: numChannels,
@@ -1244,10 +1395,13 @@ export class AudioProcessor {
 			});
 			for (let ch = 0; ch < numChannels; ch++) {
 				const channelData = audioBuffer.getChannelData(ch);
+				const chunks = channelChunks[ch];
 				let writeOffset = 0;
-				for (const chunk of channelChunks[ch]) {
+				for (let index = 0; index < chunks.length; index++) {
+					const chunk = chunks[index];
 					channelData.set(chunk, writeOffset);
 					writeOffset += chunk.length;
+					chunks[index] = new Float32Array(0);
 				}
 			}
 

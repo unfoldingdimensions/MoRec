@@ -50,7 +50,12 @@ import {
 	DEFAULT_WALLPAPER_RELATIVE_PATH,
 	isVideoWallpaperSource,
 } from "@/lib/wallpapers";
-import { AudioProcessor, isAacAudioEncodingSupported } from "./audioEncoder";
+import {
+	AudioProcessor,
+	type EditedAudioFinishFields,
+	isAacAudioEncodingSupported,
+	resolveEditedAudioFinishFields,
+} from "./audioEncoder";
 import {
 	normalizeLightningRuntimePlatform,
 	shouldPreferNativeAutoBackend,
@@ -1952,10 +1957,10 @@ export class ModernVideoExporter {
 		description: string,
 		onProgress: (progress: number) => void,
 		sourceAudioFallbackPaths = this.config.sourceAudioFallbackPaths,
-	) {
+	): Promise<EditedAudioFinishFields> {
 		this.audioProcessor = new AudioProcessor();
 		this.audioProcessor.setOnProgress(onProgress);
-		const audioBlob = await this.measureFinalizationStage("editedAudioRenderMs", async () =>
+		const rendered = await this.measureFinalizationStage("editedAudioRenderMs", async () =>
 			this.awaitWithFinalizationTimeout(
 				this.audioProcessor!.renderEditedAudioTrack(
 					this.config.videoUrl,
@@ -1973,10 +1978,7 @@ export class ModernVideoExporter {
 			),
 		);
 
-		return {
-			editedAudioData: await audioBlob.arrayBuffer(),
-			editedAudioMimeType: audioBlob.type || null,
-		};
+		return resolveEditedAudioFinishFields(rendered);
 	}
 
 	private async getNativeStaticLayoutAudioOptions(
@@ -2744,20 +2746,17 @@ export class ModernVideoExporter {
 			};
 		}
 
-		let editedAudioBuffer: ArrayBuffer | undefined;
-		let editedAudioMimeType: string | null = null;
+		let editedAudio: EditedAudioFinishFields = {};
 
 		if (
 			audioPlan.audioMode === "edited-track" &&
 			audioPlan.strategy === "offline-render-fallback"
 		) {
-			const renderedAudio = await this.renderEditedAudioForNativeMux(
+			editedAudio = await this.renderEditedAudioForNativeMux(
 				`${NATIVE_EXPORT_ENGINE_NAME} edited audio rendering`,
 				(progress) => this.reportFinalizingProgress(this.processedFrameCount, 99, progress),
 				audioPlan.sourceAudioFallbackPaths,
 			);
-			editedAudioBuffer = renderedAudio.editedAudioData;
-			editedAudioMimeType = renderedAudio.editedAudioMimeType;
 		}
 
 		const sessionId = this.nativeExportSessionId;
@@ -2798,8 +2797,7 @@ export class ModernVideoExporter {
 						audioPlan.strategy === "filtergraph-fast-path"
 							? audioPlan.audioSourceSampleRate
 							: undefined,
-					editedAudioData: editedAudioBuffer,
-					editedAudioMimeType,
+					...editedAudio,
 				}),
 				`${NATIVE_EXPORT_ENGINE_NAME} export finalization`,
 				audioPlan.audioMode === "none" ? "default" : "audio",
@@ -2842,20 +2840,17 @@ export class ModernVideoExporter {
 			};
 		}
 
-		let editedAudioBuffer: ArrayBuffer | undefined;
-		let editedAudioMimeType: string | null = null;
+		let editedAudio: EditedAudioFinishFields = {};
 
 		if (
 			audioPlan.audioMode === "edited-track" &&
 			audioPlan.strategy === "offline-render-fallback"
 		) {
-			const renderedAudio = await this.renderEditedAudioForNativeMux(
+			editedAudio = await this.renderEditedAudioForNativeMux(
 				"FFmpeg edited audio rendering",
 				(progress) => this.reportFinalizingProgress(this.processedFrameCount, 99, progress),
 				audioPlan.sourceAudioFallbackPaths,
 			);
-			editedAudioBuffer = renderedAudio.editedAudioData;
-			editedAudioMimeType = renderedAudio.editedAudioMimeType;
 		}
 
 		const muxOptions = {
@@ -2882,8 +2877,7 @@ export class ModernVideoExporter {
 					? audioPlan.audioSourceSampleRate
 					: undefined,
 			outputDurationSec: this.effectiveDurationSec,
-			editedAudioData: editedAudioBuffer,
-			editedAudioMimeType,
+			...editedAudio,
 		};
 
 		if (videoSource.mode === "stream") {

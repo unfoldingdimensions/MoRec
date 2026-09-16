@@ -8,8 +8,8 @@ import type {
 	CursorStyle,
 	CursorTelemetryPoint,
 	Padding,
-	SpeedRegion,
 	SourceAudioTrackSettings,
+	SpeedRegion,
 	TrimRegion,
 	WebcamOverlaySettings,
 	ZoomMotionBlurTuning,
@@ -17,7 +17,12 @@ import type {
 	ZoomTransitionEasing,
 } from "@/components/video-editor/types";
 import { getEffectiveVideoStreamDurationSeconds } from "@/lib/mediaTiming";
-import { AudioProcessor, isAacAudioEncodingSupported } from "./audioEncoder";
+import {
+	AudioProcessor,
+	type EditedAudioFinishFields,
+	isAacAudioEncodingSupported,
+	resolveEditedAudioFinishFields,
+} from "./audioEncoder";
 import { buildEditedTrackSourceSegments, classifyEditedTrackStrategy } from "./editedTrackStrategy";
 import {
 	advanceFinalizationProgress,
@@ -844,8 +849,7 @@ export class VideoExporter {
 			return { success: false, error: "Native export session is not active" };
 		}
 
-		let editedAudioBuffer: ArrayBuffer | undefined;
-		let editedAudioMimeType: string | null = null;
+		let editedAudio: EditedAudioFinishFields = {};
 
 		if (
 			audioPlan.audioMode === "edited-track" &&
@@ -855,7 +859,7 @@ export class VideoExporter {
 			this.audioProcessor.setOnProgress((progress) => {
 				this.reportFinalizingProgress(totalFrames, 99, progress);
 			});
-			const audioBlob = await this.measureFinalizationStage("editedAudioRenderMs", async () =>
+			const rendered = await this.measureFinalizationStage("editedAudioRenderMs", async () =>
 				this.awaitWithFinalizationTimeout(
 					this.audioProcessor!.renderEditedAudioTrack(
 						this.config.videoUrl,
@@ -872,8 +876,7 @@ export class VideoExporter {
 					true,
 				),
 			);
-			editedAudioBuffer = await audioBlob.arrayBuffer();
-			editedAudioMimeType = audioBlob.type || null;
+			editedAudio = await resolveEditedAudioFinishFields(rendered);
 		}
 
 		const sessionId = this.nativeExportSessionId;
@@ -904,8 +907,7 @@ export class VideoExporter {
 						audioPlan.strategy === "filtergraph-fast-path"
 							? audioPlan.audioSourceSampleRate
 							: undefined,
-					editedAudioData: editedAudioBuffer,
-					editedAudioMimeType,
+					...editedAudio,
 				}),
 				"native export finalization",
 				audioPlan.audioMode === "none" ? "default" : "audio",
@@ -942,8 +944,7 @@ export class VideoExporter {
 			};
 		}
 
-		let editedAudioBuffer: ArrayBuffer | undefined;
-		let editedAudioMimeType: string | null = null;
+		let editedAudio: EditedAudioFinishFields = {};
 
 		if (
 			audioPlan.audioMode === "edited-track" &&
@@ -953,7 +954,7 @@ export class VideoExporter {
 			this.audioProcessor.setOnProgress((progress) => {
 				this.reportFinalizingProgress(totalFrames, 99, progress);
 			});
-			const audioBlob = await this.measureFinalizationStage("editedAudioRenderMs", async () =>
+			const rendered = await this.measureFinalizationStage("editedAudioRenderMs", async () =>
 				this.awaitWithFinalizationTimeout(
 					this.audioProcessor!.renderEditedAudioTrack(
 						this.config.videoUrl,
@@ -970,8 +971,7 @@ export class VideoExporter {
 					true,
 				),
 			);
-			editedAudioBuffer = await audioBlob.arrayBuffer();
-			editedAudioMimeType = audioBlob.type || null;
+			editedAudio = await resolveEditedAudioFinishFields(rendered);
 		}
 
 		const muxOptions = {
@@ -998,8 +998,7 @@ export class VideoExporter {
 					? audioPlan.audioSourceSampleRate
 					: undefined,
 			outputDurationSec: this.effectiveDurationSec,
-			editedAudioData: editedAudioBuffer,
-			editedAudioMimeType,
+			...editedAudio,
 		};
 
 		if (videoSource.mode === "stream") {
