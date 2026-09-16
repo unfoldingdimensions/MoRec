@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { createReadStream } from "node:fs";
 import fs from "node:fs/promises";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
@@ -6,6 +7,11 @@ import { approvedLocalReadPaths } from "./ipc/state";
 import { getMediaContentType } from "./mediaTypes";
 
 let mediaServerBaseUrl: string | null = null;
+let mediaServerBoundPort: number | null = null;
+// Per-session capability token. The bound port is trivially enumerable for any
+// local process, so this unguessable `k` query parameter is what actually gates
+// access to approved media.
+let mediaServerAccessToken: string | null = null;
 let mediaServerStartPromise: Promise<string> | null = null;
 let mediaServerInstance: ReturnType<typeof createServer> | null = null;
 
@@ -86,16 +92,48 @@ function resolveAllowedCorsOrigin(request: IncomingMessage): string | undefined 
 	return undefined;
 }
 
+/**
+ * DNS-rebinding defense: a page on an attacker-controlled domain that resolves
+ * to 127.0.0.1 would send same-origin requests (CORS no longer applies), so the
+ * Host header must name this exact loopback endpoint, not a rebinding domain.
+ */
+function isTrustedMediaHost(hostHeader: string | undefined): boolean {
+	if (!hostHeader || mediaServerBoundPort === null) {
+		return false;
+	}
+	const separatorIndex = hostHeader.lastIndexOf(":");
+	const hostPart =
+		separatorIndex === -1 ? hostHeader : hostHeader.slice(0, separatorIndex);
+	const portPart =
+		separatorIndex === -1 ? "" : hostHeader.slice(separatorIndex + 1);
+	return (
+		hostPart.toLowerCase() === "127.0.0.1" &&
+		portPart === String(mediaServerBoundPort)
+	);
+}
+
 async function handleMediaRequest(
 	request: IncomingMessage,
 	response: ServerResponse,
 ): Promise<void> {
 	try {
+		if (!isTrustedMediaHost(request.headers.host)) {
+			response.writeHead(403, { "Content-Type": "text/plain; charset=utf-8" });
+			response.end("Forbidden");
+			return;
+		}
+
 		const url = new URL(request.url ?? "/", "http://127.0.0.1");
 
 		if (url.pathname !== "/video") {
 			response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
 			response.end("Not Found");
+			return;
+		}
+
+		if (!mediaServerAccessToken || url.searchParams.get("k") !== mediaServerAccessToken) {
+			response.writeHead(403, { "Content-Type": "text/plain; charset=utf-8" });
+			response.end("Forbidden");
 			return;
 		}
 
@@ -254,6 +292,8 @@ export async function ensureMediaServer(): Promise<string> {
 				return;
 			}
 
+			mediaServerBoundPort = address.port;
+			mediaServerAccessToken = randomBytes(32).toString("base64url");
 			mediaServerBaseUrl = `http://127.0.0.1:${address.port}`;
 			console.log(`[media-server] Listening at ${mediaServerBaseUrl}`);
 			resolve(mediaServerBaseUrl);
@@ -271,6 +311,8 @@ export async function closeMediaServer(): Promise<void> {
 	const instance = mediaServerInstance;
 	mediaServerInstance = null;
 	mediaServerBaseUrl = null;
+	mediaServerBoundPort = null;
+	mediaServerAccessToken = null;
 	mediaServerStartPromise = null;
 	if (instance) {
 		await new Promise<void>((resolve) => instance.close(() => resolve()));
@@ -278,6 +320,10 @@ export async function closeMediaServer(): Promise<void> {
 }
 
 export function buildMediaUrl(baseUrl: string, filePath: string): string {
-	const resolved = path.resolve(filePath);
-	return `${baseUrl}/video?path=${encodeURIComponent(resolved)}`;
+	const url = new URL("/video", baseUrl);
+	url.searchParams.set("path", path.resolve(filePath));
+	if (mediaServerAccessToken) {
+		url.searchParams.set("k", mediaServerAccessToken);
+	}
+	return url.toString();
 }
