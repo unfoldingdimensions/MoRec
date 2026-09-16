@@ -7,7 +7,10 @@ import type {
 	SpeedRegion,
 	TrimRegion,
 } from "@/components/video-editor/types";
-import { buildResolvedAudioPlan, SourceTrackId } from "@/lib/exporter/audioRoutingEngine";
+import {
+	buildResolvedAudioPlan,
+	getSourceTrackIdFromPath,
+} from "@/lib/exporter/audioRoutingEngine";
 import { estimateCompanionAudioStartDelaySeconds } from "@/lib/mediaTiming";
 import { resolveMediaElementSource } from "./localMediaSource";
 import type { VideoMuxer } from "./muxer";
@@ -155,36 +158,6 @@ function concatArrayBuffers(parts: ArrayBuffer[], totalBytes: number): Uint8Arra
 		offset += part.byteLength;
 	}
 	return merged;
-}
-
-export function getSourceTrackIdFromPath(audioPath: string): SourceTrackId {
-	const normalized = audioPath.toLowerCase();
-	// Check for common patterns like .mic., -mic., mic.mp4, etc.
-	if (
-		normalized.includes(".mic.") ||
-		normalized.includes("-mic.") ||
-		normalized.includes("_mic_") ||
-		normalized.includes("/mic.") ||
-		normalized.includes("\\mic.") ||
-		normalized.endsWith("mic.mp4") ||
-		normalized.endsWith("mic.m4a") ||
-		normalized.endsWith("mic.wav")
-	) {
-		return "mic";
-	}
-	if (
-		normalized.includes(".system.") ||
-		normalized.includes("-system.") ||
-		normalized.includes("_system_") ||
-		normalized.includes("/system.") ||
-		normalized.includes("\\system.") ||
-		normalized.endsWith("system.mp4") ||
-		normalized.endsWith("system.m4a") ||
-		normalized.endsWith("system.wav")
-	) {
-		return "system";
-	}
-	return "mixed";
 }
 
 export function hasNonDefaultSourceTrackSettings(
