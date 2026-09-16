@@ -620,6 +620,22 @@ export class StreamingVideoDecoder {
 		return speedSegments.reduce((sum, seg) => sum + (seg.endSec - seg.startSec) / seg.speed, 0);
 	}
 
+	/**
+	 * Explicit demuxer read end matching the range the video decoder uses.
+	 * Some containers are truncated when reads pass no end, so audio reads
+	 * must supply the same range or the muxed audio comes up short.
+	 */
+	getMediaReadEndSec(): number | undefined {
+		if (!this.metadata) return undefined;
+		return (
+			Math.max(
+				this.metadata.duration + (this.metadata.mediaStartTime ?? 0),
+				(this.metadata.streamDuration ?? this.metadata.duration) +
+					(this.metadata.streamStartTime ?? this.metadata.mediaStartTime ?? 0),
+			) + 0.5
+		);
+	}
+
 	private splitBySpeed(
 		segments: Array<{ startSec: number; endSec: number }>,
 		speedRegions?: SpeedRegion[],

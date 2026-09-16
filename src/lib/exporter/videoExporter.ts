@@ -401,6 +401,7 @@ export class VideoExporter {
 			let audioProcessingWroteAudio = !hasAudio;
 			if (hasAudio && !shouldUseFfmpegAudioFallback && !this.cancelled) {
 				const demuxer = this.streamingDecoder.getDemuxer();
+				const mediaReadEndSec = this.streamingDecoder.getMediaReadEndSec();
 				if (demuxer || hasAudioRegions || hasSourceAudioFallback) {
 					this.audioProcessor = new AudioProcessor();
 					this.audioProcessor.setOnProgress((progress) => {
@@ -415,7 +416,7 @@ export class VideoExporter {
 								this.config.videoUrl,
 								this.config.trimRegions,
 								this.config.speedRegions,
-								undefined,
+								mediaReadEndSec,
 								this.config.audioRegions,
 								this.config.sourceAudioFallbackPaths,
 								this.config.sourceAudioFallbackStartDelayMsByPath,

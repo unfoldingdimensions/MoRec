@@ -811,6 +811,7 @@ export class ModernVideoExporter {
 					!this.cancelled
 				) {
 					const demuxer = this.streamingDecoder.getDemuxer();
+					const mediaReadEndSec = this.streamingDecoder.getMediaReadEndSec();
 					if (
 						demuxer ||
 						(this.config.audioRegions ?? []).length > 0 ||
@@ -829,7 +830,7 @@ export class ModernVideoExporter {
 									this.config.videoUrl,
 									this.config.trimRegions,
 									this.config.speedRegions,
-									undefined,
+									mediaReadEndSec,
 									this.config.audioRegions,
 									this.config.sourceAudioFallbackPaths,
 									this.config.sourceAudioFallbackStartDelayMsByPath,

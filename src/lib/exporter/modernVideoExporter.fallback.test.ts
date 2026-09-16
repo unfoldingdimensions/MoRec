@@ -21,6 +21,7 @@ const mocks = vi.hoisted(() => {
 		streamingDecoderDecodeAll: vi.fn(async () => {}),
 		streamingDecoderGetDemuxer: vi.fn(() => null),
 		streamingDecoderGetEffectiveDuration: vi.fn(() => 0),
+		streamingDecoderGetMediaReadEndSec: vi.fn(() => undefined),
 		streamingDecoderLoadMetadata: vi.fn(async () => videoInfo),
 		frameRendererDestroy: vi.fn(),
 		frameRendererGetBackend: vi.fn(() => "webgl"),
@@ -66,6 +67,7 @@ vi.mock("./streamingDecoder", () => ({
 			destroy: mocks.streamingDecoderDestroy,
 			getDemuxer: mocks.streamingDecoderGetDemuxer,
 			getEffectiveDuration: mocks.streamingDecoderGetEffectiveDuration,
+			getMediaReadEndSec: mocks.streamingDecoderGetMediaReadEndSec,
 			loadMetadata: mocks.streamingDecoderLoadMetadata,
 		};
 	}),
