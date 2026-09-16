@@ -20,7 +20,7 @@ const mocks = vi.hoisted(() => {
 		streamingDecoderCancel: vi.fn(),
 		streamingDecoderDecodeAll: vi.fn(async () => {}),
 		streamingDecoderGetDemuxer: vi.fn(() => null),
-		streamingDecoderGetEffectiveDuration: vi.fn(() => 0),
+		streamingDecoderGetEffectiveDuration: vi.fn(() => 1),
 		streamingDecoderGetMediaReadEndSec: vi.fn(() => undefined),
 		streamingDecoderLoadMetadata: vi.fn(async () => videoInfo),
 		frameRendererDestroy: vi.fn(),

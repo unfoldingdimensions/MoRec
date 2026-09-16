@@ -154,7 +154,7 @@ describe("native static layout command builders", () => {
 		expect(args).toContain("-filter_complex");
 		expect(args).toContain(
 			"color=c=0x101010:s=1920x1080:r=60:d=60.000,format=nv12,hwupload_cuda[bg];" +
-				"[0:v]scale_cuda=w=1536:h=864:format=nv12,fps=60[fg];" +
+				"[0:v]scale_cuda=w=1536:h=864:format=nv12:passthrough=0,fps=60[fg];" +
 				"[bg][fg]overlay_cuda=192:108:shortest=0:repeatlast=1:eof_action=repeat,trim=duration=60.000,setpts=PTS-STARTPTS[out]",
 		);
 		expect(args).toContain("h264_nvenc");

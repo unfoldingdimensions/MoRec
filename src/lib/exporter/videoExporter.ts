@@ -290,6 +290,11 @@ export class VideoExporter {
 			);
 			this.effectiveDurationSec = effectiveDuration;
 			const totalFrames = Math.ceil(effectiveDuration * this.config.frameRate);
+			if (!Number.isFinite(effectiveDuration) || totalFrames <= 0) {
+				throw new Error(
+					"Recording has no usable video duration; produced 0 frames to export",
+				);
+			}
 
 			console.log("[VideoExporter] Original duration:", videoInfo.duration, "s");
 			console.log("[VideoExporter] Effective duration:", effectiveDuration, "s");

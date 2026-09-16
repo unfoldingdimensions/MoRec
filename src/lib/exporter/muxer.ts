@@ -168,7 +168,15 @@ export class VideoMuxer {
 			throw new Error("Muxer not initialized");
 		}
 
-		await this.output.finalize();
+		try {
+			await this.output.finalize();
+		} catch (error) {
+			// Finalization failed: release the stream now (instead of waiting for
+			// the unawaited destroy()→abortStream) so the multi-GB temp is
+			// deleted promptly and the streamId ownership is released.
+			await this.abortStream();
+			throw error;
+		}
 
 		if (this.mode === "stream") {
 			const sink = this.streamSink;

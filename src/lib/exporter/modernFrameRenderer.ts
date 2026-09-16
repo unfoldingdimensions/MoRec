@@ -3644,8 +3644,18 @@ export class FrameRenderer {
 		if (insets) {
 			const screenWidth = maskRect.width;
 			const screenHeight = maskRect.height;
-			frameWidth = screenWidth / (1 - insets.left - insets.right);
-			frameHeight = screenHeight / (1 - insets.top - insets.bottom);
+			// Extension-declared insets: clamp the sums so malformed data cannot
+			// divide by zero or flip the geometry.
+			const horizontalInset = Math.min(
+				0.99,
+				Math.max(0, insets.left) + Math.max(0, insets.right),
+			);
+			const verticalInset = Math.min(
+				0.99,
+				Math.max(0, insets.top) + Math.max(0, insets.bottom),
+			);
+			frameWidth = screenWidth / (1 - horizontalInset);
+			frameHeight = screenHeight / (1 - verticalInset);
 			frameX = maskRect.x - insets.left * frameWidth;
 			frameY = maskRect.y - insets.top * frameHeight;
 		}
