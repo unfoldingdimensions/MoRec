@@ -278,6 +278,36 @@ describe("native static layout command builders", () => {
 		expect(isNativeStaticLayoutCudaCapable(new Set(["h264_qsv", "libx264"]))).toBe(false);
 	});
 
+	it("emits ffmpeg progress args only when the progress flag is set", () => {
+		const quietArgs = buildNativeCpuOverlayStaticLayoutArgs(baseConfig);
+		expect(quietArgs).not.toContain("-progress");
+
+		const progressArgs = buildNativeCpuOverlayStaticLayoutArgs({
+			...baseConfig,
+			progress: true,
+		});
+		expect(progressArgs).toEqual(
+			expect.arrayContaining(["-stats_period", "0.5", "-progress", "pipe:2", "-nostats"]),
+		);
+
+		const cudaProgressArgs = buildNativeCudaOverlayStaticLayoutArgs({
+			...baseConfig,
+			progress: true,
+		});
+		expect(cudaProgressArgs).toEqual(
+			expect.arrayContaining(["-progress", "pipe:2", "-nostats"]),
+		);
+
+		const precompositedProgressArgs = buildNativeCpuPrecompositedStaticLayoutArgs({
+			...baseConfig,
+			staticBackgroundPath: "background.png",
+			maskPath: "mask.pgm",
+			borderRadius: 12.5,
+			progress: true,
+		});
+		expect(precompositedProgressArgs).toContain("-progress");
+	});
+
 	it("creates an opaque PGM mask for square video corners and a partial mask for radius", () => {
 		const squareMask = createNativeSquircleMaskPgmBuffer(4, 4, 0);
 		expect(squareMask.subarray(squareMask.length - 16)).toEqual(Buffer.alloc(16, 255));

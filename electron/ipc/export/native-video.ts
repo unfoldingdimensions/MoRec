@@ -1213,6 +1213,7 @@ async function runFfmpegWithMetrics(
 	args: string[],
 	timeoutMs: number,
 	session?: NativeStaticLayoutExportSession,
+	onProgressSeconds?: (seconds: number) => void,
 ): Promise<{
 	success: boolean;
 	elapsedMs: number;
@@ -1232,6 +1233,7 @@ async function runFfmpegWithMetrics(
 			}
 		}
 		let stderr = "";
+		let stderrLineBuffer = "";
 		let settled = false;
 		const timeout = setTimeout(() => {
 			if (settled) return;
@@ -1243,7 +1245,20 @@ async function runFfmpegWithMetrics(
 		}, timeoutMs);
 
 		child.stderr.on("data", (chunk: Buffer) => {
-			stderr += chunk.toString();
+			const text = chunk.toString();
+			stderr += text;
+			if (onProgressSeconds) {
+				// `-progress pipe:2` key=value lines share the stderr stream.
+				stderrLineBuffer += text;
+				const lines = stderrLineBuffer.split(/\r?\n/);
+				stderrLineBuffer = lines.pop() ?? "";
+				for (const line of lines) {
+					const seconds = parseFfmpegProgressLineSeconds(line);
+					if (seconds !== null) {
+						onProgressSeconds(seconds);
+					}
+				}
+			}
 		});
 		child.once("error", (error) => {
 			if (settled) return;
@@ -3331,10 +3346,35 @@ export async function exportNativeStaticLayoutVideo(
 			borderRadius: options.borderRadius,
 			shadowIntensity: options.shadowIntensity,
 			durationSec: options.durationSec,
+			progress: Boolean(onProgress),
 		};
 		const usePrecompositedLayout = shouldUsePrecompositedStaticLayout(options);
 		let didRenderVideo = false;
 		let didMuxAudioInline = false;
+		const totalRenderFrames = Math.max(1, Math.ceil(options.durationSec * options.frameRate));
+		// Maps an ffmpeg `-progress` out_time to an overall export progress
+		// sample; `startSec`/`spanSec` locate the current pass inside chunked
+		// renders. Render passes report up to 95%; the audio mux owns 97.25+.
+		const makeRenderProgressHandler =
+			(backend: NativeStaticLayoutBackend, startSec: number, spanSec: number) =>
+			(seconds: number) => {
+				if (!onProgress) {
+					return;
+				}
+				const span = Math.max(spanSec, 0.001);
+				const overall = Math.min(
+					0.95,
+					(startSec + Math.max(0, Math.min(span, seconds))) /
+						Math.max(options.durationSec, 0.001),
+				);
+				onProgress({
+					sessionId,
+					backend,
+					currentFrame: Math.floor(overall * totalRenderFrames),
+					totalFrames: totalRenderFrames,
+					percentage: overall * 100,
+				});
+			};
 
 		if (options.experimentalWindowsGpuCompositor && process.platform === "win32") {
 			try {
@@ -3669,17 +3709,22 @@ export async function exportNativeStaticLayoutVideo(
 					? buildNativePrecompositedStaticLayoutArgs({
 							...fullConfig,
 							staticBackgroundPath,
-						maskPath,
-					})
-						: buildNativeCpuPrecompositedStaticLayoutArgs({
-								...fullConfig,
-								staticBackgroundPath,
-								maskPath,
-							}),
+							maskPath,
+						})
+					: buildNativeCpuPrecompositedStaticLayoutArgs({
+							...fullConfig,
+							staticBackgroundPath,
+							maskPath,
+						}),
 				// Duration-scaled: a weak CPU can encode far below realtime, so a
 				// flat 15-minute cap would kill long healthy renders.
 				Math.max(15 * 60 * 1000, options.durationSec * 2000),
 				session,
+				makeRenderProgressHandler(
+					hasNativeStaticLayoutCuda ? "cuda-static-composite" : "ffmpeg-static-layout",
+					0,
+					options.durationSec,
+				),
 			);
 			metrics.chunkExecMs += fullResult.elapsedMs;
 			if (!fullResult.success) {
@@ -3708,6 +3753,7 @@ export async function exportNativeStaticLayoutVideo(
 					buildNativeCpuOverlayStaticLayoutArgs(fullConfig),
 					Math.max(15 * 60 * 1000, options.durationSec * 2000),
 					session,
+					makeRenderProgressHandler("ffmpeg-static-layout", 0, options.durationSec),
 				);
 				metrics.chunkExecMs += cpuResult.elapsedMs;
 				if (!cpuResult.success) {
@@ -3730,15 +3776,13 @@ export async function exportNativeStaticLayoutVideo(
 				await runCpuStaticLayoutFullRun();
 			} else {
 				try {
-					const fullRunTimeoutMs = Math.max(
-						15 * 60 * 1000,
-						options.durationSec * 2000,
-					);
+					const fullRunTimeoutMs = Math.max(15 * 60 * 1000, options.durationSec * 2000);
 					const primaryResult = await runFfmpegWithMetrics(
 						ffmpegPath,
 						buildNativeCudaOverlayStaticLayoutArgs(fullConfig),
 						fullRunTimeoutMs,
 						session,
+						makeRenderProgressHandler("cuda-overlay", 0, options.durationSec),
 					);
 					let fullResult = primaryResult;
 					let fullBackend: NativeStaticLayoutBackend = "cuda-overlay";
@@ -3754,6 +3798,7 @@ export async function exportNativeStaticLayoutVideo(
 							buildNativeCudaScaleCpuPadStaticLayoutArgs(fullConfig),
 							fullRunTimeoutMs,
 							session,
+							makeRenderProgressHandler("cuda-scale-cpu-pad", 0, options.durationSec),
 						);
 					}
 					metrics.chunkExecMs += fullResult.elapsedMs;
@@ -3801,12 +3846,18 @@ export async function exportNativeStaticLayoutVideo(
 								backgroundColor: options.backgroundColor,
 								startSec: chunk.startSec,
 								durationSec: chunk.durationSec,
+								progress: Boolean(onProgress),
 							};
 							const primary = await runFfmpegWithMetrics(
 								ffmpegPath,
 								buildNativeCudaOverlayStaticLayoutArgs(baseConfig),
 								15 * 60 * 1000,
 								session,
+								makeRenderProgressHandler(
+									"cuda-overlay",
+									chunk.startSec,
+									chunk.durationSec,
+								),
 							);
 							let backend: NativeStaticLayoutBackend = "cuda-overlay";
 							let result = primary;
@@ -3821,6 +3872,11 @@ export async function exportNativeStaticLayoutVideo(
 									buildNativeCudaScaleCpuPadStaticLayoutArgs(baseConfig),
 									15 * 60 * 1000,
 									session,
+									makeRenderProgressHandler(
+										"cuda-scale-cpu-pad",
+										chunk.startSec,
+										chunk.durationSec,
+									),
 								);
 							}
 

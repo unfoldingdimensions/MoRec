@@ -91,12 +91,26 @@ export interface NativeStaticLayoutExportArgsConfig {
 	shadowIntensity?: number;
 	startSec?: number;
 	durationSec?: number;
+	/**
+	 * Emit ffmpeg `-progress` key=value lines on stdout so the runner can
+	 * report render progress for these otherwise-opaque subprocess runs.
+	 */
+	progress?: boolean;
 }
 
 export interface NativeStaticLayoutChunk {
 	index: number;
 	startSec: number;
 	durationSec: number;
+}
+
+function pushProgressArgs(args: string[], config: { progress?: boolean }) {
+	if (!config.progress) {
+		return;
+	}
+	// `-progress` shares stderr (`pipe:2`) with -nostats, so the runner can
+	// parse out_time_us lines while keeping stdout closed.
+	args.push("-stats_period", "0.5", "-progress", "pipe:2", "-nostats");
 }
 
 export function getNativeVideoInputByteSize(width: number, height: number): number {
@@ -321,6 +335,7 @@ export function buildNativeCudaOverlayStaticLayoutArgs(
 	const backgroundColor = formatFfmpegColor(config.backgroundColor);
 	const durationSec = formatFfmpegSeconds(Math.max(0.001, config.durationSec ?? 1) * 1000);
 	const args = ["-y", "-hide_banner", "-loglevel", "error"];
+	pushProgressArgs(args, config);
 	pushFfmpegTimeSliceArgs(args, config.startSec, config.durationSec);
 	args.push(
 		"-hwaccel",
@@ -352,6 +367,7 @@ export function buildNativeCudaScaleCpuPadStaticLayoutArgs(
 ): string[] {
 	const backgroundColor = formatFfmpegColor(config.backgroundColor);
 	const args = ["-y", "-hide_banner", "-loglevel", "error"];
+	pushProgressArgs(args, config);
 	pushFfmpegTimeSliceArgs(args, config.startSec, config.durationSec);
 	args.push(
 		"-hwaccel",
@@ -393,6 +409,7 @@ export function buildNativeCpuOverlayStaticLayoutArgs(
 	const backgroundColor = formatFfmpegColor(config.backgroundColor);
 	const durationSec = formatFfmpegSeconds(Math.max(0.001, config.durationSec ?? 1) * 1000);
 	const args = ["-y", "-hide_banner", "-loglevel", "error"];
+	pushProgressArgs(args, config);
 	pushFfmpegTimeSliceArgs(args, config.startSec, config.durationSec);
 	args.push(
 		"-i",
@@ -425,6 +442,7 @@ export function buildNativeCpuPrecompositedStaticLayoutArgs(
 	const durationSec = formatFfmpegSeconds(Math.max(0.001, config.durationSec ?? 1) * 1000);
 	const useMask = Boolean(config.maskPath && (config.borderRadius ?? 0) > 0.5);
 	const args = ["-y", "-hide_banner", "-loglevel", "error"];
+	pushProgressArgs(args, config);
 	pushFfmpegTimeSliceArgs(args, config.startSec, config.durationSec);
 	args.push(
 		"-i",
@@ -583,6 +601,7 @@ export function buildNativePrecompositedStaticLayoutArgs(
 	const durationSec = formatFfmpegSeconds(Math.max(0.001, config.durationSec ?? 1) * 1000);
 	const useMask = Boolean(config.maskPath && (config.borderRadius ?? 0) > 0.5);
 	const args = ["-y", "-hide_banner", "-loglevel", "error"];
+	pushProgressArgs(args, config);
 	pushFfmpegTimeSliceArgs(args, config.startSec, config.durationSec);
 	args.push(
 		"-hwaccel",
