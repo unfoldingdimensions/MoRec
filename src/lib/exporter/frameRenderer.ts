@@ -33,6 +33,7 @@ import {
 	PixiCursorOverlay,
 	preloadCursorAssets,
 } from "@/components/video-editor/videoPlayback/cursorRenderer";
+import { buildCursorFollowTelemetry } from "@/components/video-editor/videoPlayback/cursorViewport";
 import { computePaddedLayout } from "@/components/video-editor/videoPlayback/layoutUtils";
 import {
 	createSpringState,
@@ -273,6 +274,11 @@ export class FrameRenderer {
 	private springX: SpringState;
 	private springY: SpringState;
 	private cursorFollowCamera: CursorFollowCameraState;
+	private cursorFollowTelemetryCache: {
+		cropRegion: FrameRenderConfig["cropRegion"];
+		samples: NonNullable<FrameRenderConfig["cursorTelemetry"]>;
+		projected: NonNullable<FrameRenderConfig["cursorTelemetry"]>;
+	} | null = null;
 	private lastContentTimeMs: number | null = null;
 	private cursorOverlay: PixiCursorOverlay | null = null;
 	private webcamForwardFrameSource: ForwardFrameSource | null = null;
@@ -1263,11 +1269,21 @@ export class FrameRenderer {
 
 		if (this.webcamForwardFrameSource) {
 			const clampedTime = clampMediaTimeToDuration(webcamTargetTime, null);
-			const decodedFrame = await this.webcamForwardFrameSource.getFrameAtTime(clampedTime);
-			this.closeWebcamDecodedFrame();
-			this.webcamDecodedFrame = decodedFrame;
-			if (decodedFrame) {
-				this.lastSyncedWebcamTime = clampedTime;
+			try {
+				const decodedFrame =
+					await this.webcamForwardFrameSource.getFrameAtTime(clampedTime);
+				this.closeWebcamDecodedFrame();
+				this.webcamDecodedFrame = decodedFrame;
+				if (decodedFrame) {
+					this.lastSyncedWebcamTime = clampedTime;
+				}
+			} catch (error) {
+				// Degrade to the last cached webcam frame instead of failing the
+				// whole export — mirrors the modern renderer's webcam handling.
+				console.warn(
+					"[FrameRenderer] Webcam decode failed during export; keeping last frame:",
+					error,
+				);
 			}
 			return;
 		}
@@ -1885,6 +1901,22 @@ export class FrameRenderer {
 		}
 	}
 
+	// Cursor-follow camera focus is interpreted within the cropped content
+	// rect (layoutCache.maskRect), so the raw source-normalized telemetry must
+	// be projected into crop-viewport coordinates first.
+	private getCursorFollowTelemetry(): NonNullable<FrameRenderConfig["cursorTelemetry"]> {
+		const samples = this.config.cursorTelemetry ?? [];
+		const cropRegion = this.config.cropRegion;
+		const cache = this.cursorFollowTelemetryCache;
+		if (cache && cache.cropRegion === cropRegion && cache.samples === samples) {
+			return cache.projected;
+		}
+
+		const projected = buildCursorFollowTelemetry(samples, cropRegion);
+		this.cursorFollowTelemetryCache = { cropRegion, samples, projected };
+		return projected;
+	}
+
 	private updateLayout(): void {
 		if (!this.app || !this.videoSprite || !this.maskGraphics || !this.videoContainer) return;
 
@@ -1980,7 +2012,7 @@ export class FrameRenderer {
 			) {
 				regionFocus = computeCursorFollowFocus(
 					this.cursorFollowCamera,
-					this.config.cursorTelemetry,
+					this.getCursorFollowTelemetry(),
 					timeMs,
 					zoomScale,
 					strength,
@@ -2312,8 +2344,15 @@ export class FrameRenderer {
 		// Calculate frame dimensions from insets
 		const screenW = maskRect.width;
 		const screenH = maskRect.height;
-		const frameW = screenW / (1 - insets.left - insets.right);
-		const frameH = screenH / (1 - insets.top - insets.bottom);
+		// Extension-declared insets: clamp the sums so malformed data cannot
+		// divide by zero or flip the geometry.
+		const horizontalInset = Math.min(
+			0.99,
+			Math.max(0, insets.left) + Math.max(0, insets.right),
+		);
+		const verticalInset = Math.min(0.99, Math.max(0, insets.top) + Math.max(0, insets.bottom));
+		const frameW = screenW / (1 - horizontalInset);
+		const frameH = screenH / (1 - verticalInset);
 		const frameX = maskRect.x - insets.left * frameW;
 		const frameY = maskRect.y - insets.top * frameH;
 

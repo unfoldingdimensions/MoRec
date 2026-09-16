@@ -118,6 +118,54 @@ describe("StreamingVideoDecoder local media loading", () => {
 		);
 		expect(window.electronAPI.readLocalFile).not.toHaveBeenCalled();
 	});
+
+	it("rejects anamorphic (non-square pixel) sources with a clear error", async () => {
+		mockDemuxerGetMediaInfo.mockResolvedValueOnce({
+			duration: 4,
+			start_time: 0,
+			streams: [
+				{
+					codec_type_string: "video",
+					width: 1440,
+					height: 1080,
+					avg_frame_rate: "30/1",
+					codec_string: "avc1.640034",
+					sample_aspect_ratio: "4:3",
+					start_time: 0,
+					duration: 4,
+				},
+			],
+		});
+
+		const decoder = new StreamingVideoDecoder();
+		await expect(decoder.loadMetadata("/tmp/anamorphic.mov")).rejects.toThrow(
+			/Anamorphic \(non-square pixel\)/,
+		);
+	});
+
+	it("accepts square-pixel and unspecified aspect ratio sources", async () => {
+		mockDemuxerGetMediaInfo.mockResolvedValueOnce({
+			duration: 4,
+			start_time: 0,
+			streams: [
+				{
+					codec_type_string: "video",
+					width: 1920,
+					height: 1080,
+					avg_frame_rate: "30/1",
+					codec_string: "avc1.640034",
+					sample_aspect_ratio: "1:1",
+					start_time: 0,
+					duration: 4,
+				},
+			],
+		});
+		const decoder = new StreamingVideoDecoder();
+		await expect(decoder.loadMetadata("/tmp/square.mp4")).resolves.toBeTruthy();
+
+		const decoder2 = new StreamingVideoDecoder();
+		await expect(decoder2.loadMetadata("/tmp/unspecified.mp4")).resolves.toBeTruthy();
+	});
 });
 
 describe("getDecodedFrameStartupOffsetUs", () => {

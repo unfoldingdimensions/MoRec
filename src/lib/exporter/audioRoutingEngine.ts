@@ -1,5 +1,5 @@
-import type { AudioRegion } from "@/components/video-editor/types";
 import { SOURCE_AUDIO_NORMALIZE_GAIN } from "@/components/video-editor/audio/audioTypes";
+import type { AudioRegion } from "@/components/video-editor/types";
 import { resolveSourceAudioFallbackPaths } from "./sourceAudioFallback";
 
 export type SourceTrackId = "mic" | "system" | "mixed";
@@ -31,8 +31,31 @@ export interface ResolvedAudioPlan {
 
 export function getSourceTrackIdFromPath(audioPath: string): SourceTrackId {
 	const normalized = audioPath.toLowerCase();
-	if (normalized.includes(".mic.")) return "mic";
-	if (normalized.includes(".system.")) return "system";
+	// Check for common patterns like .mic., -mic., mic.mp4, etc.
+	if (
+		normalized.includes(".mic.") ||
+		normalized.includes("-mic.") ||
+		normalized.includes("_mic_") ||
+		normalized.includes("/mic.") ||
+		normalized.includes("\\mic.") ||
+		normalized.endsWith("mic.mp4") ||
+		normalized.endsWith("mic.m4a") ||
+		normalized.endsWith("mic.wav")
+	) {
+		return "mic";
+	}
+	if (
+		normalized.includes(".system.") ||
+		normalized.includes("-system.") ||
+		normalized.includes("_system_") ||
+		normalized.includes("/system.") ||
+		normalized.includes("\\system.") ||
+		normalized.endsWith("system.mp4") ||
+		normalized.endsWith("system.m4a") ||
+		normalized.endsWith("system.wav")
+	) {
+		return "system";
+	}
 	return "mixed";
 }
 

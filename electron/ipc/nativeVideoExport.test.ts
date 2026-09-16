@@ -3,6 +3,8 @@ import { ATEMPO_FILTER_EPSILON } from "./ffmpeg/filters";
 import {
 	buildEditedTrackSourceAudioFilter,
 	buildNativeConcatArgs,
+	buildNativeCpuOverlayStaticLayoutArgs,
+	buildNativeCpuPrecompositedStaticLayoutArgs,
 	buildNativeCudaOverlayStaticLayoutArgs,
 	buildNativeCudaScaleCpuPadStaticLayoutArgs,
 	buildNativePrecompositedStaticLayoutArgs,
@@ -11,6 +13,7 @@ import {
 	buildTrimmedSourceAudioFilter,
 	createNativeSquircleMaskPgmBuffer,
 	isNativeCudaOutOfMemory,
+	isNativeStaticLayoutCudaCapable,
 } from "./nativeVideoExport";
 
 describe("buildTrimmedSourceAudioFilter", () => {
@@ -151,7 +154,7 @@ describe("native static layout command builders", () => {
 		expect(args).toContain("-filter_complex");
 		expect(args).toContain(
 			"color=c=0x101010:s=1920x1080:r=60:d=60.000,format=nv12,hwupload_cuda[bg];" +
-				"[0:v]scale_cuda=w=1536:h=864:format=nv12,fps=60[fg];" +
+				"[0:v]scale_cuda=w=1536:h=864:format=nv12:passthrough=0,fps=60[fg];" +
 				"[bg][fg]overlay_cuda=192:108:shortest=0:repeatlast=1:eof_action=repeat,trim=duration=60.000,setpts=PTS-STARTPTS[out]",
 		);
 		expect(args).toContain("h264_nvenc");
@@ -235,6 +238,74 @@ describe("native static layout command builders", () => {
 		expect(filterComplex).toContain("overlay=x=192:y=108:format=auto");
 		expect(args).toContain("h264_nvenc");
 		expect(args).toEqual(expect.arrayContaining(["-pix_fmt", "yuv420p"]));
+	});
+
+	it("builds the CPU overlay layout command without CUDA prerequisites", () => {
+		const args = buildNativeCpuOverlayStaticLayoutArgs(baseConfig);
+
+		expect(args).not.toContain("-hwaccel");
+		expect(args).not.toContain("h264_nvenc");
+		expect(args).toContain("libx264");
+		expect(args).toContain("-filter_complex");
+		expect(args).toContain(
+			"color=c=0x101010:s=1920x1080:r=60:d=60.000[bg];" +
+				"[0:v]scale=w=1536:h=864,fps=60[fg];" +
+				"[bg][fg]overlay=192:108:shortest=0:repeatlast=1:eof_action=repeat,trim=duration=60.000,setpts=PTS-STARTPTS,format=yuv420p[out]",
+		);
+	});
+
+	it("builds the CPU precomposited command with CPU scaling and libx264", () => {
+		const args = buildNativeCpuPrecompositedStaticLayoutArgs({
+			...baseConfig,
+			staticBackgroundPath: "background.png",
+			maskPath: "mask.pgm",
+			borderRadius: 12.5,
+		});
+		const filterComplex = args[args.indexOf("-filter_complex") + 1];
+
+		expect(args).not.toContain("-hwaccel");
+		expect(args).toContain("libx264");
+		expect(args).not.toContain("h264_nvenc");
+		expect(filterComplex).toContain("scale=w=1536:h=864,fps=60,format=rgba");
+		expect(filterComplex).not.toContain("scale_cuda");
+		expect(filterComplex).toContain("[fgbase][mask]alphamerge[fg]");
+		expect(filterComplex).toContain("overlay=x=192:y=108:format=auto");
+		expect(args).toEqual(expect.arrayContaining(["-pix_fmt", "yuv420p"]));
+	});
+
+	it("gates the CUDA static-layout routes on h264_nvenc availability", () => {
+		expect(isNativeStaticLayoutCudaCapable(new Set(["h264_nvenc", "libx264"]))).toBe(true);
+		expect(isNativeStaticLayoutCudaCapable(new Set(["h264_qsv", "libx264"]))).toBe(false);
+	});
+
+	it("emits ffmpeg progress args only when the progress flag is set", () => {
+		const quietArgs = buildNativeCpuOverlayStaticLayoutArgs(baseConfig);
+		expect(quietArgs).not.toContain("-progress");
+
+		const progressArgs = buildNativeCpuOverlayStaticLayoutArgs({
+			...baseConfig,
+			progress: true,
+		});
+		expect(progressArgs).toEqual(
+			expect.arrayContaining(["-stats_period", "0.5", "-progress", "pipe:2", "-nostats"]),
+		);
+
+		const cudaProgressArgs = buildNativeCudaOverlayStaticLayoutArgs({
+			...baseConfig,
+			progress: true,
+		});
+		expect(cudaProgressArgs).toEqual(
+			expect.arrayContaining(["-progress", "pipe:2", "-nostats"]),
+		);
+
+		const precompositedProgressArgs = buildNativeCpuPrecompositedStaticLayoutArgs({
+			...baseConfig,
+			staticBackgroundPath: "background.png",
+			maskPath: "mask.pgm",
+			borderRadius: 12.5,
+			progress: true,
+		});
+		expect(precompositedProgressArgs).toContain("-progress");
 	});
 
 	it("creates an opaque PGM mask for square video corners and a partial mask for radius", () => {

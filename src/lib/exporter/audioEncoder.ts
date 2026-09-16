@@ -7,7 +7,10 @@ import type {
 	SpeedRegion,
 	TrimRegion,
 } from "@/components/video-editor/types";
-import { buildResolvedAudioPlan, SourceTrackId } from "@/lib/exporter/audioRoutingEngine";
+import {
+	buildResolvedAudioPlan,
+	getSourceTrackIdFromPath,
+} from "@/lib/exporter/audioRoutingEngine";
 import { estimateCompanionAudioStartDelaySeconds } from "@/lib/mediaTiming";
 import { resolveMediaElementSource } from "./localMediaSource";
 import type { VideoMuxer } from "./muxer";
@@ -23,6 +26,81 @@ const OFFLINE_ENCODE_CHUNK_FRAMES = 1024;
 const OFFLINE_CHUNK_DURATION_SEC = 30;
 const OFFLINE_MIX_SOFT_LIMITER_THRESHOLD = 0.9;
 const OFFLINE_MIX_SOFT_LIMITER_CEILING = 0.985;
+const EXPORT_STREAM_PCM_WRITE_BYTES = 4 * 1024 * 1024;
+
+export type EditedAudioRenderResult =
+	| { kind: "blob"; blob: Blob }
+	| { kind: "temp-file"; tempPath: string; byteLength: number };
+
+export type EditedAudioFinishFields = {
+	editedAudioData?: ArrayBuffer;
+	editedAudioPath?: string;
+	editedAudioMimeType?: string | null;
+};
+
+export async function resolveEditedAudioFinishFields(
+	result: EditedAudioRenderResult,
+): Promise<EditedAudioFinishFields> {
+	if (result.kind === "temp-file") {
+		return {
+			editedAudioPath: result.tempPath,
+			editedAudioMimeType: "audio/wav",
+		};
+	}
+	return {
+		editedAudioData: await result.blob.arrayBuffer(),
+		editedAudioMimeType: result.blob.type || null,
+	};
+}
+
+type ExportStreamSession = {
+	streamId: string;
+	tempPath: string;
+	position: number;
+	write: (bytes: Uint8Array) => Promise<void>;
+	close: () => Promise<void>;
+	abort: () => Promise<void>;
+};
+
+async function openEditedAudioExportStream(extension: string): Promise<ExportStreamSession | null> {
+	const api = typeof window === "undefined" ? undefined : window.electronAPI;
+	if (!api?.openExportStream || !api.writeExportStreamChunk || !api.closeExportStream) {
+		return null;
+	}
+
+	const openResult = await api.openExportStream({ extension });
+	if (!openResult.success || !openResult.streamId || !openResult.tempPath) {
+		return null;
+	}
+
+	const streamId = openResult.streamId;
+	const session: ExportStreamSession = {
+		streamId,
+		tempPath: openResult.tempPath,
+		position: 0,
+		write: async (bytes: Uint8Array) => {
+			const writeResult = await api.writeExportStreamChunk!(
+				streamId,
+				session.position,
+				bytes,
+			);
+			if (!writeResult.success) {
+				throw new Error(writeResult.error || "Failed to write edited audio stream chunk");
+			}
+			session.position += bytes.byteLength;
+		},
+		close: async () => {
+			const closeResult = await api.closeExportStream!(streamId);
+			if (!closeResult.success || !closeResult.tempPath) {
+				throw new Error(closeResult.error || "Failed to close edited audio export stream");
+			}
+		},
+		abort: async () => {
+			await api.closeExportStream!(streamId, { abort: true }).catch(() => undefined);
+		},
+	};
+	return session;
+}
 
 function softLimitSample(sample: number): number {
 	const magnitude = Math.abs(sample);
@@ -72,34 +150,14 @@ function resolveSourceTrackGain(
 	return Math.max(0, Math.min(2, settings.volume * normalizeGain));
 }
 
-export function getSourceTrackIdFromPath(audioPath: string): SourceTrackId {
-	const normalized = audioPath.toLowerCase();
-	// Check for common patterns like .mic., -mic., mic.mp4, etc.
-	if (
-		normalized.includes(".mic.") ||
-		normalized.includes("-mic.") ||
-		normalized.includes("_mic_") ||
-		normalized.includes("/mic.") ||
-		normalized.includes("\\mic.") ||
-		normalized.endsWith("mic.mp4") ||
-		normalized.endsWith("mic.m4a") ||
-		normalized.endsWith("mic.wav")
-	) {
-		return "mic";
+function concatArrayBuffers(parts: ArrayBuffer[], totalBytes: number): Uint8Array {
+	const merged = new Uint8Array(totalBytes);
+	let offset = 0;
+	for (const part of parts) {
+		merged.set(new Uint8Array(part), offset);
+		offset += part.byteLength;
 	}
-	if (
-		normalized.includes(".system.") ||
-		normalized.includes("-system.") ||
-		normalized.includes("_system_") ||
-		normalized.includes("/system.") ||
-		normalized.includes("\\system.") ||
-		normalized.endsWith("system.mp4") ||
-		normalized.endsWith("system.m4a") ||
-		normalized.endsWith("system.wav")
-	) {
-		return "system";
-	}
-	return "mixed";
+	return merged;
 }
 
 export function hasNonDefaultSourceTrackSettings(
@@ -152,6 +210,7 @@ type TrimLikeRegion = TrimRegion | ClipRegion;
 export class AudioProcessor {
 	private cancelled = false;
 	private onProgress?: (progress: number) => void;
+	private muxedAnyAudioChunk = false;
 
 	private isPassthroughAudioCodec(codec: string | undefined): boolean {
 		if (!codec) {
@@ -207,6 +266,7 @@ export class AudioProcessor {
 							},
 				);
 				wroteAudio = true;
+				this.muxedAnyAudioChunk = true;
 			}
 		} finally {
 			if (reader) {
@@ -230,7 +290,44 @@ export class AudioProcessor {
 		this.onProgress = callback;
 	}
 
+	/**
+	 * Processes the source audio into the muxer and reports whether any audio
+	 * chunk was actually written. Callers use the return value to reroute
+	 * finalization through the FFmpeg audio mux instead of shipping an export
+	 * with a silent, empty audio track when the source codec/config cannot be
+	 * decoded or encoded in the renderer.
+	 */
 	async process(
+		demuxer: WebDemuxer | null,
+		muxer: VideoMuxer,
+		videoUrl: string,
+		trimRegions?: TrimLikeRegion[],
+		speedRegions?: SpeedRegion[],
+		readEndSec?: number,
+		audioRegions?: AudioRegion[],
+		sourceAudioFallbackPaths?: string[],
+		sourceAudioFallbackStartDelayMsByPath?: Record<string, number>,
+		sourceAudioTrackSettings?: SourceAudioTrackSettings,
+		clipRegions?: ClipRegion[],
+	): Promise<boolean> {
+		this.muxedAnyAudioChunk = false;
+		await this.runAudioPipeline(
+			demuxer,
+			muxer,
+			videoUrl,
+			trimRegions,
+			speedRegions,
+			readEndSec,
+			audioRegions,
+			sourceAudioFallbackPaths,
+			sourceAudioFallbackStartDelayMsByPath,
+			sourceAudioTrackSettings,
+			clipRegions,
+		);
+		return this.muxedAnyAudioChunk;
+	}
+
+	private async runAudioPipeline(
 		demuxer: WebDemuxer | null,
 		muxer: VideoMuxer,
 		videoUrl: string,
@@ -375,7 +472,7 @@ export class AudioProcessor {
 		sourceAudioFallbackStartDelayMsByPath?: Record<string, number>,
 		sourceAudioTrackSettings?: SourceAudioTrackSettings,
 		clipRegions?: ClipRegion[],
-	): Promise<Blob> {
+	): Promise<EditedAudioRenderResult> {
 		const sortedTrims = trimRegions
 			? [...trimRegions].sort((a, b) => a.startMs - b.startMs)
 			: [];
@@ -403,7 +500,27 @@ export class AudioProcessor {
 			sourceAudioTrackSettings,
 			clipRegions,
 		);
-		return this.renderToWavBlobChunked(prepared);
+
+		// Stream the rendered WAV straight to an app-managed export temp so long
+		// edited tracks never materialize as a full Blob + ArrayBuffer pair.
+		const stream = await openEditedAudioExportStream("wav");
+		if (stream) {
+			try {
+				const byteLength = await this.renderToWavExportStream(prepared, stream);
+				if (this.cancelled) {
+					await stream.abort();
+					throw new Error("Export cancelled");
+				}
+				await stream.close();
+				return { kind: "temp-file", tempPath: stream.tempPath, byteLength };
+			} catch (error) {
+				await stream.abort();
+				throw error;
+			}
+		}
+
+		const blob = await this.renderToWavBlobChunked(prepared);
+		return { kind: "blob", blob };
 	}
 
 	// Legacy trim-only path used when no speed regions are configured.
@@ -546,6 +663,7 @@ export class AudioProcessor {
 							return;
 						}
 						await muxer.addAudioChunk(chunk, meta);
+						this.muxedAnyAudioChunk = true;
 					})
 					.catch((error) => {
 						muxError = error instanceof Error ? error : new Error(String(error));
@@ -731,8 +849,16 @@ export class AudioProcessor {
 		});
 
 		// Decode embedded source audio separately from companion sidecars.
+		// The expected duration feeds decode-progress reporting so the
+		// finalization watchdog sees movement during long decodes; the media
+		// (video timeline) duration is also the reference companion start-delay
+		// inference is measured against.
+		const mediaDurationSec = await this.getMediaDurationSec(videoUrl).catch(() => 0);
+		const expectedMainAudioDurationSec = resolvedPlan.includeEmbeddedInExport
+			? mediaDurationSec || undefined
+			: undefined;
 		const mainBuffer = resolvedPlan.includeEmbeddedInExport
-			? await this.decodeAudioFromUrl(videoUrl)
+			? await this.decodeAudioFromUrl(videoUrl, expectedMainAudioDurationSec)
 			: null;
 		const mainBufferGain = resolveSourceTrackGain(sourceAudioTrackSettings, "mixed");
 		const mainBufferEntry = mainBuffer ? { buffer: mainBuffer, gain: mainBufferGain } : null;
@@ -744,9 +870,9 @@ export class AudioProcessor {
 			startDelaySec: number;
 			gain: number;
 		}> = [];
-		const refDuration =
-			mainBuffer?.duration ??
-			(resolvedPlan.playbackPaths.length > 0 ? await this.getMediaDurationSec(videoUrl) : 0);
+		// Measure against the video timeline, not the embedded audio's own
+		// duration — embedded audio length can differ slightly from the video.
+		const refDuration = resolvedPlan.playbackPaths.length > 0 ? mediaDurationSec : 0;
 		for (const audioPath of resolvedPlan.playbackPaths) {
 			if (this.cancelled) throw new Error("Export cancelled");
 			const buffer = await this.decodeAudioFromUrl(audioPath);
@@ -867,6 +993,7 @@ export class AudioProcessor {
 						if (this.cancelled) return;
 						await muxer.addAudioChunk(chunk, !wroteFirstChunk ? meta : undefined);
 						wroteFirstChunk = true;
+						this.muxedAnyAudioChunk = true;
 					})
 					.catch((error) => {
 						muxError = error instanceof Error ? error : new Error(String(error));
@@ -922,6 +1049,50 @@ export class AudioProcessor {
 		});
 
 		return new Blob(pcmParts, { type: "audio/wav" });
+	}
+
+	// Render the timeline as WAV bytes straight into an export-stream session.
+	// Only ~EXPORT_STREAM_PCM_WRITE_BYTES of PCM is buffered at a time, so the
+	// full rendered track never exists in renderer memory.
+	private async renderToWavExportStream(
+		prepared: PreparedOfflineRender,
+		stream: ExportStreamSession,
+	): Promise<number> {
+		const totalOutputSec = Math.max(prepared.outputDurationMs / 1000, 0.01);
+		const totalFrames = Math.ceil(totalOutputSec * OFFLINE_AUDIO_SAMPLE_RATE);
+		const numChannels = prepared.numChannels;
+
+		await stream.write(
+			new Uint8Array(
+				this.createWavHeader(OFFLINE_AUDIO_SAMPLE_RATE, numChannels, totalFrames),
+			),
+		);
+
+		let pendingParts: ArrayBuffer[] = [];
+		let pendingBytes = 0;
+		let writtenBytes = 0;
+		const flushPending = async () => {
+			if (pendingBytes === 0) {
+				return;
+			}
+			await stream.write(concatArrayBuffers(pendingParts, pendingBytes));
+			writtenBytes += pendingBytes;
+			pendingParts = [];
+			pendingBytes = 0;
+		};
+
+		await this.renderChunked(prepared, totalOutputSec, async (rendered) => {
+			for (const part of this.audioBufferToPcmParts(rendered)) {
+				pendingParts.push(part);
+				pendingBytes += part.byteLength;
+				if (pendingBytes >= EXPORT_STREAM_PCM_WRITE_BYTES) {
+					await flushPending();
+				}
+			}
+		});
+		await flushPending();
+
+		return writtenBytes;
 	}
 
 	// Shared chunked rendering loop. Processes the timeline in
@@ -1086,9 +1257,12 @@ export class AudioProcessor {
 	// Decode audio from a URL using streaming WebCodecs decode with bulk fallback.
 	// Streaming decode avoids holding the full compressed file in memory alongside
 	// the decoded AudioBuffer, reducing peak memory for large recordings.
-	private async decodeAudioFromUrl(url: string): Promise<AudioBuffer | null> {
+	private async decodeAudioFromUrl(
+		url: string,
+		expectedDurationSec?: number,
+	): Promise<AudioBuffer | null> {
 		try {
-			const buffer = await this.streamDecodeFromUrl(url);
+			const buffer = await this.streamDecodeFromUrl(url, expectedDurationSec);
 			if (buffer) return buffer;
 		} catch (error) {
 			console.warn(
@@ -1102,7 +1276,13 @@ export class AudioProcessor {
 
 	// Streaming decode via WebDemuxer + AudioDecoder. Decodes audio chunk-by-chunk
 	// without loading the entire compressed file into a contiguous ArrayBuffer.
-	private async streamDecodeFromUrl(url: string): Promise<AudioBuffer | null> {
+	// When expectedDurationSec is provided, decode progress is reported through
+	// onProgress so the finalization watchdog sees movement during long decodes
+	// instead of timing out a healthy export.
+	private async streamDecodeFromUrl(
+		url: string,
+		expectedDurationSec?: number,
+	): Promise<AudioBuffer | null> {
 		const source = await resolveMediaElementSource(url);
 		let demuxer: WebDemuxer | null = null;
 
@@ -1144,12 +1324,35 @@ export class AudioProcessor {
 					decodeCapacityWaiters.add(resolve);
 				});
 
+			let decodedSeconds = 0;
+			let lastDecodeProgressAt = 0;
+			const reportDecodeProgress = (durationUs: number) => {
+				if (!this.onProgress) {
+					return;
+				}
+				decodedSeconds += durationUs / 1_000_000;
+				const now = Date.now();
+				// Throttle to ~1Hz; creep 0.02→0.19 so the value strictly increases
+				// with decoded audio time and keeps the finalization watchdog fed.
+				if (now - lastDecodeProgressAt >= 1000 && expectedDurationSec) {
+					lastDecodeProgressAt = now;
+					const fraction = Math.min(
+						0.19,
+						0.02 +
+							0.17 *
+								Math.min(1, decodedSeconds / Math.max(expectedDurationSec, 0.001)),
+					);
+					this.onProgress(Math.max(0.001, fraction));
+				}
+			};
+
 			const decoder = new AudioDecoder({
 				output: (data: AudioData) => {
 					try {
 						const frames = data.numberOfFrames;
 						const dataChannels = Math.min(data.numberOfChannels, numChannels);
 						const format = data.format;
+						reportDecodeProgress(data.duration ?? (frames / sampleRate) * 1_000_000);
 
 						if (format?.includes("planar")) {
 							for (let ch = 0; ch < dataChannels; ch++) {
@@ -1236,7 +1439,9 @@ export class AudioProcessor {
 
 			if (totalFrames === 0) return null;
 
-			// Build AudioBuffer from accumulated chunks
+			// Build AudioBuffer from accumulated chunks. Release each chunk as it is
+			// copied so the decoded PCM set shrinks while the buffer fills instead
+			// of holding both full copies until this function returns.
 			const audioBuffer = new AudioBuffer({
 				length: totalFrames,
 				numberOfChannels: numChannels,
@@ -1244,10 +1449,13 @@ export class AudioProcessor {
 			});
 			for (let ch = 0; ch < numChannels; ch++) {
 				const channelData = audioBuffer.getChannelData(ch);
+				const chunks = channelChunks[ch];
 				let writeOffset = 0;
-				for (const chunk of channelChunks[ch]) {
+				for (let index = 0; index < chunks.length; index++) {
+					const chunk = chunks[index];
 					channelData.set(chunk, writeOffset);
 					writeOffset += chunk.length;
+					chunks[index] = new Float32Array(0);
 				}
 			}
 

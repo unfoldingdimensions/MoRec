@@ -39,6 +39,7 @@ import {
 	PixiCursorOverlay,
 	preloadCursorAssets,
 } from "@/components/video-editor/videoPlayback/cursorRenderer";
+import { buildCursorFollowTelemetry } from "@/components/video-editor/videoPlayback/cursorViewport";
 import {
 	computePaddedLayout,
 	scalePreviewBorderRadius,
@@ -462,6 +463,11 @@ export class FrameRenderer {
 	private springX: SpringState;
 	private springY: SpringState;
 	private cursorFollowCamera: CursorFollowCameraState;
+	private cursorFollowTelemetryCache: {
+		cropRegion: FrameRenderConfig["cropRegion"];
+		samples: NonNullable<FrameRenderConfig["cursorTelemetry"]>;
+		projected: NonNullable<FrameRenderConfig["cursorTelemetry"]>;
+	} | null = null;
 	private lastContentTimeMs: number | null = null;
 	private layoutCache: LayoutCache | null = null;
 	private currentVideoTime = 0;
@@ -632,6 +638,10 @@ export class FrameRenderer {
 
 		this.annotationScaleFactor = this.calculateAnnotationScaleFactor();
 		this.annotationAssets = await preloadAnnotationAssets(this.config.annotationRegions ?? []);
+		// Populate layoutCache before rasterizing annotation sprites: their
+		// positions/sizes are maskRect-relative, and layoutCache is otherwise
+		// only built lazily inside the first renderFrame call.
+		this.updateLayout();
 		await this.setupAnnotationLayer();
 		this.setupCaptionResources();
 
@@ -1453,6 +1463,22 @@ export class FrameRenderer {
 		const previewWidth = this.config.previewWidth || 1920;
 		const previewHeight = this.config.previewHeight || 1080;
 		return (this.config.width / previewWidth + this.config.height / previewHeight) / 2;
+	}
+
+	// Cursor-follow camera focus is interpreted within the cropped content
+	// rect (layoutCache.maskRect), so the raw source-normalized telemetry must
+	// be projected into crop-viewport coordinates first.
+	private getCursorFollowTelemetry(): NonNullable<FrameRenderConfig["cursorTelemetry"]> {
+		const samples = this.config.cursorTelemetry ?? [];
+		const cropRegion = this.config.cropRegion;
+		const cache = this.cursorFollowTelemetryCache;
+		if (cache && cache.cropRegion === cropRegion && cache.samples === samples) {
+			return cache.projected;
+		}
+
+		const projected = buildCursorFollowTelemetry(samples, cropRegion);
+		this.cursorFollowTelemetryCache = { cropRegion, samples, projected };
+		return projected;
 	}
 
 	private hasActiveBlurAnnotations(timeMs: number): boolean {
@@ -3618,8 +3644,18 @@ export class FrameRenderer {
 		if (insets) {
 			const screenWidth = maskRect.width;
 			const screenHeight = maskRect.height;
-			frameWidth = screenWidth / (1 - insets.left - insets.right);
-			frameHeight = screenHeight / (1 - insets.top - insets.bottom);
+			// Extension-declared insets: clamp the sums so malformed data cannot
+			// divide by zero or flip the geometry.
+			const horizontalInset = Math.min(
+				0.99,
+				Math.max(0, insets.left) + Math.max(0, insets.right),
+			);
+			const verticalInset = Math.min(
+				0.99,
+				Math.max(0, insets.top) + Math.max(0, insets.bottom),
+			);
+			frameWidth = screenWidth / (1 - horizontalInset);
+			frameHeight = screenHeight / (1 - verticalInset);
 			frameX = maskRect.x - insets.left * frameWidth;
 			frameY = maskRect.y - insets.top * frameHeight;
 		}
@@ -3729,7 +3765,7 @@ export class FrameRenderer {
 			) {
 				regionFocus = computeCursorFollowFocus(
 					this.cursorFollowCamera,
-					this.config.cursorTelemetry,
+					this.getCursorFollowTelemetry(),
 					timeMs,
 					zoomScale,
 					strength,

@@ -130,6 +130,7 @@ interface RendererNativeStaticLayoutChunkMetric {
 		| "cuda-overlay"
 		| "cuda-scale-cpu-pad"
 		| "cuda-static-composite"
+		| "ffmpeg-static-layout"
 		| "nvidia-cuda-compositor"
 		| "windows-d3d11-compositor";
 	elapsedMs: number;
@@ -410,6 +411,7 @@ interface Window {
 				editedTrackStrategy?: "filtergraph-fast-path" | "offline-render-fallback";
 				editedTrackSegments?: Array<{ startMs: number; endMs: number; speed: number }>;
 				editedAudioData?: ArrayBuffer;
+				editedAudioPath?: string | null;
 				editedAudioMimeType?: string | null;
 			};
 		}) => Promise<{
@@ -458,6 +460,7 @@ interface Window {
 				editedTrackStrategy?: "filtergraph-fast-path" | "offline-render-fallback";
 				editedTrackSegments?: Array<{ startMs: number; endMs: number; speed: number }>;
 				editedAudioData?: ArrayBuffer;
+				editedAudioPath?: string | null;
 				editedAudioMimeType?: string | null;
 			},
 		) => Promise<{
@@ -482,6 +485,7 @@ interface Window {
 				editedTrackStrategy?: "filtergraph-fast-path" | "offline-render-fallback";
 				editedTrackSegments?: Array<{ startMs: number; endMs: number; speed: number }>;
 				editedAudioData?: ArrayBuffer;
+				editedAudioPath?: string | null;
 				editedAudioMimeType?: string | null;
 			},
 		) => Promise<{
@@ -502,6 +506,7 @@ interface Window {
 				editedTrackStrategy?: "filtergraph-fast-path" | "offline-render-fallback";
 				editedTrackSegments?: Array<{ startMs: number; endMs: number; speed: number }>;
 				editedAudioData?: ArrayBuffer;
+				editedAudioPath?: string | null;
 				editedAudioMimeType?: string | null;
 			},
 		) => Promise<{

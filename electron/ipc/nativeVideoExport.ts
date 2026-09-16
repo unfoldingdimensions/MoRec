@@ -6,7 +6,9 @@ import { getSquirclePathPoints } from "../../src/lib/geometry/squircle";
 import { ATEMPO_FILTER_EPSILON, buildAtempoFilters } from "./ffmpeg/filters";
 
 const NATIVE_EXPORT_INPUT_BYTES_PER_PIXEL = 4;
-const MIN_EDITED_TRACK_TEMPO_SPEED = 0.5;
+// buildAtempoFilters chains atempo steps, so the full UI speed range
+// (0.25x-2x) is safe for the edited-track filtergraph.
+const MIN_EDITED_TRACK_TEMPO_SPEED = 0.25;
 const MAX_EDITED_TRACK_TEMPO_SPEED = 2;
 
 export type NativeExportEncodingMode = "fast" | "balanced" | "quality";
@@ -44,6 +46,7 @@ export interface NativeVideoExportFinishOptions {
 	editedTrackStrategy?: NativeVideoExportEditedTrackStrategy;
 	editedTrackSegments?: NativeVideoExportEditedTrackSegment[];
 	editedAudioData?: ArrayBuffer;
+	editedAudioPath?: string | null;
 	editedAudioMimeType?: string | null;
 }
 
@@ -61,6 +64,7 @@ export type NativeStaticLayoutBackend =
 	| "cuda-overlay"
 	| "cuda-scale-cpu-pad"
 	| "cuda-static-composite"
+	| "ffmpeg-static-layout"
 	| "nvidia-cuda-compositor"
 	| "windows-d3d11-compositor";
 
@@ -89,12 +93,26 @@ export interface NativeStaticLayoutExportArgsConfig {
 	shadowIntensity?: number;
 	startSec?: number;
 	durationSec?: number;
+	/**
+	 * Emit ffmpeg `-progress` key=value lines on stdout so the runner can
+	 * report render progress for these otherwise-opaque subprocess runs.
+	 */
+	progress?: boolean;
 }
 
 export interface NativeStaticLayoutChunk {
 	index: number;
 	startSec: number;
 	durationSec: number;
+}
+
+function pushProgressArgs(args: string[], config: { progress?: boolean }) {
+	if (!config.progress) {
+		return;
+	}
+	// `-progress` shares stderr (`pipe:2`) with -nostats, so the runner can
+	// parse out_time_us lines while keeping stdout closed.
+	args.push("-stats_period", "0.5", "-progress", "pipe:2", "-nostats");
 }
 
 export function getNativeVideoInputByteSize(width: number, height: number): number {
@@ -319,6 +337,7 @@ export function buildNativeCudaOverlayStaticLayoutArgs(
 	const backgroundColor = formatFfmpegColor(config.backgroundColor);
 	const durationSec = formatFfmpegSeconds(Math.max(0.001, config.durationSec ?? 1) * 1000);
 	const args = ["-y", "-hide_banner", "-loglevel", "error"];
+	pushProgressArgs(args, config);
 	pushFfmpegTimeSliceArgs(args, config.startSec, config.durationSec);
 	args.push(
 		"-hwaccel",
@@ -328,7 +347,7 @@ export function buildNativeCudaOverlayStaticLayoutArgs(
 		"-i",
 		config.inputPath,
 		"-filter_complex",
-		`color=c=${backgroundColor}:s=${config.width}x${config.height}:r=${config.frameRate}:d=${durationSec},format=nv12,hwupload_cuda[bg];[0:v]scale_cuda=w=${config.contentWidth}:h=${config.contentHeight}:format=nv12,fps=${config.frameRate}[fg];[bg][fg]overlay_cuda=${config.offsetX}:${config.offsetY}:shortest=0:repeatlast=1:eof_action=repeat,trim=duration=${durationSec},setpts=PTS-STARTPTS[out]`,
+		`color=c=${backgroundColor}:s=${config.width}x${config.height}:r=${config.frameRate}:d=${durationSec},format=nv12,hwupload_cuda[bg];[0:v]scale_cuda=w=${config.contentWidth}:h=${config.contentHeight}:format=nv12:passthrough=0,fps=${config.frameRate}[fg];[bg][fg]overlay_cuda=${config.offsetX}:${config.offsetY}:shortest=0:repeatlast=1:eof_action=repeat,trim=duration=${durationSec},setpts=PTS-STARTPTS[out]`,
 		"-map",
 		"[out]",
 		"-an",
@@ -350,6 +369,7 @@ export function buildNativeCudaScaleCpuPadStaticLayoutArgs(
 ): string[] {
 	const backgroundColor = formatFfmpegColor(config.backgroundColor);
 	const args = ["-y", "-hide_banner", "-loglevel", "error"];
+	pushProgressArgs(args, config);
 	pushFfmpegTimeSliceArgs(args, config.startSec, config.durationSec);
 	args.push(
 		"-hwaccel",
@@ -368,6 +388,106 @@ export function buildNativeCudaScaleCpuPadStaticLayoutArgs(
 		"-c:v",
 		"h264_nvenc",
 		...getNvencStaticLayoutModeArgs(config.encodingMode),
+		...getBitrateArgs(config.bitrate),
+		"-pix_fmt",
+		"yuv420p",
+		"-movflags",
+		"+faststart",
+		config.outputPath,
+	);
+	return args;
+}
+
+export function isNativeStaticLayoutCudaCapable(availableEncoders: Set<string>): boolean {
+	return availableEncoders.has("h264_nvenc");
+}
+
+// CPU-only static layout: identical layout semantics to the CUDA overlay graph
+// but decodes and composites on the CPU and encodes with libx264, so the
+// "ffmpeg-static-layout" fallback route works without an NVIDIA GPU.
+export function buildNativeCpuOverlayStaticLayoutArgs(
+	config: NativeStaticLayoutExportArgsConfig,
+): string[] {
+	const backgroundColor = formatFfmpegColor(config.backgroundColor);
+	const durationSec = formatFfmpegSeconds(Math.max(0.001, config.durationSec ?? 1) * 1000);
+	const args = ["-y", "-hide_banner", "-loglevel", "error"];
+	pushProgressArgs(args, config);
+	pushFfmpegTimeSliceArgs(args, config.startSec, config.durationSec);
+	args.push(
+		"-i",
+		config.inputPath,
+		"-filter_complex",
+		`color=c=${backgroundColor}:s=${config.width}x${config.height}:r=${config.frameRate}:d=${durationSec}[bg];[0:v]scale=w=${config.contentWidth}:h=${config.contentHeight},fps=${config.frameRate}[fg];[bg][fg]overlay=${config.offsetX}:${config.offsetY}:shortest=0:repeatlast=1:eof_action=repeat,trim=duration=${durationSec},setpts=PTS-STARTPTS,format=yuv420p[out]`,
+		"-map",
+		"[out]",
+		"-an",
+		"-r",
+		String(config.frameRate),
+		"-c:v",
+		"libx264",
+		...getLibx264ModeArgs(config.encodingMode),
+		...getBitrateArgs(config.bitrate),
+		"-movflags",
+		"+faststart",
+		config.outputPath,
+	);
+	return args;
+}
+
+export function buildNativeCpuPrecompositedStaticLayoutArgs(
+	config: NativeStaticLayoutExportArgsConfig,
+): string[] {
+	if (!config.staticBackgroundPath) {
+		throw new Error("Native precomposited static layout requires a static background path");
+	}
+
+	const durationSec = formatFfmpegSeconds(Math.max(0.001, config.durationSec ?? 1) * 1000);
+	const useMask = Boolean(config.maskPath && (config.borderRadius ?? 0) > 0.5);
+	const args = ["-y", "-hide_banner", "-loglevel", "error"];
+	pushProgressArgs(args, config);
+	pushFfmpegTimeSliceArgs(args, config.startSec, config.durationSec);
+	args.push(
+		"-i",
+		config.inputPath,
+		"-loop",
+		"1",
+		"-framerate",
+		String(config.frameRate),
+		"-t",
+		durationSec,
+		"-i",
+		config.staticBackgroundPath,
+	);
+
+	if (useMask && config.maskPath) {
+		args.push(
+			"-loop",
+			"1",
+			"-framerate",
+			String(config.frameRate),
+			"-t",
+			durationSec,
+			"-i",
+			config.maskPath,
+		);
+	}
+
+	const foregroundFilter = `[0:v]scale=w=${config.contentWidth}:h=${config.contentHeight},fps=${config.frameRate},format=rgba[fgbase]`;
+	const maskFilter = useMask ? ";[2:v]format=gray[mask];[fgbase][mask]alphamerge[fg]" : "";
+	const foregroundLabel = useMask ? "fg" : "fgbase";
+	const filterComplex = `${foregroundFilter}${maskFilter};[1:v]format=rgba[bg];[bg][${foregroundLabel}]overlay=x=${config.offsetX}:y=${config.offsetY}:format=auto,trim=duration=${durationSec},setpts=PTS-STARTPTS,format=yuv420p[out]`;
+
+	args.push(
+		"-filter_complex",
+		filterComplex,
+		"-map",
+		"[out]",
+		"-an",
+		"-r",
+		String(config.frameRate),
+		"-c:v",
+		"libx264",
+		...getLibx264ModeArgs(config.encodingMode),
 		...getBitrateArgs(config.bitrate),
 		"-pix_fmt",
 		"yuv420p",
@@ -483,6 +603,7 @@ export function buildNativePrecompositedStaticLayoutArgs(
 	const durationSec = formatFfmpegSeconds(Math.max(0.001, config.durationSec ?? 1) * 1000);
 	const useMask = Boolean(config.maskPath && (config.borderRadius ?? 0) > 0.5);
 	const args = ["-y", "-hide_banner", "-loglevel", "error"];
+	pushProgressArgs(args, config);
 	pushFfmpegTimeSliceArgs(args, config.startSec, config.durationSec);
 	args.push(
 		"-hwaccel",

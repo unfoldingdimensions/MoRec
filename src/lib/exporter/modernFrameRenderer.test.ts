@@ -131,7 +131,7 @@ vi.mock("./annotationRenderer", () => ({
 	renderAnnotations: vi.fn(async () => undefined),
 }));
 
-import { renderAnnotations } from "./annotationRenderer";
+import { renderAnnotations, renderAnnotationToCanvas } from "./annotationRenderer";
 import { FrameRenderer } from "./modernFrameRenderer";
 
 function createMockContext() {
@@ -231,6 +231,39 @@ describe("ModernFrameRenderer Pixi lifecycle", () => {
 		} finally {
 			vi.unstubAllGlobals();
 		}
+	});
+});
+
+describe("ModernFrameRenderer annotation layout", () => {
+	it("rasterizes annotation sprites against the layout mask rect, not the full canvas", async () => {
+		vi.clearAllMocks();
+		const renderer = createRenderer() as any;
+		renderer.annotationContainer = { removeChildren: vi.fn(), addChild: vi.fn() };
+		renderer.annotationSprites = [];
+		// Letterboxed layout: 1366x768-style content centered in a 1920x1080 canvas.
+		renderer.layoutCache = {
+			stageSize: { width: 1920, height: 1080 },
+			videoSize: { width: 1920, height: 1080 },
+			baseScale: 1,
+			baseOffset: { x: 0, y: 0 },
+			maskRect: {
+				x: 0,
+				y: 207,
+				width: 1920,
+				height: 666,
+				sourceCrop: { x: 0, y: 0, width: 1, height: 1 },
+			},
+		};
+		vi.mocked(renderAnnotationToCanvas).mockResolvedValue(createMockCanvas() as never);
+
+		await renderer.setupAnnotationLayer();
+
+		expect(renderAnnotationToCanvas).toHaveBeenCalledTimes(1);
+		const [, width, height] = vi.mocked(renderAnnotationToCanvas).mock.calls[0];
+		expect(width).toBeCloseTo(0.2 * 1920);
+		expect(height).toBeCloseTo(0.2 * 666);
+		const sprite = renderer.annotationContainer.addChild.mock.calls[0][0];
+		expect(sprite.position.set).toHaveBeenCalledWith(0.1 * 1920, 207 + 0.1 * 666);
 	});
 });
 

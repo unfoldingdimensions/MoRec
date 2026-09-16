@@ -50,11 +50,6 @@ export type RecordingSessionData = {
 	hideOverlayCursorByDefault?: boolean;
 };
 
-export type PauseSegment = {
-	startMs: number;
-	endMs: number;
-};
-
 export type RecordingSessionManifest = {
 	version: 1 | 2 | 3;
 	videoFileName: string;

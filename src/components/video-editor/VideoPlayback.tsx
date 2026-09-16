@@ -170,6 +170,7 @@ import {
 	resetCursorFollowCamera,
 	SNAP_TO_EDGES_RATIO_AUTO,
 } from "./videoPlayback/cursorFollowCamera";
+import { buildCursorFollowTelemetry } from "./videoPlayback/cursorViewport";
 import { clampFocusToStage as clampFocusToStageUtil } from "./videoPlayback/focusUtils";
 import { layoutVideoContent as layoutVideoContentUtil } from "./videoPlayback/layoutUtils";
 import { updateOverlayIndicator } from "./videoPlayback/overlayUtils";
@@ -630,6 +631,31 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 		const zoomClassicModeRef = useRef(zoomClassicMode);
 		const cursorFollowCameraRef = useRef<CursorFollowCameraState>(
 			createCursorFollowCameraState(),
+		);
+		const cursorFollowTelemetryCacheRef = useRef<{
+			sourceCrop?: { x: number; y: number; width: number; height: number };
+			samples: CursorTelemetryPoint[];
+			projected: CursorTelemetryPoint[];
+		} | null>(null);
+		// Cursor-follow camera focus is interpreted within the cropped content
+		// rect (baseMaskRef), so project the raw source-normalized telemetry into
+		// crop-viewport coordinates; cached per (crop, samples) identity.
+		const getCursorFollowTelemetry = useCallback(
+			(sourceCrop?: { x: number; y: number; width: number; height: number }) => {
+				const samples = cursorTelemetryRef.current;
+				const cache = cursorFollowTelemetryCacheRef.current;
+				if (cache && cache.sourceCrop === sourceCrop && cache.samples === samples) {
+					return cache.projected;
+				}
+
+				const projected = buildCursorFollowTelemetry(
+					samples,
+					sourceCrop as import("./types").CropRegion | undefined,
+				);
+				cursorFollowTelemetryCacheRef.current = { sourceCrop, samples, projected };
+				return projected;
+			},
+			[],
 		);
 
 		const initializePixiRenderer = useCallback(
@@ -2429,7 +2455,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 					) {
 						regionFocus = computeCursorFollowFocus(
 							cursorFollowCameraRef.current,
-							cursorTelemetryRef.current,
+							getCursorFollowTelemetry(baseMaskRef.current?.sourceCrop),
 							currentTimeRef.current,
 							zoomScale,
 							strength,
@@ -2716,6 +2742,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 			padding,
 			showShadow,
 			shadowIntensity,
+			getCursorFollowTelemetry,
 		]);
 
 		useEffect(() => {
@@ -3175,7 +3202,8 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 										style={{
 											backgroundColor: `rgba(0, 0, 0, ${autoCaptionSettings.backgroundOpacity})`,
 											fontFamily:
-												autoCaptionSettings.fontFamily || getDefaultCaptionFontFamily(),
+												autoCaptionSettings.fontFamily ||
+												getDefaultCaptionFontFamily(),
 											fontSize: `${getCaptionScaledFontSize(
 												autoCaptionSettings.fontSize,
 												overlayRef.current?.clientWidth || 960,
@@ -3439,7 +3467,9 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 													600,
 											}}
 											sceneTransform={{ scale: 1, x: 0, y: 0 }}
-											interactionScale={annotationSceneTransformRef.current.scale}
+											interactionScale={
+												annotationSceneTransformRef.current.scale
+											}
 											onPositionChange={(id, position) =>
 												onAnnotationPositionChange?.(id, position)
 											}

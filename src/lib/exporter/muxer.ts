@@ -124,7 +124,10 @@ export class VideoMuxer {
 
 		this.output = new Output({
 			format: new Mp4OutputFormat({
-				fastStart: false,
+				// Moov-at-front for in-memory outputs is free; on the streaming IPC
+				// target 'in-memory' would buffer the whole (multi-GiB) file, and
+				// 'reserve' needs a known size bound, so streams keep moov-at-end.
+				fastStart: this.target instanceof BufferTarget ? "in-memory" : false,
 			}),
 			target: this.target,
 		});
@@ -165,7 +168,15 @@ export class VideoMuxer {
 			throw new Error("Muxer not initialized");
 		}
 
-		await this.output.finalize();
+		try {
+			await this.output.finalize();
+		} catch (error) {
+			// Finalization failed: release the stream now (instead of waiting for
+			// the unawaited destroy()→abortStream) so the multi-GB temp is
+			// deleted promptly and the streamId ownership is released.
+			await this.abortStream();
+			throw error;
+		}
 
 		if (this.mode === "stream") {
 			const sink = this.streamSink;

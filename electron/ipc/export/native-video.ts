@@ -8,6 +8,7 @@ import type { Readable, Writable } from "node:stream";
 import { promisify } from "node:util";
 import type { WebContents } from "electron";
 import { app, powerSaveBlocker } from "electron";
+import { isOwnedExportPath, releaseOwnedExportPath } from "../export/exportStream";
 import { getFfmpegBinaryPath, getFfprobeBinaryPath } from "../ffmpeg/binary";
 import type {
 	NativeExportEncodingMode,
@@ -21,6 +22,8 @@ import type {
 import {
 	buildEditedTrackSourceAudioFilter,
 	buildNativeConcatArgs,
+	buildNativeCpuOverlayStaticLayoutArgs,
+	buildNativeCpuPrecompositedStaticLayoutArgs,
 	buildNativeCudaOverlayStaticLayoutArgs,
 	buildNativeCudaScaleCpuPadStaticLayoutArgs,
 	buildNativePrecompositedStaticLayoutArgs,
@@ -33,6 +36,7 @@ import {
 	getNativeVideoInputByteSize,
 	getPreferredNativeVideoEncoders,
 	isNativeCudaOutOfMemory,
+	isNativeStaticLayoutCudaCapable,
 	parseAvailableFfmpegEncoders,
 } from "../nativeVideoExport";
 import { cachedNativeVideoEncoder, setCachedNativeVideoEncoder } from "../state";
@@ -1209,6 +1213,7 @@ async function runFfmpegWithMetrics(
 	args: string[],
 	timeoutMs: number,
 	session?: NativeStaticLayoutExportSession,
+	onProgressSeconds?: (seconds: number) => void,
 ): Promise<{
 	success: boolean;
 	elapsedMs: number;
@@ -1228,6 +1233,7 @@ async function runFfmpegWithMetrics(
 			}
 		}
 		let stderr = "";
+		let stderrLineBuffer = "";
 		let settled = false;
 		const timeout = setTimeout(() => {
 			if (settled) return;
@@ -1239,7 +1245,20 @@ async function runFfmpegWithMetrics(
 		}, timeoutMs);
 
 		child.stderr.on("data", (chunk: Buffer) => {
-			stderr += chunk.toString();
+			const text = chunk.toString();
+			stderr += text;
+			if (onProgressSeconds) {
+				// `-progress pipe:2` key=value lines share the stderr stream.
+				stderrLineBuffer += text;
+				const lines = stderrLineBuffer.split(/\r?\n/);
+				stderrLineBuffer = lines.pop() ?? "";
+				for (const line of lines) {
+					const seconds = parseFfmpegProgressLineSeconds(line);
+					if (seconds !== null) {
+						onProgressSeconds(seconds);
+					}
+				}
+			}
 		});
 		child.once("error", (error) => {
 			if (settled) return;
@@ -3258,12 +3277,26 @@ export async function exportNativeStaticLayoutVideo(
 	try {
 		nativeStaticLayoutExportSessions.set(sessionId, session);
 		await fs.mkdir(chunkDirectory, { recursive: true });
-		const sourceInput = await prepareNativeStaticLayoutSourceInput(
-			ffmpegPath,
-			options,
-			path.join(chunkDirectory, "source-proxy.mp4"),
-			session,
+		// The CUDA static-layout routes require both h264_nvenc and NVDEC; probe
+		// once so machines without NVIDIA skip straight to the CPU route instead
+		// of burning a full-length source proxy encode on doomed CUDA attempts.
+		const hasNativeStaticLayoutCuda = isNativeStaticLayoutCudaCapable(
+			await getAvailableNativeVideoEncoders(ffmpegPath),
 		);
+		const sourceInput = hasNativeStaticLayoutCuda
+			? await prepareNativeStaticLayoutSourceInput(
+					ffmpegPath,
+					options,
+					path.join(chunkDirectory, "source-proxy.mp4"),
+					session,
+				)
+			: {
+					inputPath: options.inputPath,
+					elapsedMs: 0,
+					sourceCodec: undefined as string | undefined,
+					proxyCodec: undefined as string | undefined,
+					proxyCreated: false,
+				};
 		if (sourceInput.elapsedMs > 0) {
 			metrics.staticAssetExecMs = (metrics.staticAssetExecMs ?? 0) + sourceInput.elapsedMs;
 		}
@@ -3313,10 +3346,35 @@ export async function exportNativeStaticLayoutVideo(
 			borderRadius: options.borderRadius,
 			shadowIntensity: options.shadowIntensity,
 			durationSec: options.durationSec,
+			progress: Boolean(onProgress),
 		};
 		const usePrecompositedLayout = shouldUsePrecompositedStaticLayout(options);
 		let didRenderVideo = false;
 		let didMuxAudioInline = false;
+		const totalRenderFrames = Math.max(1, Math.ceil(options.durationSec * options.frameRate));
+		// Maps an ffmpeg `-progress` out_time to an overall export progress
+		// sample; `startSec`/`spanSec` locate the current pass inside chunked
+		// renders. Render passes report up to 95%; the audio mux owns 97.25+.
+		const makeRenderProgressHandler =
+			(backend: NativeStaticLayoutBackend, startSec: number, spanSec: number) =>
+			(seconds: number) => {
+				if (!onProgress) {
+					return;
+				}
+				const span = Math.max(spanSec, 0.001);
+				const overall = Math.min(
+					0.95,
+					(startSec + Math.max(0, Math.min(span, seconds))) /
+						Math.max(options.durationSec, 0.001),
+				);
+				onProgress({
+					sessionId,
+					backend,
+					currentFrame: Math.floor(overall * totalRenderFrames),
+					totalFrames: totalRenderFrames,
+					percentage: overall * 100,
+				});
+			};
 
 		if (options.experimentalWindowsGpuCompositor && process.platform === "win32") {
 			try {
@@ -3647,13 +3705,26 @@ export async function exportNativeStaticLayoutVideo(
 
 			const fullResult = await runFfmpegWithMetrics(
 				ffmpegPath,
-				buildNativePrecompositedStaticLayoutArgs({
-					...fullConfig,
-					staticBackgroundPath,
-					maskPath,
-				}),
-				15 * 60 * 1000,
+				hasNativeStaticLayoutCuda
+					? buildNativePrecompositedStaticLayoutArgs({
+							...fullConfig,
+							staticBackgroundPath,
+							maskPath,
+						})
+					: buildNativeCpuPrecompositedStaticLayoutArgs({
+							...fullConfig,
+							staticBackgroundPath,
+							maskPath,
+						}),
+				// Duration-scaled: a weak CPU can encode far below realtime, so a
+				// flat 15-minute cap would kill long healthy renders.
+				Math.max(15 * 60 * 1000, options.durationSec * 2000),
 				session,
+				makeRenderProgressHandler(
+					hasNativeStaticLayoutCuda ? "cuda-static-composite" : "ffmpeg-static-layout",
+					0,
+					options.durationSec,
+				),
 			);
 			metrics.chunkExecMs += fullResult.elapsedMs;
 			if (!fullResult.success) {
@@ -3667,39 +3738,27 @@ export async function exportNativeStaticLayoutVideo(
 				index: 0,
 				startSec: 0,
 				durationSec: options.durationSec,
-				backend: "cuda-static-composite",
+				backend: hasNativeStaticLayoutCuda
+					? "cuda-static-composite"
+					: "ffmpeg-static-layout",
 				elapsedMs: fullResult.elapsedMs,
 				outputBytes: outputStat.size,
 			});
 		} else if (!didRenderVideo) {
-			const primaryResult = await runFfmpegWithMetrics(
-				ffmpegPath,
-				buildNativeCudaOverlayStaticLayoutArgs(fullConfig),
-				15 * 60 * 1000,
-				session,
-			);
-			let fullResult = primaryResult;
-			let fullBackend: NativeStaticLayoutBackend = "cuda-overlay";
-			let fallbackReason: string | undefined;
-			if (!primaryResult.success) {
-				fullBackend = "cuda-scale-cpu-pad";
-				fallbackReason = isNativeCudaOutOfMemory(primaryResult.stderr)
-					? "cuda-oom"
-					: "cuda-overlay-failed";
-				metrics.fallbackChunkCount++;
-				fullResult = await runFfmpegWithMetrics(
+			const runCpuStaticLayoutFullRun = async () => {
+				// Duration-scaled timeout: CPU libx264 can run below realtime on weak
+				// machines, unlike the bounded GPU compositor paths.
+				const cpuResult = await runFfmpegWithMetrics(
 					ffmpegPath,
-					buildNativeCudaScaleCpuPadStaticLayoutArgs(fullConfig),
-					15 * 60 * 1000,
+					buildNativeCpuOverlayStaticLayoutArgs(fullConfig),
+					Math.max(15 * 60 * 1000, options.durationSec * 2000),
 					session,
+					makeRenderProgressHandler("ffmpeg-static-layout", 0, options.durationSec),
 				);
-			}
-			metrics.chunkExecMs += fullResult.elapsedMs;
-			if (fullResult !== primaryResult) {
-				metrics.chunkExecMs += primaryResult.elapsedMs;
-			}
-
-			if (fullResult.success) {
+				metrics.chunkExecMs += cpuResult.elapsedMs;
+				if (!cpuResult.success) {
+					throw new Error(getFfmpegFailureMessage(cpuResult));
+				}
 				const outputStat = await fs.stat(videoOnlyPath);
 				metrics.chunkCount = 1;
 				metrics.chunkDurationSec = options.durationSec;
@@ -3707,94 +3766,173 @@ export async function exportNativeStaticLayoutVideo(
 					index: 0,
 					startSec: 0,
 					durationSec: options.durationSec,
-					backend: fullBackend,
-					elapsedMs: fullResult.elapsedMs,
+					backend: "ffmpeg-static-layout",
+					elapsedMs: cpuResult.elapsedMs,
 					outputBytes: outputStat.size,
-					fallbackReason,
 				});
-			} else if (isNativeCudaOutOfMemory(fullResult.stderr)) {
-				const concatLines: string[] = [];
+			};
 
-				for (const chunk of chunks) {
-					if (session.terminating) {
-						throw new Error("Native static layout export was cancelled");
-					}
-
-					const outputPath = getStaticLayoutChunkOutputPath(chunkDirectory, chunk.index);
-					const baseConfig: NativeStaticLayoutExportArgsConfig = {
-						inputPath: options.inputPath,
-						outputPath,
-						width: options.width,
-						height: options.height,
-						frameRate: options.frameRate,
-						bitrate: options.bitrate,
-						encodingMode: options.encodingMode,
-						contentWidth: options.contentWidth,
-						contentHeight: options.contentHeight,
-						offsetX: options.offsetX,
-						offsetY: options.offsetY,
-						backgroundColor: options.backgroundColor,
-						startSec: chunk.startSec,
-						durationSec: chunk.durationSec,
-					};
-					const primary = await runFfmpegWithMetrics(
+			if (!hasNativeStaticLayoutCuda) {
+				await runCpuStaticLayoutFullRun();
+			} else {
+				try {
+					const fullRunTimeoutMs = Math.max(15 * 60 * 1000, options.durationSec * 2000);
+					const primaryResult = await runFfmpegWithMetrics(
 						ffmpegPath,
-						buildNativeCudaOverlayStaticLayoutArgs(baseConfig),
-						15 * 60 * 1000,
+						buildNativeCudaOverlayStaticLayoutArgs(fullConfig),
+						fullRunTimeoutMs,
 						session,
+						makeRenderProgressHandler("cuda-overlay", 0, options.durationSec),
 					);
-					let backend: NativeStaticLayoutBackend = "cuda-overlay";
-					let result = primary;
+					let fullResult = primaryResult;
+					let fullBackend: NativeStaticLayoutBackend = "cuda-overlay";
 					let fallbackReason: string | undefined;
-
-					if (!primary.success && isNativeCudaOutOfMemory(primary.stderr)) {
-						backend = "cuda-scale-cpu-pad";
-						fallbackReason = "cuda-oom";
+					if (!primaryResult.success) {
+						fullBackend = "cuda-scale-cpu-pad";
+						fallbackReason = isNativeCudaOutOfMemory(primaryResult.stderr)
+							? "cuda-oom"
+							: "cuda-overlay-failed";
 						metrics.fallbackChunkCount++;
-						result = await runFfmpegWithMetrics(
+						fullResult = await runFfmpegWithMetrics(
 							ffmpegPath,
-							buildNativeCudaScaleCpuPadStaticLayoutArgs(baseConfig),
-							15 * 60 * 1000,
+							buildNativeCudaScaleCpuPadStaticLayoutArgs(fullConfig),
+							fullRunTimeoutMs,
 							session,
+							makeRenderProgressHandler("cuda-scale-cpu-pad", 0, options.durationSec),
 						);
 					}
-
-					metrics.chunkExecMs += result.elapsedMs;
-					if (!result.success) {
-						throw new Error(getFfmpegFailureMessage(result));
+					metrics.chunkExecMs += fullResult.elapsedMs;
+					if (fullResult !== primaryResult) {
+						metrics.chunkExecMs += primaryResult.elapsedMs;
 					}
 
-					const outputStat = await fs.stat(outputPath);
-					metrics.chunks.push({
-						index: chunk.index,
-						startSec: chunk.startSec,
-						durationSec: chunk.durationSec,
-						backend,
-						elapsedMs: result.elapsedMs,
-						outputBytes: outputStat.size,
-						fallbackReason,
-					});
-					concatLines.push(toConcatFileLine(outputPath));
-				}
+					if (fullResult.success) {
+						const outputStat = await fs.stat(videoOnlyPath);
+						metrics.chunkCount = 1;
+						metrics.chunkDurationSec = options.durationSec;
+						metrics.chunks.push({
+							index: 0,
+							startSec: 0,
+							durationSec: options.durationSec,
+							backend: fullBackend,
+							elapsedMs: fullResult.elapsedMs,
+							outputBytes: outputStat.size,
+							fallbackReason,
+						});
+					} else if (isNativeCudaOutOfMemory(fullResult.stderr)) {
+						const concatLines: string[] = [];
 
-				metrics.chunkCount = chunks.length;
-				await fs.writeFile(concatListPath, `${concatLines.join("\n")}\n`, "utf8");
-				if (session.terminating) {
-					throw new Error("Native static layout export was cancelled");
+						for (const chunk of chunks) {
+							if (session.terminating) {
+								throw new Error("Native static layout export was cancelled");
+							}
+
+							const outputPath = getStaticLayoutChunkOutputPath(
+								chunkDirectory,
+								chunk.index,
+							);
+							const baseConfig: NativeStaticLayoutExportArgsConfig = {
+								inputPath: options.inputPath,
+								outputPath,
+								width: options.width,
+								height: options.height,
+								frameRate: options.frameRate,
+								bitrate: options.bitrate,
+								encodingMode: options.encodingMode,
+								contentWidth: options.contentWidth,
+								contentHeight: options.contentHeight,
+								offsetX: options.offsetX,
+								offsetY: options.offsetY,
+								backgroundColor: options.backgroundColor,
+								startSec: chunk.startSec,
+								durationSec: chunk.durationSec,
+								progress: Boolean(onProgress),
+							};
+							const primary = await runFfmpegWithMetrics(
+								ffmpegPath,
+								buildNativeCudaOverlayStaticLayoutArgs(baseConfig),
+								15 * 60 * 1000,
+								session,
+								makeRenderProgressHandler(
+									"cuda-overlay",
+									chunk.startSec,
+									chunk.durationSec,
+								),
+							);
+							let backend: NativeStaticLayoutBackend = "cuda-overlay";
+							let result = primary;
+							let chunkFallbackReason: string | undefined;
+
+							if (!primary.success && isNativeCudaOutOfMemory(primary.stderr)) {
+								backend = "cuda-scale-cpu-pad";
+								chunkFallbackReason = "cuda-oom";
+								metrics.fallbackChunkCount++;
+								result = await runFfmpegWithMetrics(
+									ffmpegPath,
+									buildNativeCudaScaleCpuPadStaticLayoutArgs(baseConfig),
+									15 * 60 * 1000,
+									session,
+									makeRenderProgressHandler(
+										"cuda-scale-cpu-pad",
+										chunk.startSec,
+										chunk.durationSec,
+									),
+								);
+							}
+
+							metrics.chunkExecMs += result.elapsedMs;
+							if (!result.success) {
+								throw new Error(getFfmpegFailureMessage(result));
+							}
+
+							const outputStat = await fs.stat(outputPath);
+							metrics.chunks.push({
+								index: chunk.index,
+								startSec: chunk.startSec,
+								durationSec: chunk.durationSec,
+								backend,
+								elapsedMs: result.elapsedMs,
+								outputBytes: outputStat.size,
+								fallbackReason: chunkFallbackReason,
+							});
+							concatLines.push(toConcatFileLine(outputPath));
+						}
+
+						metrics.chunkCount = chunks.length;
+						await fs.writeFile(concatListPath, `${concatLines.join("\n")}\n`, "utf8");
+						if (session.terminating) {
+							throw new Error("Native static layout export was cancelled");
+						}
+						const concatStartedAt = getNowMs();
+						const concatResult = await runFfmpegWithMetrics(
+							ffmpegPath,
+							buildNativeConcatArgs({
+								listPath: concatListPath,
+								outputPath: videoOnlyPath,
+							}),
+							// Copy-mode concat is I/O-bound; scale with duration.
+							Math.max(15 * 60 * 1000, options.durationSec * 1000),
+							session,
+						);
+						metrics.concatExecMs = getNowMs() - concatStartedAt;
+						if (!concatResult.success) {
+							throw new Error(getFfmpegFailureMessage(concatResult));
+						}
+					} else {
+						throw new Error(getFfmpegFailureMessage(fullResult));
+					}
+				} catch (error) {
+					if (session.terminating || didRenderVideo) {
+						throw error;
+					}
+					metrics.fallbackChunkCount++;
+					console.warn(
+						"[native-static-layout-export] CUDA static-layout chain failed; falling back to CPU static layout:",
+						error,
+					);
+					await removeTemporaryExportFile(videoOnlyPath);
+					await runCpuStaticLayoutFullRun();
 				}
-				const concatStartedAt = getNowMs();
-				const concatResult = await runFfmpegWithMetrics(
-					ffmpegPath,
-					buildNativeConcatArgs({ listPath: concatListPath, outputPath: videoOnlyPath }),
-					15 * 60 * 1000,
-					session,
-				);
-				metrics.concatExecMs = getNowMs() - concatStartedAt;
-				if (!concatResult.success) {
-					throw new Error(getFfmpegFailureMessage(concatResult));
-				}
-			} else {
-				throw new Error(getFfmpegFailureMessage(fullResult));
 			}
 		}
 
@@ -4105,24 +4243,45 @@ export async function muxNativeVideoExportAudio(
 	const metrics: NativeVideoAudioMuxMetrics = {};
 	const tempArtifacts: string[] = [];
 	let audioInputPath = options.audioSourcePath ?? null;
+	let streamedEditedAudioPath: string | null = null;
 	const useEditedTrackFiltergraph =
 		audioMode === "edited-track" && options.editedTrackStrategy === "filtergraph-fast-path";
 
 	if (audioMode === "edited-track" && !useEditedTrackFiltergraph) {
-		if (!options.editedAudioData) {
+		// Preferred path: the renderer already streamed the rendered WAV into an
+		// app-managed export temp, so large edited audio never crosses the IPC
+		// boundary as an ArrayBuffer.
+		const editedAudioPath =
+			typeof options.editedAudioPath === "string" && options.editedAudioPath.trim().length > 0
+				? options.editedAudioPath
+				: null;
+		if (editedAudioPath) {
+			const resolvedEditedAudioPath = path.resolve(editedAudioPath);
+			if (!isOwnedExportPath(resolvedEditedAudioPath)) {
+				throw new Error("Edited audio path is not an app-managed export temp");
+			}
+			streamedEditedAudioPath = resolvedEditedAudioPath;
+			audioInputPath = resolvedEditedAudioPath;
+			try {
+				const editedAudioStat = await fs.stat(resolvedEditedAudioPath);
+				metrics.tempEditedAudioBytes = editedAudioStat.size;
+			} catch {
+				// Size is metric-only; a missing file surfaces from the mux itself.
+			}
+		} else if (options.editedAudioData) {
+			const extension = getEditedAudioExtension(options.editedAudioMimeType);
+			audioInputPath = path.join(
+				app.getPath("temp"),
+				`morec-export-audio-${Date.now()}-${Math.random().toString(36).slice(2, 8)}${extension}`,
+			);
+			const tempAudioWriteStartedAt = getNowMs();
+			await fs.writeFile(audioInputPath, Buffer.from(options.editedAudioData));
+			metrics.tempEditedAudioWriteMs = getNowMs() - tempAudioWriteStartedAt;
+			metrics.tempEditedAudioBytes = options.editedAudioData.byteLength;
+			tempArtifacts.push(audioInputPath);
+		} else {
 			throw new Error("Edited audio data is missing for native export");
 		}
-
-		const extension = getEditedAudioExtension(options.editedAudioMimeType);
-		audioInputPath = path.join(
-			app.getPath("temp"),
-			`morec-export-audio-${Date.now()}-${Math.random().toString(36).slice(2, 8)}${extension}`,
-		);
-		const tempAudioWriteStartedAt = getNowMs();
-		await fs.writeFile(audioInputPath, Buffer.from(options.editedAudioData));
-		metrics.tempEditedAudioWriteMs = getNowMs() - tempAudioWriteStartedAt;
-		metrics.tempEditedAudioBytes = options.editedAudioData.byteLength;
-		tempArtifacts.push(audioInputPath);
 	}
 
 	if (!audioInputPath) {
@@ -4147,7 +4306,16 @@ export async function muxNativeVideoExportAudio(
 
 	try {
 		const ffmpegExecStartedAt = getNowMs();
-		await runFfmpegAudioMux(ffmpegPath, args, 15 * 60 * 1000, options, onProgress, session);
+		await runFfmpegAudioMux(
+			ffmpegPath,
+			args,
+			// Copy/encode mux scales with output duration; flat 15 minutes could
+			// kill a legitimate huge-file mux on slow I/O.
+			Math.max(15 * 60 * 1000, (options.outputDurationSec ?? 0) * 1000),
+			options,
+			onProgress,
+			session,
+		);
 		metrics.ffmpegExecMs = getNowMs() - ffmpegExecStartedAt;
 		console.info("[native-video-export] Audio mux completed", {
 			ffmpegExecMs: metrics.ffmpegExecMs,
@@ -4164,6 +4332,10 @@ export async function muxNativeVideoExportAudio(
 		await Promise.allSettled(
 			tempArtifacts.map((artifactPath) => removeTemporaryExportFile(artifactPath)),
 		);
+		if (streamedEditedAudioPath) {
+			await removeTemporaryExportFile(streamedEditedAudioPath);
+			releaseOwnedExportPath(streamedEditedAudioPath);
+		}
 	}
 }
 

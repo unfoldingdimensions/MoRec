@@ -50,7 +50,12 @@ import {
 	DEFAULT_WALLPAPER_RELATIVE_PATH,
 	isVideoWallpaperSource,
 } from "@/lib/wallpapers";
-import { AudioProcessor, isAacAudioEncodingSupported } from "./audioEncoder";
+import {
+	AudioProcessor,
+	type EditedAudioFinishFields,
+	isAacAudioEncodingSupported,
+	resolveEditedAudioFinishFields,
+} from "./audioEncoder";
 import {
 	normalizeLightningRuntimePlatform,
 	shouldPreferNativeAutoBackend,
@@ -539,6 +544,11 @@ export class ModernVideoExporter {
 				);
 				this.effectiveDurationSec = effectiveDuration;
 				const totalFrames = Math.ceil(effectiveDuration * this.config.frameRate);
+				if (!Number.isFinite(effectiveDuration) || totalFrames <= 0) {
+					throw new Error(
+						"Recording has no usable video duration; produced 0 frames to export",
+					);
+				}
 
 				if (
 					shouldTryNativeStaticLayout &&
@@ -738,6 +748,7 @@ export class ModernVideoExporter {
 					return {
 						success: false,
 						error: "Export cancelled",
+						cancelled: true,
 						metrics: this.buildExportMetrics(),
 					};
 				}
@@ -798,12 +809,14 @@ export class ModernVideoExporter {
 					throw this.encoderError;
 				}
 
+				let audioProcessingWroteAudio = nativeAudioPlan.audioMode === "none";
 				if (
 					nativeAudioPlan.audioMode !== "none" &&
 					!shouldUseFfmpegAudioFallback &&
 					!this.cancelled
 				) {
 					const demuxer = this.streamingDecoder.getDemuxer();
+					const mediaReadEndSec = this.streamingDecoder.getMediaReadEndSec();
 					if (
 						demuxer ||
 						(this.config.audioRegions ?? []).length > 0 ||
@@ -815,14 +828,14 @@ export class ModernVideoExporter {
 						});
 						this.reportFinalizingProgress(totalFrames, 99);
 						await this.measureFinalizationStage("audioProcessingMs", async () => {
-							await this.awaitWithFinalizationTimeout(
+							audioProcessingWroteAudio = await this.awaitWithFinalizationTimeout(
 								this.audioProcessor!.process(
 									demuxer,
 									this.muxer!,
 									this.config.videoUrl,
 									this.config.trimRegions,
 									this.config.speedRegions,
-									undefined,
+									mediaReadEndSec,
 									this.config.audioRegions,
 									this.config.sourceAudioFallbackPaths,
 									this.config.sourceAudioFallbackStartDelayMsByPath,
@@ -850,11 +863,13 @@ export class ModernVideoExporter {
 						),
 				);
 
-				if (shouldUseFfmpegAudioFallback) {
+				if (shouldUseFfmpegAudioFallback || !audioProcessingWroteAudio) {
 					console.warn(
-						shouldUsePitchPreservingFfmpegAudio
-							? "[VideoExporter] Using FFmpeg audio muxing for pitch-preserving speed edits."
-							: "[VideoExporter] Browser AAC encoding is unavailable; falling back to FFmpeg audio muxing.",
+						shouldUseFfmpegAudioFallback
+							? shouldUsePitchPreservingFfmpegAudio
+								? "[VideoExporter] Using FFmpeg audio muxing for pitch-preserving speed edits."
+								: "[VideoExporter] Browser AAC encoding is unavailable; falling back to FFmpeg audio muxing."
+							: "[VideoExporter] Renderer audio processing produced no audio; remuxing with FFmpeg audio instead of shipping a silent track.",
 					);
 					const muxedResult = await this.finalizeExportWithFfmpegAudio(
 						muxerResult,
@@ -908,6 +923,7 @@ export class ModernVideoExporter {
 						return {
 							success: false,
 							error: "Export cancelled",
+							cancelled: true,
 							metrics: this.buildExportMetrics(),
 						};
 					}
@@ -1573,6 +1589,16 @@ export class ModernVideoExporter {
 		if (this.hasUnsupportedNativeStaticLayoutWebcamShape()) {
 			reasons.push("unsupported-rectangular-webcam-overlay");
 		}
+		// The static-layout compositor places the webcam once at a fixed size,
+		// so a zoom-reactive webcam combined with zoom regions would render at
+		// the base size throughout. Let the WebCodecs renderer handle it.
+		if (
+			this.config.webcam?.enabled &&
+			(this.config.webcam.reactToZoom ?? true) &&
+			(this.config.zoomRegions ?? []).length > 0
+		) {
+			reasons.push("unsupported-webcam-zoom-reaction");
+		}
 
 		if (this.config.frame) {
 			reasons.push("unsupported-frame-overlay");
@@ -1952,10 +1978,10 @@ export class ModernVideoExporter {
 		description: string,
 		onProgress: (progress: number) => void,
 		sourceAudioFallbackPaths = this.config.sourceAudioFallbackPaths,
-	) {
+	): Promise<EditedAudioFinishFields> {
 		this.audioProcessor = new AudioProcessor();
 		this.audioProcessor.setOnProgress(onProgress);
-		const audioBlob = await this.measureFinalizationStage("editedAudioRenderMs", async () =>
+		const rendered = await this.measureFinalizationStage("editedAudioRenderMs", async () =>
 			this.awaitWithFinalizationTimeout(
 				this.audioProcessor!.renderEditedAudioTrack(
 					this.config.videoUrl,
@@ -1973,10 +1999,7 @@ export class ModernVideoExporter {
 			),
 		);
 
-		return {
-			editedAudioData: await audioBlob.arrayBuffer(),
-			editedAudioMimeType: audioBlob.type || null,
-		};
+		return resolveEditedAudioFinishFields(rendered);
 	}
 
 	private async getNativeStaticLayoutAudioOptions(
@@ -2077,7 +2100,11 @@ export class ModernVideoExporter {
 		  }>
 		| undefined {
 		const telemetry = this.config.cursorTelemetry ?? [];
-		if (this.config.showCursor !== true || telemetry.length === 0) {
+		// Note: computed regardless of showCursor — the cursor-follow camera
+		// needs the projected telemetry even when the cursor overlay is hidden.
+		// Drawing (overlay + atlas) is gated separately in
+		// tryExportNativeStaticLayout.
+		if (telemetry.length === 0) {
 			return undefined;
 		}
 
@@ -2132,7 +2159,11 @@ export class ModernVideoExporter {
 		const springScale = createSpringState(1);
 		const springX = createSpringState(0);
 		const springY = createSpringState(0);
-		const zoomSpringConfig = getZoomSpringConfig(this.config.zoomSmoothness);
+		const zoomSpringConfig = getZoomSpringConfig(this.config.zoomSmoothness, {
+			stiffnessMultiplier: this.config.cameraSpringStiffnessMultiplier,
+			dampingMultiplier: this.config.cameraSpringDampingMultiplier,
+			massMultiplier: this.config.cameraSpringMassMultiplier,
+		});
 		const frameDurationMs = 1000 / Math.max(1, this.config.frameRate);
 		const samples: NativeStaticLayoutZoomSample[] = [];
 		let lastContentTimeMs: number | null = null;
@@ -2144,6 +2175,8 @@ export class ModernVideoExporter {
 			const timeMs = frameIndex * frameDurationMs;
 			const { region, strength, blendedScale } = findDominantRegion(zoomRegions, timeMs, {
 				connectZooms: this.config.connectZooms,
+				zoomInDurationMs: this.config.zoomInDurationMs,
+				zoomOutDurationMs: this.config.zoomOutDurationMs,
 			});
 
 			let targetScale = 1;
@@ -2339,16 +2372,17 @@ export class ModernVideoExporter {
 			await this.cleanupNativeStaticLayoutBackground(background);
 			return null;
 		}
-		const cursorAtlas =
-			cursorTelemetry && cursorTelemetry.length > 0
-				? await buildNativeCursorAtlas(this.config.cursorStyle ?? "tahoe").catch(
-						(error) => {
-							console.warn("[VideoExporter] Native cursor atlas unavailable", error);
-							return null;
-						},
-					)
-				: null;
-		if (cursorTelemetry && cursorTelemetry.length > 0 && !cursorAtlas) {
+		// The atlas/overlay is only needed when the cursor is actually drawn;
+		// cursor-follow zoom uses the projected telemetry either way (M12).
+		const drawCursorOverlay =
+			this.config.showCursor === true && Boolean(cursorTelemetry?.length);
+		const cursorAtlas = drawCursorOverlay
+			? await buildNativeCursorAtlas(this.config.cursorStyle ?? "tahoe").catch((error) => {
+					console.warn("[VideoExporter] Native cursor atlas unavailable", error);
+					return null;
+				})
+			: null;
+		if (drawCursorOverlay && !cursorAtlas) {
 			this.nativeStaticLayoutSkipReason = "cursor-atlas-unavailable";
 			this.nativeStaticLayoutSkipReasons = [this.nativeStaticLayoutSkipReason];
 			await this.cleanupNativeStaticLayoutBackground(background);
@@ -2495,10 +2529,12 @@ export class ModernVideoExporter {
 				webcamShadowIntensity: webcamOverlay?.shadowIntensity,
 				webcamMirror: webcamOverlay?.mirror,
 				webcamTimeOffsetMs: webcamOverlay?.timeOffsetMs,
-				cursorTelemetry,
-				cursorSize: this.getNativeStaticLayoutCursorSize(contentWidth),
-				cursorAtlasPngDataUrl: cursorAtlas?.dataUrl ?? null,
-				cursorAtlasEntries: cursorAtlas?.entries,
+				cursorTelemetry: drawCursorOverlay ? cursorTelemetry : undefined,
+				cursorSize: drawCursorOverlay
+					? this.getNativeStaticLayoutCursorSize(contentWidth)
+					: undefined,
+				cursorAtlasPngDataUrl: drawCursorOverlay ? (cursorAtlas?.dataUrl ?? null) : null,
+				cursorAtlasEntries: drawCursorOverlay ? cursorAtlas?.entries : undefined,
 				zoomTelemetry,
 				timelineSegments,
 				chunkDurationSec: STATIC_LAYOUT_CHUNK_DURATION_SEC,
@@ -2514,6 +2550,7 @@ export class ModernVideoExporter {
 				return {
 					success: false,
 					error: "Export cancelled",
+					cancelled: true,
 					metrics: this.buildExportMetrics(),
 				};
 			}
@@ -2565,6 +2602,7 @@ export class ModernVideoExporter {
 				return {
 					success: false,
 					error: "Export cancelled",
+					cancelled: true,
 					metrics: this.buildExportMetrics(),
 				};
 			}
@@ -2732,7 +2770,9 @@ export class ModernVideoExporter {
 			timestamp,
 			duration: frameDuration,
 		});
-		this.nativeH264Encoder.encode(frame, { keyFrame: frameIndex % 300 === 0 });
+		this.nativeH264Encoder.encode(frame, {
+			keyFrame: frameIndex % Math.max(1, Math.round(this.config.frameRate * 2)) === 0,
+		});
 		frame.close();
 	}
 
@@ -2744,20 +2784,17 @@ export class ModernVideoExporter {
 			};
 		}
 
-		let editedAudioBuffer: ArrayBuffer | undefined;
-		let editedAudioMimeType: string | null = null;
+		let editedAudio: EditedAudioFinishFields = {};
 
 		if (
 			audioPlan.audioMode === "edited-track" &&
 			audioPlan.strategy === "offline-render-fallback"
 		) {
-			const renderedAudio = await this.renderEditedAudioForNativeMux(
+			editedAudio = await this.renderEditedAudioForNativeMux(
 				`${NATIVE_EXPORT_ENGINE_NAME} edited audio rendering`,
 				(progress) => this.reportFinalizingProgress(this.processedFrameCount, 99, progress),
 				audioPlan.sourceAudioFallbackPaths,
 			);
-			editedAudioBuffer = renderedAudio.editedAudioData;
-			editedAudioMimeType = renderedAudio.editedAudioMimeType;
 		}
 
 		const sessionId = this.nativeExportSessionId;
@@ -2798,8 +2835,7 @@ export class ModernVideoExporter {
 						audioPlan.strategy === "filtergraph-fast-path"
 							? audioPlan.audioSourceSampleRate
 							: undefined,
-					editedAudioData: editedAudioBuffer,
-					editedAudioMimeType,
+					...editedAudio,
 				}),
 				`${NATIVE_EXPORT_ENGINE_NAME} export finalization`,
 				audioPlan.audioMode === "none" ? "default" : "audio",
@@ -2842,20 +2878,17 @@ export class ModernVideoExporter {
 			};
 		}
 
-		let editedAudioBuffer: ArrayBuffer | undefined;
-		let editedAudioMimeType: string | null = null;
+		let editedAudio: EditedAudioFinishFields = {};
 
 		if (
 			audioPlan.audioMode === "edited-track" &&
 			audioPlan.strategy === "offline-render-fallback"
 		) {
-			const renderedAudio = await this.renderEditedAudioForNativeMux(
+			editedAudio = await this.renderEditedAudioForNativeMux(
 				"FFmpeg edited audio rendering",
 				(progress) => this.reportFinalizingProgress(this.processedFrameCount, 99, progress),
 				audioPlan.sourceAudioFallbackPaths,
 			);
-			editedAudioBuffer = renderedAudio.editedAudioData;
-			editedAudioMimeType = renderedAudio.editedAudioMimeType;
 		}
 
 		const muxOptions = {
@@ -2882,8 +2915,7 @@ export class ModernVideoExporter {
 					? audioPlan.audioSourceSampleRate
 					: undefined,
 			outputDurationSec: this.effectiveDurationSec,
-			editedAudioData: editedAudioBuffer,
-			editedAudioMimeType,
+			...editedAudio,
 		};
 
 		if (videoSource.mode === "stream") {

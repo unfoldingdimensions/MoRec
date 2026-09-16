@@ -20,7 +20,8 @@ const mocks = vi.hoisted(() => {
 		streamingDecoderCancel: vi.fn(),
 		streamingDecoderDecodeAll: vi.fn(async () => {}),
 		streamingDecoderGetDemuxer: vi.fn(() => null),
-		streamingDecoderGetEffectiveDuration: vi.fn(() => 0),
+		streamingDecoderGetEffectiveDuration: vi.fn(() => 1),
+		streamingDecoderGetMediaReadEndSec: vi.fn(() => undefined),
 		streamingDecoderLoadMetadata: vi.fn(async () => videoInfo),
 		frameRendererDestroy: vi.fn(),
 		frameRendererGetBackend: vi.fn(() => "webgl"),
@@ -31,8 +32,32 @@ const mocks = vi.hoisted(() => {
 			blob: new Blob([], { type: "video/mp4" }),
 		})),
 		muxerInitialize: vi.fn(async () => {}),
+		audioSetOnProgress: vi.fn(),
+		audioCancel: vi.fn(),
+		audioProcess: vi.fn(async () => false),
+		isAacAudioEncodingSupported: vi.fn(async () => true),
 	};
 });
+
+vi.mock("./audioEncoder", () => ({
+	AudioProcessor: vi.fn().mockImplementation(function () {
+		return {
+			setOnProgress: mocks.audioSetOnProgress,
+			cancel: mocks.audioCancel,
+			process: mocks.audioProcess,
+		};
+	}),
+	isAacAudioEncodingSupported: mocks.isAacAudioEncodingSupported,
+	resolveEditedAudioFinishFields: vi.fn(
+		async (result: { kind: string; blob?: Blob; tempPath?: string }) =>
+			result.kind === "temp-file"
+				? { editedAudioPath: result.tempPath, editedAudioMimeType: "audio/wav" }
+				: {
+						editedAudioData: await result.blob?.arrayBuffer(),
+						editedAudioMimeType: result.blob?.type || null,
+					},
+	),
+}));
 
 vi.mock("./streamingDecoder", () => ({
 	StreamingVideoDecoder: vi.fn().mockImplementation(function () {
@@ -42,6 +67,7 @@ vi.mock("./streamingDecoder", () => ({
 			destroy: mocks.streamingDecoderDestroy,
 			getDemuxer: mocks.streamingDecoderGetDemuxer,
 			getEffectiveDuration: mocks.streamingDecoderGetEffectiveDuration,
+			getMediaReadEndSec: mocks.streamingDecoderGetMediaReadEndSec,
 			loadMetadata: mocks.streamingDecoderLoadMetadata,
 		};
 	}),
@@ -178,6 +204,66 @@ describe("ModernVideoExporter native fallback routing", () => {
 		expect(tryExportNativeStaticLayout).not.toHaveBeenCalled();
 		expect(mocks.streamingDecoderLoadMetadata).toHaveBeenCalledTimes(1);
 		expect(finishNativeVideoExport).toHaveBeenCalledTimes(1);
+	}, 15_000);
+
+	it("remuxes with FFmpeg audio when renderer audio processing writes no audio", async () => {
+		const muxExportedVideoAudio = vi.fn(async () => ({
+			success: true,
+			tempPath: "C:\\temp\\morec-muxed.mp4",
+		}));
+		vi.stubGlobal("window", {
+			electronAPI: {
+				muxExportedVideoAudio,
+			},
+		});
+
+		const exporter = new ModernVideoExporter({
+			videoUrl: "file:///recording.mp4",
+			width: 1920,
+			height: 1080,
+			frameRate: 30,
+			bitrate: 8_000_000,
+			wallpaper: "#101010",
+			padding: 0,
+			borderRadius: 0,
+			backgroundBlur: 0,
+			shadowIntensity: 0,
+			showShadow: false,
+			cropRegion: { x: 0, y: 0, width: 1, height: 1 },
+			backendPreference: "breeze",
+			sourceAudioFallbackPaths: ["C:/audio/system.m4a"],
+		} as never) as unknown as {
+			export: () => Promise<{
+				success: boolean;
+				blob?: Blob;
+				tempFilePath?: string;
+				error?: string;
+			}>;
+			initializeEncoder: () => Promise<unknown>;
+			loadNativeStaticLayoutVideoInfo: () => Promise<unknown>;
+			tryExportNativeStaticLayout: () => Promise<unknown>;
+			tryStartNativeVideoExport: () => Promise<boolean>;
+		};
+
+		vi.spyOn(exporter, "loadNativeStaticLayoutVideoInfo").mockResolvedValue(null);
+		vi.spyOn(exporter, "tryExportNativeStaticLayout").mockResolvedValue(null);
+		vi.spyOn(exporter, "tryStartNativeVideoExport").mockResolvedValue(false);
+		vi.spyOn(exporter, "initializeEncoder").mockResolvedValue({
+			codec: "avc1.640034",
+			hardwareAcceleration: "prefer-hardware",
+		});
+
+		const result = await exporter.export();
+
+		expect(result.success).toBe(true);
+		expect(result.tempFilePath).toBe("C:\\temp\\morec-muxed.mp4");
+		expect(mocks.audioProcess).toHaveBeenCalledTimes(1);
+		expect(muxExportedVideoAudio).toHaveBeenCalledTimes(1);
+		const [, muxOptions] = muxExportedVideoAudio.mock.calls[0] as [
+			ArrayBuffer,
+			{ audioMode: string },
+		];
+		expect(muxOptions.audioMode).toBe("copy-source");
 	}, 15_000);
 
 	it("tries Windows auto static-layout first when NVIDIA CUDA is opted in", async () => {
