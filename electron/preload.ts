@@ -50,6 +50,7 @@ type NativeStaticLayoutChunkMetric = {
 		| "cuda-overlay"
 		| "cuda-scale-cpu-pad"
 		| "cuda-static-composite"
+		| "ffmpeg-static-layout"
 		| "nvidia-cuda-compositor"
 		| "windows-d3d11-compositor";
 	elapsedMs: number;

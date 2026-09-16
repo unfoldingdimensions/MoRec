@@ -6,12 +6,6 @@ import type { Readable, Writable } from "node:stream";
 import type { SaveDialogOptions } from "electron";
 import { app, BrowserWindow, dialog, ipcMain } from "electron";
 import {
-	parseCaptionSidecarPayload,
-	type CaptionSidecarPayload,
-	withCaptionSidecarMessage,
-	writeCaptionSidecarsBestEffort,
-} from "./exportCaptionSidecars";
-import {
 	closeExportStream,
 	isOwnedExportPath,
 	openExportStream,
@@ -51,11 +45,13 @@ import {
 	type NativeVideoExportFinishOptions,
 } from "../nativeVideoExport";
 import { isAllowedLocalReadPath, resolveApprovedLocalMediaPath } from "../project/manager";
+import { approveUserPath, approveUserWritePath, resolveApprovedUserWritePath } from "../utils";
 import {
-	approveUserPath,
-	approveUserWritePath,
-	resolveApprovedUserWritePath,
-} from "../utils";
+	type CaptionSidecarPayload,
+	parseCaptionSidecarPayload,
+	withCaptionSidecarMessage,
+	writeCaptionSidecarsBestEffort,
+} from "./exportCaptionSidecars";
 
 function getPartialExportDestinationPath(destinationPath: string) {
 	const parsed = path.parse(destinationPath);
@@ -463,9 +459,11 @@ export function registerExportHandlers() {
 							? "nvidia-cuda-compositor"
 							: primaryBackend === "windows-d3d11-compositor"
 								? "windows-d3d11-compositor"
-								: result.metrics.chunkCount > 1
-									? "chunked-h264-nvenc"
-									: "static-layout-h264-nvenc",
+								: primaryBackend === "ffmpeg-static-layout"
+									? "static-layout-libx264"
+									: result.metrics.chunkCount > 1
+										? "chunked-h264-nvenc"
+										: "static-layout-h264-nvenc",
 					metrics: result.metrics,
 				};
 			} catch (error) {
