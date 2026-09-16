@@ -33,6 +33,7 @@ import {
 	PixiCursorOverlay,
 	preloadCursorAssets,
 } from "@/components/video-editor/videoPlayback/cursorRenderer";
+import { buildCursorFollowTelemetry } from "@/components/video-editor/videoPlayback/cursorViewport";
 import { computePaddedLayout } from "@/components/video-editor/videoPlayback/layoutUtils";
 import {
 	createSpringState,
@@ -273,6 +274,11 @@ export class FrameRenderer {
 	private springX: SpringState;
 	private springY: SpringState;
 	private cursorFollowCamera: CursorFollowCameraState;
+	private cursorFollowTelemetryCache: {
+		cropRegion: FrameRenderConfig["cropRegion"];
+		samples: NonNullable<FrameRenderConfig["cursorTelemetry"]>;
+		projected: NonNullable<FrameRenderConfig["cursorTelemetry"]>;
+	} | null = null;
 	private lastContentTimeMs: number | null = null;
 	private cursorOverlay: PixiCursorOverlay | null = null;
 	private webcamForwardFrameSource: ForwardFrameSource | null = null;
@@ -1885,6 +1891,22 @@ export class FrameRenderer {
 		}
 	}
 
+	// Cursor-follow camera focus is interpreted within the cropped content
+	// rect (layoutCache.maskRect), so the raw source-normalized telemetry must
+	// be projected into crop-viewport coordinates first.
+	private getCursorFollowTelemetry(): NonNullable<FrameRenderConfig["cursorTelemetry"]> {
+		const samples = this.config.cursorTelemetry ?? [];
+		const cropRegion = this.config.cropRegion;
+		const cache = this.cursorFollowTelemetryCache;
+		if (cache && cache.cropRegion === cropRegion && cache.samples === samples) {
+			return cache.projected;
+		}
+
+		const projected = buildCursorFollowTelemetry(samples, cropRegion);
+		this.cursorFollowTelemetryCache = { cropRegion, samples, projected };
+		return projected;
+	}
+
 	private updateLayout(): void {
 		if (!this.app || !this.videoSprite || !this.maskGraphics || !this.videoContainer) return;
 
@@ -1980,7 +2002,7 @@ export class FrameRenderer {
 			) {
 				regionFocus = computeCursorFollowFocus(
 					this.cursorFollowCamera,
-					this.config.cursorTelemetry,
+					this.getCursorFollowTelemetry(),
 					timeMs,
 					zoomScale,
 					strength,
