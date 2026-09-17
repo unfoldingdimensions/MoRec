@@ -153,18 +153,25 @@ export async function resolveLinuxWindowBounds(
 	}
 }
 
-export async function resolveWindowsWindowBounds(
-	source: SelectedSource,
-): Promise<WindowBounds | null> {
-	const windowId = parseWindowId(source?.id);
-	const windowTitle =
-		typeof source.windowTitle === "string" ? source.windowTitle.trim() : source.name.trim();
+export function escapePowerShellSingleQuoted(value: string): string {
+	return value.replace(/'/g, "''");
+}
 
-	if (!windowId && !windowTitle) {
-		return null;
-	}
+// The whole lookup (script block + arguments) must travel as ONE -Command
+// string: powershell.exe does not bind trailing argv entries to the script
+// block's param() (they execute as extra commands instead), which used to
+// make every lookup exit 1 before GetWindowRect ran. Arguments are appended
+// positionally and single-quoted with embedded quotes doubled.
+export function buildWindowsWindowBoundsCommand(
+	windowId: number | null,
+	windowTitle: string,
+): string {
+	const quotedArgs = [windowId === null ? "" : String(windowId), windowTitle]
+		.map((value) => `'${escapePowerShellSingleQuoted(value)}'`)
+		.join(" ");
 
-	const script = [
+	return [
+		"& {",
 		"param([string]$windowId, [string]$windowTitle)",
 		'Add-Type -TypeDefinition @"',
 		"using System;",
@@ -178,10 +185,19 @@ export async function resolveWindowsWindowBounds(
 		"    public int Bottom;",
 		"  }",
 		'  [DllImport("user32.dll")]',
+		"  public static extern bool SetProcessDpiAwarenessContext(IntPtr dpiContext);",
+		'  [DllImport("user32.dll")]',
 		"  [return: MarshalAs(UnmanagedType.Bool)]",
 		"  public static extern bool GetWindowRect(IntPtr hWnd, out RECT rect);",
 		"}",
 		'"@',
+		"try {",
+		"  # Request per-monitor-v2 awareness so GetWindowRect reports physical",
+		"  # pixels; the cursor-telemetry consumer divides by the owning display's",
+		"  # scale factor to get DIPs.",
+		"  [MoRecWindowBounds]::SetProcessDpiAwarenessContext([IntPtr](-4)) | Out-Null",
+		"} catch {",
+		"}",
 		"$handle = [Int64]0",
 		"if ($windowId) {",
 		"  $handle = [Int64]$windowId",
@@ -201,12 +217,32 @@ export async function resolveWindowsWindowBounds(
 		"  exit 1",
 		"}",
 		"@{ x = $rect.Left; y = $rect.Top; width = $rect.Right - $rect.Left; height = $rect.Bottom - $rect.Top } | ConvertTo-Json -Compress",
+		// Arguments must share the line with the script block's closing brace;
+		// on their own line PowerShell parses them as separate statements.
+		`} ${quotedArgs}`,
 	].join("\n");
+}
+
+export async function resolveWindowsWindowBounds(
+	source: SelectedSource,
+): Promise<WindowBounds | null> {
+	const windowId = parseWindowId(source?.id);
+	const windowTitle =
+		typeof source.windowTitle === "string" ? source.windowTitle.trim() : source.name.trim();
+
+	if (!windowId && !windowTitle) {
+		return null;
+	}
 
 	try {
 		const { stdout } = await execFileAsync(
 			"powershell.exe",
-			["-NoProfile", "-Command", script, String(windowId ?? ""), windowTitle],
+			[
+				"-NoProfile",
+				"-NonInteractive",
+				"-Command",
+				buildWindowsWindowBoundsCommand(windowId, windowTitle),
+			],
 			{ timeout: 2500, windowsHide: true },
 		);
 		const bounds = JSON.parse(stdout) as WindowBounds;

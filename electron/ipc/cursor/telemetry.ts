@@ -22,7 +22,12 @@ import {
 	setCursorCapturePauseStartedAtMs,
 	setPendingCursorSamples,
 } from "../state";
-import type { CursorInteractionType, CursorTelemetryPoint, CursorVisualType } from "../types";
+import type {
+	CursorInteractionType,
+	CursorTelemetryPoint,
+	CursorVisualType,
+	WindowBounds,
+} from "../types";
 import { getScreen, getTelemetryPathForVideo } from "../utils";
 
 export function clamp(value: number, min: number, max: number) {
@@ -164,6 +169,73 @@ export function getCursorCaptureElapsedMs(nowMs = Date.now()) {
 	);
 }
 
+export type DisplayScaleFactorLike = {
+	bounds: { x: number; y: number; width: number; height: number };
+	scaleFactor?: number;
+};
+
+// Locates the display whose physical-pixel rect (DIP bounds × scale factor)
+// contains the point, falling back to the display whose rect is nearest so a
+// rounding sliver at a shared edge cannot produce "no display".
+export function findDisplayForPhysicalPoint(
+	displays: DisplayScaleFactorLike[],
+	px: number,
+	py: number,
+): DisplayScaleFactorLike | null {
+	let nearest: DisplayScaleFactorLike | null = null;
+	let nearestDistance = Number.POSITIVE_INFINITY;
+
+	for (const display of displays) {
+		const sf = display.scaleFactor || 1;
+		const x = display.bounds.x * sf;
+		const y = display.bounds.y * sf;
+		const width = display.bounds.width * sf;
+		const height = display.bounds.height * sf;
+
+		if (px >= x && px < x + width && py >= y && py < y + height) {
+			return display;
+		}
+
+		const dx = Math.max(x - px, 0, px - (x + width));
+		const dy = Math.max(y - py, 0, py - (y + height));
+		const distance = Math.hypot(dx, dy);
+		if (distance < nearestDistance) {
+			nearestDistance = distance;
+			nearest = display;
+		}
+	}
+
+	return nearest;
+}
+
+// Window bounds arriving from the Windows PowerShell bridge are physical
+// pixels (per-monitor-v2 aware GetWindowRect), while the Electron cursor
+// point is in DIPs. Map the window into the owning display's DIP space
+// before normalizing; without a match, fall back to unscaled (sf = 1).
+export function normalizeCursorPointToWindowRegion(
+	cursor: { x: number; y: number },
+	windowBounds: WindowBounds,
+	displays: DisplayScaleFactorLike[],
+): { cx: number; cy: number } {
+	const display =
+		findDisplayForPhysicalPoint(displays, windowBounds.x, windowBounds.y) ??
+		findDisplayForPhysicalPoint(
+			displays,
+			windowBounds.x + windowBounds.width / 2,
+			windowBounds.y + windowBounds.height / 2,
+		);
+	const sf = display?.scaleFactor || 1;
+	const x = windowBounds.x / sf;
+	const y = windowBounds.y / sf;
+	const width = Math.max(1, windowBounds.width / sf);
+	const height = Math.max(1, windowBounds.height / sf);
+
+	return {
+		cx: clamp((cursor.x - x) / width, 0, 1),
+		cy: clamp((cursor.y - y) / height, 0, 1),
+	};
+}
+
 export function getNormalizedCursorPoint() {
 	const fallbackCursor = getScreen().getCursorScreenPoint();
 	const linuxCursorCache = process.platform === "linux" ? linuxCursorScreenPoint : null;
@@ -178,20 +250,7 @@ export function getNormalizedCursorPoint() {
 
 	const windowBounds = selectedSource?.id?.startsWith("window:") ? selectedWindowBounds : null;
 	if (windowBounds) {
-		const sf =
-			process.platform !== "darwin"
-				? getScreen().getDisplayNearestPoint({
-						x: windowBounds.x / primarySf,
-						y: windowBounds.y / primarySf,
-					}).scaleFactor || 1
-				: 1;
-		const width = Math.max(1, windowBounds.width / sf);
-		const height = Math.max(1, windowBounds.height / sf);
-
-		return {
-			cx: clamp((cursor.x - windowBounds.x / sf) / width, 0, 1),
-			cy: clamp((cursor.y - windowBounds.y / sf) / height, 0, 1),
-		};
+		return normalizeCursorPointToWindowRegion(cursor, windowBounds, getScreen().getAllDisplays());
 	}
 
 	const sourceDisplayId = Number(selectedSource?.display_id);
