@@ -236,6 +236,42 @@ export function normalizeCursorPointToWindowRegion(
 	};
 }
 
+// DIP size of the region cursor points are normalized against (the captured
+// window when one is selected, otherwise the target display). Consumers that
+// need a physical intuition for normalized deltas — e.g. the double-click
+// distance check — use this instead of hardcoding fractions of the region,
+// whose meaning used to change with every capture target.
+export function getCursorRegionSizeDip(): { width: number; height: number } | null {
+	const windowBounds = selectedSource?.id?.startsWith("window:") ? selectedWindowBounds : null;
+	if (windowBounds) {
+		const displays = getScreen().getAllDisplays();
+		const display =
+			findDisplayForPhysicalPoint(displays, windowBounds.x, windowBounds.y) ??
+			findDisplayForPhysicalPoint(
+				displays,
+				windowBounds.x + windowBounds.width / 2,
+				windowBounds.y + windowBounds.height / 2,
+			);
+		const sf = display?.scaleFactor || 1;
+		return {
+			width: Math.max(1, windowBounds.width / sf),
+			height: Math.max(1, windowBounds.height / sf),
+		};
+	}
+
+	const sourceDisplayId = Number(selectedSource?.display_id);
+	const sourceDisplay = Number.isFinite(sourceDisplayId)
+		? (getScreen()
+				.getAllDisplays()
+				.find((display) => display.id === sourceDisplayId) ?? null)
+		: null;
+	const display = sourceDisplay ?? getScreen().getDisplayNearestPoint(getScreen().getCursorScreenPoint());
+	return {
+		width: Math.max(1, display.bounds.width),
+		height: Math.max(1, display.bounds.height),
+	};
+}
+
 export function getNormalizedCursorPoint() {
 	const fallbackCursor = getScreen().getCursorScreenPoint();
 	const linuxCursorCache = process.platform === "linux" ? linuxCursorScreenPoint : null;

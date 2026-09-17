@@ -20,6 +20,7 @@ import {
 import {
 	getNormalizedCursorPoint,
 	getCursorCaptureElapsedMs,
+	getCursorRegionSizeDip,
 	getHookCursorScreenPoint,
 	isCursorCapturePaused,
 	pushCursorSample,
@@ -41,6 +42,28 @@ export function normalizeHookMouseButton(rawButton: unknown): 1 | 2 | 3 {
 	}
 
 	return 1;
+}
+
+export const DOUBLE_CLICK_THRESHOLD_MS = 350;
+// In DIP so the check means the same thing on every capture target; the old
+// "4% of the normalized region" was ~82px on a full display capture but only
+// a few pixels on a small window.
+export const DOUBLE_CLICK_MAX_DISTANCE_DIP = 48;
+
+export function isWithinDoubleClickDistance(
+	previous: { cx: number; cy: number },
+	current: { cx: number; cy: number },
+	regionSizeDip?: { width: number; height: number } | null,
+): boolean {
+	if (!regionSizeDip || regionSizeDip.width <= 0 || regionSizeDip.height <= 0) {
+		return Math.hypot(current.cx - previous.cx, current.cy - previous.cy) <= 0.04;
+	}
+
+	const distanceDip = Math.hypot(
+		(current.cx - previous.cx) * regionSizeDip.width,
+		(current.cy - previous.cy) * regionSizeDip.height,
+	);
+	return distanceDip <= DOUBLE_CLICK_MAX_DISTANCE_DIP;
 }
 
 export function getHookMouseButton(event: HookMouseEvent | null | undefined): 1 | 2 | 3 {
@@ -231,15 +254,18 @@ export async function startInteractionCapture() {
 			} else if (button === 3) {
 				interactionType = "middle-click";
 			} else {
-				const thresholdMs = 350;
-				const distance = lastLeftClick
-					? Math.hypot(point.cx - lastLeftClick.cx, point.cy - lastLeftClick.cy)
-					: Number.POSITIVE_INFINITY;
+				const distanceIsClose = lastLeftClick
+					? isWithinDoubleClickDistance(
+							lastLeftClick,
+							point,
+							getCursorRegionSizeDip(),
+						)
+					: false;
 
 				if (
 					lastLeftClick &&
-					timeMs - lastLeftClick.timeMs <= thresholdMs &&
-					distance <= 0.04
+					timeMs - lastLeftClick.timeMs <= DOUBLE_CLICK_THRESHOLD_MS &&
+					distanceIsClose
 				) {
 					interactionType = "double-click";
 				}

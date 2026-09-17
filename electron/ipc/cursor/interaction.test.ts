@@ -11,7 +11,42 @@ vi.mock("electron", () => ({
 	},
 }));
 
-import { repairBundledUiohookBinaryForCurrentArch } from "./interaction";
+import { isWithinDoubleClickDistance, repairBundledUiohookBinaryForCurrentArch } from "./interaction";
+
+describe("isWithinDoubleClickDistance", () => {
+	it("treats a 48-DIP gap as a double-click on a display-size region", () => {
+		const region = { width: 2048, height: 1152 };
+		// 0.02 of 2048 wide = ~41 DIP apart.
+		expect(
+			isWithinDoubleClickDistance({ cx: 0.1, cy: 0.5 }, { cx: 0.12, cy: 0.5 }, region),
+		).toBe(true);
+		// 0.05 of 2048 = 102 DIP apart: too far.
+		expect(
+			isWithinDoubleClickDistance({ cx: 0.1, cy: 0.5 }, { cx: 0.15, cy: 0.5 }, region),
+		).toBe(false);
+	});
+
+	it("keeps the same meaning on a small window region", () => {
+		// The old fraction-of-region rule collapsed to ~24px here; in DIP the
+		// threshold is unchanged across targets.
+		const region = { width: 800, height: 600 };
+		expect(
+			isWithinDoubleClickDistance({ cx: 0.1, cy: 0.5 }, { cx: 0.13, cy: 0.5 }, region),
+		).toBe(true);
+		expect(
+			isWithinDoubleClickDistance({ cx: 0.1, cy: 0.5 }, { cx: 0.2, cy: 0.5 }, region),
+		).toBe(false);
+	});
+
+	it("falls back to the legacy fraction when no region is known", () => {
+		expect(
+			isWithinDoubleClickDistance({ cx: 0.1, cy: 0.5 }, { cx: 0.12, cy: 0.5 }, null),
+		).toBe(true);
+		expect(
+			isWithinDoubleClickDistance({ cx: 0.1, cy: 0.5 }, { cx: 0.15, cy: 0.5 }, null),
+		).toBe(false);
+	});
+});
 
 describe("repairBundledUiohookBinaryForCurrentArch", () => {
 	const tempRoots: string[] = [];
