@@ -51,7 +51,12 @@ export function handleCursorMonitorStdout(chunk: Buffer) {
 	}
 }
 
-export function stopNativeCursorMonitor() {
+// Bumped by every start/stop. Async start work (binary access, spawn) from a
+// superseded generation must bail out, or a rapid start→stop leaves a helper
+// polling forever because stop already ran before the process handle existed.
+let cursorMonitorGeneration = 0;
+
+function stopTrackedCursorMonitorProcess() {
 	setCurrentCursorVisualType("arrow");
 
 	if (!nativeCursorMonitorProcess) {
@@ -73,8 +78,16 @@ export function stopNativeCursorMonitor() {
 	setNativeCursorMonitorOutputBuffer("");
 }
 
+export function stopNativeCursorMonitor() {
+	cursorMonitorGeneration += 1;
+	stopTrackedCursorMonitorProcess();
+}
+
 export async function startNativeCursorMonitor() {
-	stopNativeCursorMonitor();
+	// Invalidate any in-flight start, then stop the currently tracked helper
+	// (same effect as the old leading stop call, without a second bump).
+	const generation = ++cursorMonitorGeneration;
+	stopTrackedCursorMonitorProcess();
 
 	if (process.platform !== "darwin" && process.platform !== "win32") {
 		setCurrentCursorVisualType("arrow");
@@ -97,6 +110,11 @@ export async function startNativeCursorMonitor() {
 			helperPath = await ensureNativeCursorMonitorBinary();
 		}
 
+		if (generation !== cursorMonitorGeneration) {
+			// A stop (or a newer start) landed while the binary access ran.
+			return;
+		}
+
 		setNativeCursorMonitorOutputBuffer("");
 		setCurrentCursorVisualType("arrow");
 
@@ -104,11 +122,25 @@ export async function startNativeCursorMonitor() {
 		try {
 			proc = spawn(helperPath, [], {
 				stdio: ["pipe", "pipe", "pipe"],
+				// Console-subsystem helper: without windowsHide a visible console
+				// window stays on the desktop for the whole recording session.
+				windowsHide: true,
 			});
 		} catch (spawnError) {
 			console.warn("Failed to spawn cursor monitor:", spawnError);
 			setNativeCursorMonitorProcess(null);
 			setCurrentCursorVisualType("arrow");
+			return;
+		}
+
+		if (generation !== cursorMonitorGeneration) {
+			// Superseded between spawn and registration: reap the helper now so
+			// it cannot outlive the recording state that asked for it.
+			try {
+				proc.kill();
+			} catch {
+				// already gone
+			}
 			return;
 		}
 

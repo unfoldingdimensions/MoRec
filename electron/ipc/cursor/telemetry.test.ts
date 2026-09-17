@@ -31,7 +31,9 @@ vi.mock("../utils", () => ({
 
 import { activeCursorSamples, setActiveCursorSamples, setCursorCaptureStartTimeMs } from "../state";
 import {
+	findDisplayForPhysicalPoint,
 	getCursorCaptureElapsedMs,
+	normalizeCursorPointToWindowRegion,
 	normalizeCursorTelemetrySamples,
 	pauseCursorCapture,
 	pauseCursorCaptureAtBoundary,
@@ -118,5 +120,62 @@ describe("cursor telemetry pause clock", () => {
 
 		expect(rm).toHaveBeenCalledWith("/tmp/recording.cursor.json", { force: true });
 		expect(writeFile).not.toHaveBeenCalled();
+	});
+});
+
+describe("physical-space window normalization", () => {
+	const displays = [
+		{
+			id: 1,
+			bounds: { x: 0, y: 0, width: 2048, height: 1152 },
+			scaleFactor: 1.25,
+		},
+		{
+			id: 2,
+			bounds: { x: 2048, y: 0, width: 1920, height: 1080 },
+			scaleFactor: 1,
+		},
+	];
+
+	it("matches a physical point to the display whose scaled rect contains it", () => {
+		expect(findDisplayForPhysicalPoint(displays, 100, 100)?.id).toBe(1);
+		// 2048 DIP * 1.25 = 2560 physical pixels is display 2's origin.
+		expect(findDisplayForPhysicalPoint(displays, 2600, 50)?.id).toBe(2);
+	});
+
+	it("assigns a point on a shared edge to the later display, not null", () => {
+		// Display 2's physical rect starts at 2560; the edge belongs to it.
+		expect(findDisplayForPhysicalPoint(displays, 2560, 576)?.id).toBe(2);
+	});
+
+	it("falls back to the nearest display instead of returning null outside all rects", () => {
+		expect(findDisplayForPhysicalPoint(displays, -50, -50)?.id).toBe(1);
+		expect(findDisplayForPhysicalPoint(displays, 4600, 20)?.id).toBe(2);
+	});
+
+	it("normalizes a physical window rect through the owning display scale factor", () => {
+		// Window occupying the left half of the 125% display: 1280 DIP wide
+		// => 1600 physical pixels wide.
+		const bounds = { x: 0, y: 0, width: 1600, height: 1440 };
+
+		expect(
+			normalizeCursorPointToWindowRegion({ x: 800, y: 720 }, bounds, displays),
+		).toEqual({ cx: 0.625, cy: 0.625 });
+	});
+
+	it("maps a cursor near the window origin to the frame origin, not an offset", () => {
+		// Regression for the double-scaling bug: a cursor at the window's
+		// top-left must normalize to (0, 0) regardless of scale factor.
+		const bounds = { x: 2560, y: 0, width: 960, height: 540 };
+		expect(
+			normalizeCursorPointToWindowRegion({ x: 2048, y: 0 }, bounds, displays),
+		).toEqual({ cx: 0, cy: 0 });
+	});
+
+	it("treats bounds as unscaled when no display matches", () => {
+		const bounds = { x: 0, y: 0, width: 800, height: 600 };
+		expect(
+			normalizeCursorPointToWindowRegion({ x: 400, y: 300 }, bounds, []),
+		).toEqual({ cx: 0.5, cy: 0.5 });
 	});
 });

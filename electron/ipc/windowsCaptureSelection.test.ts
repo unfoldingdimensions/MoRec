@@ -24,6 +24,7 @@ describe("resolveWindowsCaptureDisplay", () => {
 			width: 2560,
 			height: 1440,
 		},
+		scaleFactor: 1.5,
 	};
 
 	it("uses the requested secondary display bounds for WGC fallback metadata", () => {
@@ -36,6 +37,7 @@ describe("resolveWindowsCaptureDisplay", () => {
 		expect(resolved).toEqual({
 			displayId: secondaryDisplay.id,
 			bounds: secondaryDisplay.bounds,
+			scaleFactor: 1.5,
 		});
 	});
 
@@ -49,20 +51,18 @@ describe("resolveWindowsCaptureDisplay", () => {
 		expect(resolved).toEqual({
 			displayId: primaryDisplay.id,
 			bounds: primaryDisplay.bounds,
+			scaleFactor: 1,
 		});
 	});
 
-	it("keeps the requested display id even if Electron cannot rematch it, while using primary bounds", () => {
+	it("returns null when the requested display id no longer matches any live display", () => {
 		const resolved = resolveWindowsCaptureDisplay(
 			{ display_id: "303" },
 			[primaryDisplay, secondaryDisplay],
 			primaryDisplay,
 		);
 
-		expect(resolved).toEqual({
-			displayId: 303,
-			bounds: primaryDisplay.bounds,
-		});
+		expect(resolved).toBeNull();
 	});
 });
 
@@ -85,6 +85,7 @@ describe("resolveWindowsCaptureTarget", () => {
 			width: 2560,
 			height: 1440,
 		},
+		scaleFactor: 1.5,
 	};
 
 	it("uses a window handle when a Windows window source is selected", () => {
@@ -112,6 +113,16 @@ describe("resolveWindowsCaptureTarget", () => {
 		});
 	});
 
+	it("does not silently record the primary when the selected display is gone", () => {
+		const resolved = resolveWindowsCaptureTarget(
+			{ id: "screen:303:0", sourceType: "screen", display_id: "303" },
+			[primaryDisplay, secondaryDisplay],
+			primaryDisplay,
+		);
+
+		expect(resolved).toEqual({ kind: "invalid-display" });
+	});
+
 	it("keeps display capture behavior for selected screens", () => {
 		const resolved = resolveWindowsCaptureTarget(
 			{ id: "screen:202:0", sourceType: "screen", display_id: String(secondaryDisplay.id) },
@@ -123,6 +134,7 @@ describe("resolveWindowsCaptureTarget", () => {
 			kind: "display",
 			displayId: secondaryDisplay.id,
 			bounds: secondaryDisplay.bounds,
+			scaleFactor: 1.5,
 		});
 	});
 });

@@ -20,6 +20,7 @@ import {
 import {
 	getNormalizedCursorPoint,
 	getCursorCaptureElapsedMs,
+	getCursorRegionSizeDip,
 	getHookCursorScreenPoint,
 	isCursorCapturePaused,
 	pushCursorSample,
@@ -41,6 +42,28 @@ export function normalizeHookMouseButton(rawButton: unknown): 1 | 2 | 3 {
 	}
 
 	return 1;
+}
+
+export const DOUBLE_CLICK_THRESHOLD_MS = 350;
+// In DIP so the check means the same thing on every capture target; the old
+// "4% of the normalized region" was ~82px on a full display capture but only
+// a few pixels on a small window.
+export const DOUBLE_CLICK_MAX_DISTANCE_DIP = 48;
+
+export function isWithinDoubleClickDistance(
+	previous: { cx: number; cy: number },
+	current: { cx: number; cy: number },
+	regionSizeDip?: { width: number; height: number } | null,
+): boolean {
+	if (!regionSizeDip || regionSizeDip.width <= 0 || regionSizeDip.height <= 0) {
+		return Math.hypot(current.cx - previous.cx, current.cy - previous.cy) <= 0.04;
+	}
+
+	const distanceDip = Math.hypot(
+		(current.cx - previous.cx) * regionSizeDip.width,
+		(current.cy - previous.cy) * regionSizeDip.height,
+	);
+	return distanceDip <= DOUBLE_CLICK_MAX_DISTANCE_DIP;
 }
 
 export function getHookMouseButton(event: HookMouseEvent | null | undefined): 1 | 2 | 3 {
@@ -96,20 +119,21 @@ function resolveUiohookModule(moduleExports: UiohookModuleNamespace) {
 }
 
 function shouldRepairBundledUiohookBinary(error: unknown): error is NodeJS.ErrnoException {
-	if (process.platform !== "darwin") {
-		return false;
-	}
-
-	if (process.arch !== "arm64") {
-		return false;
-	}
-
 	const candidate = error as NodeJS.ErrnoException | null;
-	return (
-		candidate?.code === "ERR_DLOPEN_FAILED" &&
-		typeof candidate.message === "string" &&
-		candidate.message.includes("incompatible architecture")
-	);
+	if (candidate?.code !== "ERR_DLOPEN_FAILED" || typeof candidate.message !== "string") {
+		return false;
+	}
+
+	if (process.platform === "darwin") {
+		return (
+			process.arch === "arm64" && candidate.message.includes("incompatible architecture")
+		);
+	}
+
+	// Windows dlopen failures carry no stable message; a locally rebuilt
+	// shadow binary diverging from the shipped N-API prebuild is the usual
+	// cause, and promoting the prebuild is exactly the cure.
+	return process.platform === "win32" && (process.arch === "x64" || process.arch === "arm64");
 }
 
 export function repairBundledUiohookBinaryForCurrentArch(
@@ -124,22 +148,26 @@ export function repairBundledUiohookBinaryForCurrentArch(
 	const platform = options?.platform ?? process.platform;
 	const arch = options?.arch ?? process.arch;
 
-	if (platform !== "darwin" || arch !== "arm64") {
+	const candidate = error as NodeJS.ErrnoException | null;
+	if (candidate?.code !== "ERR_DLOPEN_FAILED" || typeof candidate.message !== "string") {
 		return false;
 	}
 
-	const candidate = error as NodeJS.ErrnoException | null;
-	if (
-		candidate?.code !== "ERR_DLOPEN_FAILED" ||
-		typeof candidate.message !== "string" ||
-		!candidate.message.includes("incompatible architecture")
-	) {
+	if (platform === "darwin") {
+		if (arch !== "arm64" || !candidate.message.includes("incompatible architecture")) {
+			return false;
+		}
+	} else if (platform === "win32") {
+		if (arch !== "x64" && arch !== "arm64") {
+			return false;
+		}
+	} else {
 		return false;
 	}
 
 	const packageRoot =
 		options?.packageRoot ?? path.dirname(nodeRequire.resolve("uiohook-napi/package.json"));
-	const prebuildPath = path.join(packageRoot, "prebuilds", `darwin-${arch}`, "node.napi.node");
+	const prebuildPath = path.join(packageRoot, "prebuilds", `${platform}-${arch}`, "node.napi.node");
 	const buildPath = path.join(packageRoot, "build", "Release", "uiohook_napi.node");
 
 	if (!fs.existsSync(prebuildPath)) {
@@ -150,7 +178,7 @@ export function repairBundledUiohookBinaryForCurrentArch(
 		fs.mkdirSync(path.dirname(buildPath), { recursive: true });
 		fs.copyFileSync(prebuildPath, buildPath);
 		(options?.log ?? console.warn)(
-			"[CursorTelemetry] Repaired stale uiohook-napi binary using bundled darwin-arm64 prebuild.",
+			`[CursorTelemetry] Repaired stale uiohook-napi binary using bundled ${platform}-${arch} prebuild.`,
 		);
 		return true;
 	} catch {
@@ -226,15 +254,18 @@ export async function startInteractionCapture() {
 			} else if (button === 3) {
 				interactionType = "middle-click";
 			} else {
-				const thresholdMs = 350;
-				const distance = lastLeftClick
-					? Math.hypot(point.cx - lastLeftClick.cx, point.cy - lastLeftClick.cy)
-					: Number.POSITIVE_INFINITY;
+				const distanceIsClose = lastLeftClick
+					? isWithinDoubleClickDistance(
+							lastLeftClick,
+							point,
+							getCursorRegionSizeDip(),
+						)
+					: false;
 
 				if (
 					lastLeftClick &&
-					timeMs - lastLeftClick.timeMs <= thresholdMs &&
-					distance <= 0.04
+					timeMs - lastLeftClick.timeMs <= DOUBLE_CLICK_THRESHOLD_MS &&
+					distanceIsClose
 				) {
 					interactionType = "double-click";
 				}

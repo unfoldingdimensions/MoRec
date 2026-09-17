@@ -29,6 +29,10 @@ public:
     bool startCapture();
     void stopCapture();
     bool hasFatalError() const { return fatalError_.load(); }
+    // True when the capture item closed underneath us (monitor unplugged,
+    // captured window destroyed). The take is finalized as-is instead of
+    // hanging forever waiting for frames that will never arrive.
+    bool captureLost() const { return captureLost_.load(); }
 
     int captureWidth() const { return captureWidth_; }
     int captureHeight() const { return captureHeight_; }
@@ -43,10 +47,12 @@ private:
     winrt::Windows::Graphics::Capture::Direct3D11CaptureFramePool framePool_{nullptr};
     winrt::Windows::Graphics::Capture::GraphicsCaptureSession session_{nullptr};
     winrt::Windows::Graphics::Capture::Direct3D11CaptureFramePool::FrameArrived_revoker frameArrivedRevoker_;
+    winrt::Windows::Graphics::Capture::GraphicsCaptureItem::Closed_revoker closedRevoker_;
 
     FrameCallback frameCallback_;
     std::atomic<bool> capturing_{false};
     std::atomic<bool> fatalError_{false};
+    std::atomic<bool> captureLost_{false};
     int fps_ = 60;
     int captureWidth_ = 0;
     int captureHeight_ = 0;

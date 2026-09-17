@@ -15,7 +15,7 @@
 		"format": "biome format --write .",
 		"format:check": "biome format .",
 		"preview": "vite preview --config vite.config.ts",
-		"rebuild:native": "node ./node_modules/@electron/rebuild/lib/cli.js --force --only uiohook-napi",
+		"rebuild:native": "node -e \"const fs=require('node:fs');fs.rmSync('node_modules/uiohook-napi/build',{recursive:true,force:true});console.log('[rebuild:native] uiohook-napi is N-API: nothing to rebuild. Removed any locally built shadow binary so the shipped prebuild loads.')\"",
 		"build:native-helpers": "node scripts/build-native-helpers.mjs",
 		"build:whisper-runtime": "node scripts/build-whisper-runtime.mjs",
 		"build:platform-native-helpers": "npm run build:native-helpers && npm run build:windows-capture && npm run build:windows-gpu-export && npm run build:nvidia-cuda-compositor && npm run build:cursor-monitor && npm run build:whisper-runtime",

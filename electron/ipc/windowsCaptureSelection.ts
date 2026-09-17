@@ -14,11 +14,13 @@ export type WindowsCaptureDisplayBounds = {
 export type WindowsCaptureDisplayLike = {
 	id: number;
 	bounds: WindowsCaptureDisplayBounds;
+	scaleFactor?: number;
 };
 
 export type ResolvedWindowsCaptureDisplay = {
 	displayId: number;
 	bounds: WindowsCaptureDisplayBounds;
+	scaleFactor: number;
 };
 
 export type ResolvedWindowsCaptureTarget =
@@ -30,9 +32,13 @@ export type ResolvedWindowsCaptureTarget =
 			kind: "display";
 			displayId: number;
 			bounds: WindowsCaptureDisplayBounds;
+			scaleFactor: number;
 	  }
 	| {
 			kind: "invalid-window";
+	  }
+	| {
+			kind: "invalid-display";
 	  };
 
 function parseDesktopCapturerWindowHandle(sourceId?: string) {
@@ -57,21 +63,27 @@ export function resolveWindowsCaptureDisplay(
 	source: WindowsCaptureSourceLike | null | undefined,
 	allDisplays: WindowsCaptureDisplayLike[],
 	primaryDisplay: WindowsCaptureDisplayLike,
-): ResolvedWindowsCaptureDisplay {
+): ResolvedWindowsCaptureDisplay | null {
 	const requestedDisplayId = Number(source?.display_id);
 	const primaryDisplayId = Number(primaryDisplay.id);
-	const requestedOrPrimaryDisplayId =
-		Number.isFinite(requestedDisplayId) && requestedDisplayId > 0
-			? requestedDisplayId
-			: primaryDisplayId;
+	const hasRequestedDisplayId = Number.isFinite(requestedDisplayId) && requestedDisplayId > 0;
+	const requestedOrPrimaryDisplayId = hasRequestedDisplayId ? requestedDisplayId : primaryDisplayId;
 
-	const matchedDisplay =
-		allDisplays.find((display) => String(display.id) === String(requestedOrPrimaryDisplayId)) ??
-		primaryDisplay;
+	const matchedDisplay = allDisplays.find(
+		(display) => String(display.id) === String(requestedOrPrimaryDisplayId),
+	);
+
+	// A display_id that no longer matches any live display means the monitor
+	// was unplugged/disabled since selection. Failing explicitly beats the old
+	// behavior of recording the primary while reporting the stale id.
+	if (!matchedDisplay) {
+		return null;
+	}
 
 	return {
 		displayId: requestedOrPrimaryDisplayId,
 		bounds: matchedDisplay.bounds,
+		scaleFactor: matchedDisplay.scaleFactor ?? 1,
 	};
 }
 
@@ -95,6 +107,11 @@ export function resolveWindowsCaptureTarget(
 	}
 
 	const resolvedDisplay = resolveWindowsCaptureDisplay(source, allDisplays, primaryDisplay);
+	if (!resolvedDisplay) {
+		return {
+			kind: "invalid-display",
+		};
+	}
 	return {
 		kind: "display",
 		...resolvedDisplay,

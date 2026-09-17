@@ -1,6 +1,19 @@
 import { describe, expect, it } from "vitest";
 
-import { getGpuSwitches, shouldForceLinuxEgl } from "./gpuSwitches";
+import { getGpuSwitches, shouldApplyGpuOverrides, shouldForceLinuxEgl } from "./gpuSwitches";
+
+describe("shouldApplyGpuOverrides", () => {
+	it("applies overrides by default", () => {
+		expect(shouldApplyGpuOverrides({})).toBe(true);
+		expect(shouldApplyGpuOverrides({ MOREC_DISABLE_GPU_OVERRIDES: "0" })).toBe(true);
+	});
+
+	it("lets the user opt out via MOREC_DISABLE_GPU_OVERRIDES", () => {
+		expect(shouldApplyGpuOverrides({ MOREC_DISABLE_GPU_OVERRIDES: "1" })).toBe(false);
+		expect(shouldApplyGpuOverrides({ MOREC_DISABLE_GPU_OVERRIDES: "true" })).toBe(false);
+		expect(shouldApplyGpuOverrides({ MOREC_DISABLE_GPU_OVERRIDES: " TRUE " })).toBe(false);
+	});
+});
 
 describe("shouldForceLinuxEgl", () => {
 	it("does not force EGL in a Wayland session", () => {

@@ -13,7 +13,10 @@ import {
 	systemPreferences,
 } from "electron";
 import { showCursor } from "../../cursorHider";
-import { getMonitorHandlesAsync } from "../monitorResolver";
+import {
+	findMonitorHandleForElectronDisplay,
+	getMonitorHandlesAsync,
+} from "../monitorResolver";
 import { ALLOW_MOREC_WINDOW_CAPTURE } from "../constants";
 import { startWindowBoundsCapture, stopWindowBoundsCapture } from "../cursor/bounds";
 import { startInteractionCapture, stopInteractionCapture } from "../cursor/interaction";
@@ -576,7 +579,10 @@ export function registerRecordingHandlers(
 						fps: 60,
 					};
 
-					if (captureTarget.kind === "invalid-window") {
+					if (
+						captureTarget.kind === "invalid-window" ||
+						captureTarget.kind === "invalid-display"
+					) {
 						// The staged target/temp paths were set before the target was
 						// resolved; clear them so the failure leaves no stale capture
 						// state behind for a later stop/recover call to trip over.
@@ -590,7 +596,9 @@ export function registerRecordingHandlers(
 						return {
 							success: false,
 							message:
-								"Selected window is no longer available. Please choose the window again.",
+								captureTarget.kind === "invalid-window"
+									? "Selected window is no longer available. Please choose the window again."
+									: "Selected display is no longer available. Please choose the source again.",
 						};
 					}
 
@@ -598,25 +606,32 @@ export function registerRecordingHandlers(
 						config.windowHandle = captureTarget.windowHandle;
 					} else {
 						// Windows Graphics Capture (WGC) requires a raw HMONITOR handle.
-						// We attempt to resolve the handle by matching the physical coordinates of the target display.
+						// The PowerShell probe reports physical-pixel rects while
+						// Electron bounds are DIPs, so match in physical space
+						// (DIP × display scale factor). On mixed-DPI setups a raw
+						// DIP-vs-DIP comparison used to fail and the fallback below
+						// could not find the monitor at all.
 						const monitors = await getMonitorHandlesAsync();
-						const matchedMonitor = monitors.find(
-							(monitor) =>
-								monitor.x === Math.round(captureTarget.bounds.x) &&
-								monitor.y === Math.round(captureTarget.bounds.y),
+						const matchedMonitor = findMonitorHandleForElectronDisplay(
+							captureTarget,
+							monitors,
 						);
 
 						if (matchedMonitor) {
 							config.displayId = matchedMonitor.handle;
 						} else {
-							// Fallback to coordinate-based matching if handle resolution fails
+							// Fallback: the helper resolves the monitor from the
+							// physical bounds below via MonitorFromRect.
 							config.displayId = captureTarget.displayId;
 						}
 
-						config.displayX = Math.round(captureTarget.bounds.x);
-						config.displayY = Math.round(captureTarget.bounds.y);
-						config.displayW = Math.round(captureTarget.bounds.width);
-						config.displayH = Math.round(captureTarget.bounds.height);
+						// Helper-facing bounds are physical pixels (the helper runs
+						// per-monitor-v2 DPI aware); Electron bounds are DIPs.
+						const displayScale = captureTarget.scaleFactor || 1;
+						config.displayX = Math.round(captureTarget.bounds.x * displayScale);
+						config.displayY = Math.round(captureTarget.bounds.y * displayScale);
+						config.displayW = Math.round(captureTarget.bounds.width * displayScale);
+						config.displayH = Math.round(captureTarget.bounds.height * displayScale);
 					}
 
 					if (options?.capturesSystemAudio) {
@@ -674,13 +689,15 @@ export function registerRecordingHandlers(
 					setWindowsCaptureStopRequested(false);
 					setWindowsCapturePaused(false);
 
-					// The native helper currently does not declare DPI awareness in its own
-					// manifest or process setup, so we keep the compatibility flag here until
-					// scaled-display capture is verified without it on Windows.
+					// The helper claims its own per-monitor-v2 DPI awareness before it
+					// matches monitors, so no compatibility layer is injected here.
 					wcProc = spawn(exePath, [JSON.stringify(config)], {
 						cwd: recordingsDir,
 						stdio: ["pipe", "pipe", "pipe"],
-						env: { ...process.env, __COMPAT_LAYER: "HighDpiAware" },
+						// Console-subsystem helper: without windowsHide a visible
+						// console window opens on the desktop (and can land in the
+						// captured region) for the whole recording.
+						windowsHide: true,
 					});
 					// The stop path writes "stop\n"; if the helper already died, that
 					// write emits an async EPIPE that would crash the main process.

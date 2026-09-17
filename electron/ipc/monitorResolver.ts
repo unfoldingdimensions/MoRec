@@ -15,8 +15,12 @@ export interface WinMonitorHandle {
 }
 
 // PowerShell snippet that uses P/Invoke to call EnumDisplayMonitors and return raw handles + bounds.
-// Add-Type compiles C# on every invocation, so results are cached with a TTL and
-// production callers use the async variant to keep the main event loop responsive.
+// The process claims per-monitor-v2 DPI awareness before enumerating, so the
+// rects are PHYSICAL pixels; Electron display bounds are DIPs and must be
+// scaled by the display's scaleFactor before comparing (see
+// findMonitorHandleForElectronDisplay). Add-Type compiles C# on every
+// invocation, so results are cached with a TTL and production callers use the
+// async variant to keep the main event loop responsive.
 const MONITOR_ENUM_SCRIPT = `
 Add-Type -TypeDefinition @"
 using System;
@@ -24,6 +28,9 @@ using System.Runtime.InteropServices;
 using System.Collections.Generic;
 
 public class MonitorHelper {
+    [DllImport("user32.dll")]
+    public static extern bool SetProcessDpiAwarenessContext(IntPtr dpiContext);
+
     [DllImport("user32.dll")]
     public static extern bool EnumDisplayMonitors(IntPtr hdc, IntPtr lprcClip, MonitorEnumProc lpfnEnum, IntPtr dwData);
 
@@ -47,11 +54,26 @@ public class MonitorHelper {
     }
 }
 "@
+try {
+    # DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2; best effort — if the OS
+    # refuses, rects degrade to virtualized (scaled) coordinates as before.
+    [MonitorHelper]::SetProcessDpiAwarenessContext([IntPtr](-4)) | Out-Null
+} catch {
+}
 [MonitorHelper]::GetMonitors()
 `.trim();
 
 const MONITOR_CACHE_TTL_MS = 10_000;
-let monitorHandleCache: { at: number; handles: WinMonitorHandle[] } | null = null;
+// Failures are cached only briefly: a full TTL on an empty result would make
+// a transient PowerShell hiccup skip handle resolution (and its monitor
+// matching) for record starts within the window. Hot-plugged monitors also
+// refresh 10x sooner this way.
+const MONITOR_FAILURE_CACHE_TTL_MS = 1_000;
+let monitorHandleCache: {
+	at: number;
+	handles: WinMonitorHandle[];
+	failed: boolean;
+} | null = null;
 
 function parseMonitorHandleLines(stdout: string): WinMonitorHandle[] {
 	return stdout
@@ -73,8 +95,13 @@ function parseMonitorHandleLines(stdout: string): WinMonitorHandle[] {
 export async function getMonitorHandlesAsync(): Promise<WinMonitorHandle[]> {
 	if (process.platform !== "win32") return [];
 
-	if (monitorHandleCache && Date.now() - monitorHandleCache.at < MONITOR_CACHE_TTL_MS) {
-		return monitorHandleCache.handles;
+	if (monitorHandleCache) {
+		const ttl = monitorHandleCache.failed
+			? MONITOR_FAILURE_CACHE_TTL_MS
+			: MONITOR_CACHE_TTL_MS;
+		if (Date.now() - monitorHandleCache.at < ttl) {
+			return monitorHandleCache.handles;
+		}
 	}
 
 	try {
@@ -87,12 +114,20 @@ export async function getMonitorHandlesAsync(): Promise<WinMonitorHandle[]> {
 				windowsHide: true,
 			},
 		);
-		monitorHandleCache = { at: Date.now(), handles: parseMonitorHandleLines(stdout) };
+		monitorHandleCache = {
+			at: Date.now(),
+			handles: parseMonitorHandleLines(stdout),
+			failed: false,
+		};
 	} catch {
 		// Silent failure is preferred; the caller will fall back to
 		// coordinate-based matching. Cache the empty result briefly so
 		// immediate retries don't hammer PowerShell again.
-		monitorHandleCache = { at: Date.now(), handles: [] };
+		monitorHandleCache = {
+			at: Date.now(),
+			handles: [],
+			failed: true,
+		};
 	}
 
 	return monitorHandleCache.handles;
@@ -124,4 +159,51 @@ export function getMonitorHandles(): WinMonitorHandle[] {
 	}
 
 	return parseMonitorHandleLines(result.stdout);
+}
+
+/**
+ * Matches an Electron display (DIP bounds + scale factor) to a physical-pixel
+ * monitor rect from the PowerShell probe, returning its HMONITOR handle.
+ *
+ * Physical rect = DIP bounds × display scaleFactor; a small tolerance absorbs
+ * per-driver rounding. Falls back to an origin-only match before giving up so
+ * the caller can decide between "trusted handle" and "coordinate fallback".
+ */
+export function findMonitorHandleForElectronDisplay(
+	display: {
+		bounds: { x: number; y: number; width: number; height: number };
+		scaleFactor?: number;
+	},
+	monitors: WinMonitorHandle[],
+	tolerancePx = 2,
+): WinMonitorHandle | null {
+	const sf = display.scaleFactor || 1;
+	const expected = {
+		x: Math.round(display.bounds.x * sf),
+		y: Math.round(display.bounds.y * sf),
+		width: Math.round(display.bounds.width * sf),
+		height: Math.round(display.bounds.height * sf),
+	};
+
+	const near = (actual: number, expectedValue: number) =>
+		Math.abs(actual - expectedValue) <= tolerancePx;
+
+	for (const monitor of monitors) {
+		if (
+			near(monitor.x, expected.x) &&
+			near(monitor.y, expected.y) &&
+			near(monitor.width, expected.width) &&
+			near(monitor.height, expected.height)
+		) {
+			return monitor;
+		}
+	}
+
+	for (const monitor of monitors) {
+		if (near(monitor.x, expected.x) && near(monitor.y, expected.y)) {
+			return monitor;
+		}
+	}
+
+	return null;
 }
