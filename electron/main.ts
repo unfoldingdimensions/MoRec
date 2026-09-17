@@ -28,7 +28,12 @@ import {
 	registerIpcHandlers,
 } from "./ipc/handlers";
 import {
+	setNativeScreenRecordingActive,
 	setWindowsCaptureStopRequested,
+	setWindowsCaptureTargetPath,
+	setWindowsCaptureTempPath,
+	setWindowsNativeCaptureActive,
+	setWindowsPendingVideoPath,
 	windowsCaptureProcess,
 	windowsCaptureTargetPath,
 	windowsNativeCaptureActive,
@@ -510,6 +515,48 @@ function isPrimaryTrayClick(event: unknown) {
 	return button === undefined || button === 0 || button === "left";
 }
 
+/**
+ * Last-resort stop for when no renderer can receive
+ * 'stop-recording-from-tray' (HUD destroyed mid-recording): write the stop
+ * command to the native capture helper from here and let the existing
+ * lifecycle salvage path (attachWindowsCaptureLifecycle / the wait below)
+ * finalize and relocate the take. Mirrors the before-quit finalize flow.
+ */
+function stopWindowsCaptureFromMainFallback(): boolean {
+	if (process.platform !== "win32" || !windowsNativeCaptureActive || !windowsCaptureProcess) {
+		return false;
+	}
+
+	const captureProc = windowsCaptureProcess;
+	setWindowsCaptureStopRequested(true);
+	void (async () => {
+		let finalizedPath: string | null = null;
+		try {
+			captureProc.stdin.write("stop\n");
+			const stoppedPath = await waitForWindowsCaptureStop(captureProc, 5_000);
+			const targetPath = windowsCaptureTargetPath;
+			if (stoppedPath && targetPath && stoppedPath !== targetPath) {
+				await moveFileWithOverwrite(stoppedPath, targetPath).catch(() => undefined);
+			}
+			finalizedPath = targetPath ?? stoppedPath;
+		} catch (error) {
+			console.warn("[tray] Could not finalize recording from main:", error);
+		}
+		killWindowsCaptureProcess();
+		setWindowsNativeCaptureActive(false);
+		setNativeScreenRecordingActive(false);
+		setWindowsCaptureTargetPath(null);
+		setWindowsCaptureTempPath(null);
+		if (finalizedPath) {
+			setWindowsPendingVideoPath(finalizedPath);
+		}
+		setHudOverlayRecordingActive(false);
+		updateTrayMenu(false);
+		showCursor();
+	})();
+	return true;
+}
+
 function createTray() {
 	tray = new Tray(getDefaultTrayIcon());
 	tray.on("click", (event) => {
@@ -768,7 +815,16 @@ function updateTrayMenu(recording: boolean = false) {
 				{
 					label: "Stop Recording",
 					click: () => {
-						dispatchStopRecordingFromTray();
+						// If the HUD renderer is gone the IPC broadcast lands on
+						// windows whose recorder hook is idle — finalize the native
+						// capture from main instead of dead-ending silently.
+						if (windowsNativeCaptureActive && !getHudOverlayWindow()) {
+							stopWindowsCaptureFromMainFallback();
+							return;
+						}
+						if (!dispatchStopRecordingFromTray()) {
+							stopWindowsCaptureFromMainFallback();
+						}
 					},
 				},
 			]
