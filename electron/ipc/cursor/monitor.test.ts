@@ -54,7 +54,7 @@ vi.mock("../state", () => {
 	};
 });
 
-import { startNativeCursorMonitor } from "./monitor";
+import { startNativeCursorMonitor, stopNativeCursorMonitor } from "./monitor";
 
 function createFakeHelperProcess() {
 	return {
@@ -81,5 +81,39 @@ describe("native cursor monitor spawn (Windows)", () => {
 		expect(spawnMock).toHaveBeenCalledTimes(1);
 		const options = spawnMock.mock.calls[0]?.[2] as { windowsHide?: boolean } | undefined;
 		expect(options?.windowsHide).toBe(true);
+	});
+
+	it("does not orphan the helper when stop lands during the async start", async () => {
+		// The helper binary check is in flight when stop arrives; the start
+		// must give up instead of spawning an untracked helper afterwards.
+		let releaseAccess!: () => void;
+		accessMock.mockImplementation(
+			() =>
+				new Promise<void>((resolve) => {
+					releaseAccess = resolve;
+				}),
+		);
+		spawnMock.mockImplementation(() => createFakeHelperProcess());
+
+		const startPromise = startNativeCursorMonitor();
+		await new Promise((resolve) => setTimeout(resolve, 0));
+
+		stopNativeCursorMonitor();
+		releaseAccess();
+		await startPromise;
+
+		expect(spawnMock).not.toHaveBeenCalled();
+	});
+
+	it("reaps a spawned helper when stop lands before registration", async () => {
+		const fakeProc = createFakeHelperProcess();
+		spawnMock.mockImplementation(() => fakeProc);
+
+		await startNativeCursorMonitor();
+		expect(spawnMock).toHaveBeenCalledTimes(1);
+
+		stopNativeCursorMonitor();
+		expect(fakeProc.stdin.write).toHaveBeenCalledWith("stop\n");
+		expect(fakeProc.kill).toHaveBeenCalled();
 	});
 });
