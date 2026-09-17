@@ -3,6 +3,8 @@
 #include "monitor_utils.h"
 #include "wasapi_loopback.h"
 
+#include <ShellScalingApi.h>
+
 #include <winrt/Windows.Foundation.h>
 #include <winrt/Windows.System.h>
 
@@ -275,6 +277,16 @@ static void stdinListenerThread() {
 }
 
 int main(int argc, char* argv[]) {
+    // Claim per-monitor-v2 DPI awareness before any window API runs so the
+    // physical-pixel monitor coordinates sent by the main process match what
+    // EnumDisplayMonitors reports here. Previously the parent forced
+    // __COMPAT_LAYER=HighDpiAware (system-aware), which virtualizes
+    // coordinates on secondary monitors whose scale differs from the system
+    // DPI and broke monitor matching on mixed-DPI setups.
+    if (!SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)) {
+        SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE);
+    }
+
     if (argc < 2) {
         std::cerr << "ERROR: Missing JSON config argument" << std::endl;
         return 1;

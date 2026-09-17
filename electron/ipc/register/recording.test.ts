@@ -121,6 +121,7 @@ describe("register/recording start orchestration (win32)", () => {
 		vi.doMock("../recording/windowsFallbacks", () => recordingWindowsFallbacks);
 		vi.doMock("../monitorResolver", () => ({
 			getMonitorHandlesAsync: vi.fn(async () => []),
+			findMonitorHandleForElectronDisplay: vi.fn(() => null),
 		}));
 		vi.doMock("../windowsCaptureSelection", () => ({
 			// Synchronous in the real module; the handler uses it without await.
@@ -365,6 +366,7 @@ describe("register/recording stop recovery (win32)", () => {
 		vi.doMock("../recording/windowsFallbacks", () => recordingWindowsFallbacks);
 		vi.doMock("../monitorResolver", () => ({
 			getMonitorHandlesAsync: vi.fn(async () => []),
+			findMonitorHandleForElectronDisplay: vi.fn(() => null),
 		}));
 		vi.doMock("../windowsCaptureSelection", () => ({
 			resolveWindowsCaptureTarget: vi.fn(() => ({
