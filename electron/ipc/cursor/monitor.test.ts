@@ -68,9 +68,16 @@ function createFakeHelperProcess() {
 
 describe("native cursor monitor spawn (Windows)", () => {
 	beforeEach(() => {
+		// CI runs on Linux; pin the win32 branch the helper takes so the test
+		// exercises the same spawn path on every platform.
+		vi.spyOn(process, "platform", "get").mockReturnValue("win32");
 		spawnMock.mockReset();
 		accessMock.mockReset();
 		accessMock.mockResolvedValue(undefined);
+	});
+
+	afterEach(() => {
+		vi.restoreAllMocks();
 	});
 
 	it("spawns the console-subsystem helper with windowsHide", async () => {
