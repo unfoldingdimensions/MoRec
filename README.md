@@ -71,6 +71,7 @@ Mo Rec features an extension architecture supporting custom frames, wallpapers, 
 - **Node.js 22** (the version used in CI)
 - **npm** (ships with Node.js)
 - **Git**
+- **Windows only:** [VS 2022 Build Tools](https://visualstudio.microsoft.com/downloads/) with the **"Desktop development with C++"** workload — required to compile the whisper runtime and native capture helpers from source
 
 ### Setup
 ```bash
@@ -84,6 +85,20 @@ npm run dev
 npm test
 ```
 
+### Build the Windows installer locally
+```bash
+npm run build:win
+```
+This compiles the native helpers, then produces the NSIS installer at
+`release/Mo Rec-windows-x64.exe`. Run that file to install the app.
+
+The build works fully offline once dependencies are installed (`npm ci` needs
+network once; the whisper source tarball is cached in `.tmp/whisper-runtime/`
+after the first build). The installed app itself is local-first: no account,
+no telemetry, recordings stay on your disk.
+
+Linux installers build with `npm run build:linux`.
+
 Packaging and publishing releases are covered in [RELEASING.md](RELEASING.md).
 
 ## Project Documentation
@@ -96,6 +111,10 @@ Packaging and publishing releases are covered in [RELEASING.md](RELEASING.md).
 MoRec continues the Recordly project, from which this codebase originates; legacy `.recordly` project files remain fully supported.
 
 MoRec is a modified version of [Recordly](https://github.com/webadderallorg/Recordly) (Copyright (C) 2026 webadderall, AGPL 3.0), which itself started as a fork of the OpenScreen project (Copyright (c) 2025 Siddharth Vaddem, MIT — preserved in [LICENSE.md](LICENSE.md)); legacy `.recordly` project files remain fully supported. MoRec's modifications are Copyright (C) 2026 Mo Rec Contributors, made beginning 2026-08-19, and are released under the same AGPL 3.0 as the rest of the project. See [NOTICE.md](NOTICE.md) for the full modification notice and the licenses of bundled third-party components (including the GPL-licensed ffmpeg binary).
+
+## Download
+
+Prebuilt installers are published on the [Releases](https://github.com/unfoldingdimensions/MoRec/releases) page. Download the installer for your platform, run it, and start recording — the app is local-first and works fully offline after installation. Every release tag is the exact source its binaries were built from, and each release ships `LICENSE.md` and `NOTICE.md` alongside the installers.
 
 ## License
 Mo Rec is licensed under the **AGPL 3.0** (SPDX: `AGPL-3.0-only`). See [LICENSE.md](LICENSE.md) and [NOTICE.md](NOTICE.md).
