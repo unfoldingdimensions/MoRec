@@ -96,20 +96,21 @@ function resolveUiohookModule(moduleExports: UiohookModuleNamespace) {
 }
 
 function shouldRepairBundledUiohookBinary(error: unknown): error is NodeJS.ErrnoException {
-	if (process.platform !== "darwin") {
-		return false;
-	}
-
-	if (process.arch !== "arm64") {
-		return false;
-	}
-
 	const candidate = error as NodeJS.ErrnoException | null;
-	return (
-		candidate?.code === "ERR_DLOPEN_FAILED" &&
-		typeof candidate.message === "string" &&
-		candidate.message.includes("incompatible architecture")
-	);
+	if (candidate?.code !== "ERR_DLOPEN_FAILED" || typeof candidate.message !== "string") {
+		return false;
+	}
+
+	if (process.platform === "darwin") {
+		return (
+			process.arch === "arm64" && candidate.message.includes("incompatible architecture")
+		);
+	}
+
+	// Windows dlopen failures carry no stable message; a locally rebuilt
+	// shadow binary diverging from the shipped N-API prebuild is the usual
+	// cause, and promoting the prebuild is exactly the cure.
+	return process.platform === "win32" && (process.arch === "x64" || process.arch === "arm64");
 }
 
 export function repairBundledUiohookBinaryForCurrentArch(
@@ -124,22 +125,26 @@ export function repairBundledUiohookBinaryForCurrentArch(
 	const platform = options?.platform ?? process.platform;
 	const arch = options?.arch ?? process.arch;
 
-	if (platform !== "darwin" || arch !== "arm64") {
+	const candidate = error as NodeJS.ErrnoException | null;
+	if (candidate?.code !== "ERR_DLOPEN_FAILED" || typeof candidate.message !== "string") {
 		return false;
 	}
 
-	const candidate = error as NodeJS.ErrnoException | null;
-	if (
-		candidate?.code !== "ERR_DLOPEN_FAILED" ||
-		typeof candidate.message !== "string" ||
-		!candidate.message.includes("incompatible architecture")
-	) {
+	if (platform === "darwin") {
+		if (arch !== "arm64" || !candidate.message.includes("incompatible architecture")) {
+			return false;
+		}
+	} else if (platform === "win32") {
+		if (arch !== "x64" && arch !== "arm64") {
+			return false;
+		}
+	} else {
 		return false;
 	}
 
 	const packageRoot =
 		options?.packageRoot ?? path.dirname(nodeRequire.resolve("uiohook-napi/package.json"));
-	const prebuildPath = path.join(packageRoot, "prebuilds", `darwin-${arch}`, "node.napi.node");
+	const prebuildPath = path.join(packageRoot, "prebuilds", `${platform}-${arch}`, "node.napi.node");
 	const buildPath = path.join(packageRoot, "build", "Release", "uiohook_napi.node");
 
 	if (!fs.existsSync(prebuildPath)) {
@@ -150,7 +155,7 @@ export function repairBundledUiohookBinaryForCurrentArch(
 		fs.mkdirSync(path.dirname(buildPath), { recursive: true });
 		fs.copyFileSync(prebuildPath, buildPath);
 		(options?.log ?? console.warn)(
-			"[CursorTelemetry] Repaired stale uiohook-napi binary using bundled darwin-arm64 prebuild.",
+			`[CursorTelemetry] Repaired stale uiohook-napi binary using bundled ${platform}-${arch} prebuild.`,
 		);
 		return true;
 	} catch {
