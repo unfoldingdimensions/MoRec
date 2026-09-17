@@ -74,6 +74,17 @@ describe("monitorResolver", () => {
 		expect(await getMonitorHandlesAsync()).toEqual([]);
 		expect(await getMonitorHandlesAsync()).toEqual([]);
 		expect(execFileMock).toHaveBeenCalledTimes(1);
+
+		// A cached failure expires far sooner than a success so a record start
+		// shortly after a transient hiccup still resolves handles.
+		vi.useFakeTimers();
+		try {
+			await vi.advanceTimersByTimeAsync(1_500);
+			await getMonitorHandlesAsync();
+			expect(execFileMock).toHaveBeenCalledTimes(2);
+		} finally {
+			vi.useRealTimers();
+		}
 	});
 
 	it("maps garbage output lines to NaN fields rather than throwing", async () => {

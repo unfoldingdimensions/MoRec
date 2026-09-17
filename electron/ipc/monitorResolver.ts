@@ -64,7 +64,16 @@ try {
 `.trim();
 
 const MONITOR_CACHE_TTL_MS = 10_000;
-let monitorHandleCache: { at: number; handles: WinMonitorHandle[] } | null = null;
+// Failures are cached only briefly: a full TTL on an empty result would make
+// a transient PowerShell hiccup skip handle resolution (and its monitor
+// matching) for record starts within the window. Hot-plugged monitors also
+// refresh 10x sooner this way.
+const MONITOR_FAILURE_CACHE_TTL_MS = 1_000;
+let monitorHandleCache: {
+	at: number;
+	handles: WinMonitorHandle[];
+	failed: boolean;
+} | null = null;
 
 function parseMonitorHandleLines(stdout: string): WinMonitorHandle[] {
 	return stdout
@@ -86,8 +95,13 @@ function parseMonitorHandleLines(stdout: string): WinMonitorHandle[] {
 export async function getMonitorHandlesAsync(): Promise<WinMonitorHandle[]> {
 	if (process.platform !== "win32") return [];
 
-	if (monitorHandleCache && Date.now() - monitorHandleCache.at < MONITOR_CACHE_TTL_MS) {
-		return monitorHandleCache.handles;
+	if (monitorHandleCache) {
+		const ttl = monitorHandleCache.failed
+			? MONITOR_FAILURE_CACHE_TTL_MS
+			: MONITOR_CACHE_TTL_MS;
+		if (Date.now() - monitorHandleCache.at < ttl) {
+			return monitorHandleCache.handles;
+		}
 	}
 
 	try {
@@ -100,12 +114,20 @@ export async function getMonitorHandlesAsync(): Promise<WinMonitorHandle[]> {
 				windowsHide: true,
 			},
 		);
-		monitorHandleCache = { at: Date.now(), handles: parseMonitorHandleLines(stdout) };
+		monitorHandleCache = {
+			at: Date.now(),
+			handles: parseMonitorHandleLines(stdout),
+			failed: false,
+		};
 	} catch {
 		// Silent failure is preferred; the caller will fall back to
 		// coordinate-based matching. Cache the empty result briefly so
 		// immediate retries don't hammer PowerShell again.
-		monitorHandleCache = { at: Date.now(), handles: [] };
+		monitorHandleCache = {
+			at: Date.now(),
+			handles: [],
+			failed: true,
+		};
 	}
 
 	return monitorHandleCache.handles;
