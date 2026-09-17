@@ -55,18 +55,14 @@ describe("resolveWindowsCaptureDisplay", () => {
 		});
 	});
 
-	it("keeps the requested display id even if Electron cannot rematch it, while using primary bounds", () => {
+	it("returns null when the requested display id no longer matches any live display", () => {
 		const resolved = resolveWindowsCaptureDisplay(
 			{ display_id: "303" },
 			[primaryDisplay, secondaryDisplay],
 			primaryDisplay,
 		);
 
-		expect(resolved).toEqual({
-			displayId: 303,
-			bounds: primaryDisplay.bounds,
-			scaleFactor: 1,
-		});
+		expect(resolved).toBeNull();
 	});
 });
 
@@ -115,6 +111,16 @@ describe("resolveWindowsCaptureTarget", () => {
 		expect(resolved).toEqual({
 			kind: "invalid-window",
 		});
+	});
+
+	it("does not silently record the primary when the selected display is gone", () => {
+		const resolved = resolveWindowsCaptureTarget(
+			{ id: "screen:303:0", sourceType: "screen", display_id: "303" },
+			[primaryDisplay, secondaryDisplay],
+			primaryDisplay,
+		);
+
+		expect(resolved).toEqual({ kind: "invalid-display" });
 	});
 
 	it("keeps display capture behavior for selected screens", () => {

@@ -579,7 +579,10 @@ export function registerRecordingHandlers(
 						fps: 60,
 					};
 
-					if (captureTarget.kind === "invalid-window") {
+					if (
+						captureTarget.kind === "invalid-window" ||
+						captureTarget.kind === "invalid-display"
+					) {
 						// The staged target/temp paths were set before the target was
 						// resolved; clear them so the failure leaves no stale capture
 						// state behind for a later stop/recover call to trip over.
@@ -593,7 +596,9 @@ export function registerRecordingHandlers(
 						return {
 							success: false,
 							message:
-								"Selected window is no longer available. Please choose the window again.",
+								captureTarget.kind === "invalid-window"
+									? "Selected window is no longer available. Please choose the window again."
+									: "Selected display is no longer available. Please choose the source again.",
 						};
 					}
 
