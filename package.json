@@ -4,7 +4,7 @@
 	"description": "A free, creator-focused screen recorder and editor with auto-zoom, cursor effects, backgrounds, annotations, and more.",
 	"license": "AGPL-3.0-only",
 	"private": true,
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"type": "module",
 	"scripts": {
 		"dev": "vite --config vite.config.ts",
