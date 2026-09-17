@@ -1,3 +1,5 @@
+> **Status (2026-09-17):** Resolved — the review's findings were fixed and merged to main in a follow-up fix pass (see repository history after 2026-09-13). This file is the record copy of review PR #1.
+
 # Recording Lifecycle Review — Windows (hooks scope)
 
 > **Status update (2026-09-14): all findings fixed.** The fix series lives on the same branch as this report (PR #1), one commit per finding, each verified by the real-hook test coverage introduced in the M1 fix. See [Fix status](#fix-status) at the end.

@@ -1,3 +1,5 @@
+> **Status (2026-09-17):** Resolved. The five High findings were fixed in PR #24. Consolidated to main with review PR #5; this file is the record copy.
+
 # Export pipeline review — Windows, 2026-09-13
 
 Review only — no code changes proposed or made. Findings are ordered by severity; every
