@@ -40,6 +40,14 @@ export function shouldForceLinuxEgl(env: NodeJS.ProcessEnv): boolean {
 	return !env.WAYLAND_DISPLAY;
 }
 
+// Opt-out for machines with blacklisted/flaky GPU drivers where the forced
+// Chromium switches do more harm than good: set MOREC_DISABLE_GPU_OVERRIDES=1
+// and the app starts with stock Chromium GPU behavior.
+export function shouldApplyGpuOverrides(env: NodeJS.ProcessEnv): boolean {
+	const value = env.MOREC_DISABLE_GPU_OVERRIDES?.trim().toLowerCase();
+	return value !== "1" && value !== "true";
+}
+
 export function getGpuSwitches(
 	platform: NodeJS.Platform,
 	env: NodeJS.ProcessEnv = process.env,

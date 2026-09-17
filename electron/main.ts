@@ -19,7 +19,7 @@ import {
 import { RECORDINGS_DIR } from "./appPaths";
 import { showCursor } from "./cursorHider";
 import { registerExtensionIpcHandlers } from "./extensions/extensionIpc";
-import { getGpuSwitches } from "./gpuSwitches";
+import { getGpuSwitches, shouldApplyGpuOverrides } from "./gpuSwitches";
 import {
 	cleanupAllExportStreams,
 	cleanupNativeVideoExportSessions,
@@ -87,9 +87,11 @@ function ignoreBrokenConsolePipe(stream: NodeJS.WritableStream | undefined) {
 ignoreBrokenConsolePipe(process.stdout);
 ignoreBrokenConsolePipe(process.stderr);
 
-app.commandLine.appendSwitch("ignore-gpu-blocklist");
-app.commandLine.appendSwitch("enable-unsafe-webgpu");
-app.commandLine.appendSwitch("enable-gpu-rasterization");
+if (shouldApplyGpuOverrides(process.env)) {
+	app.commandLine.appendSwitch("ignore-gpu-blocklist");
+	app.commandLine.appendSwitch("enable-unsafe-webgpu");
+	app.commandLine.appendSwitch("enable-gpu-rasterization");
+}
 
 app.on("web-contents-created", (_event, contents) => {
 	if (!shouldHardenWebContentsType(contents.getType())) {
@@ -100,6 +102,9 @@ app.on("web-contents-created", (_event, contents) => {
 });
 
 function configureGpuAccelerationSwitches() {
+	if (!shouldApplyGpuOverrides(process.env)) {
+		return;
+	}
 	const { useAngle, useGl, disableFeatures } = getGpuSwitches(process.platform, process.env);
 	if (useAngle) {
 		app.commandLine.appendSwitch("use-angle", useAngle);
