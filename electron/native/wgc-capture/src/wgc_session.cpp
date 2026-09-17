@@ -123,6 +123,18 @@ bool WgcSession::initializeWithItem(int fps) {
     framePoolWidth_ = size.Width;
     framePoolHeight_ = size.Height;
 
+    // Finalize the take when the capture target disappears (monitor
+    // unplugged, captured window closed). Without this the frame pool simply
+    // goes quiet and the helper waits forever for frames that never arrive.
+    closedRevoker_ = captureItem_.Closed(
+        winrt::auto_revoke,
+        [this](winrt::Windows::Graphics::Capture::GraphicsCaptureItem const&,
+               winrt::Windows::Foundation::IInspectable const&) {
+            std::cerr << "WARNING: Capture item closed (display or window gone)" << std::endl;
+            capturing_ = false;
+            captureLost_ = true;
+        });
+
     framePool_ = winrt::Windows::Graphics::Capture::Direct3D11CaptureFramePool::CreateFreeThreaded(
         winrtDevice_,
         winrt::Windows::Graphics::DirectX::DirectXPixelFormat::B8G8R8A8UIntNormalized,
@@ -233,6 +245,7 @@ bool WgcSession::startCapture() {
 void WgcSession::stopCapture() {
     capturing_ = false;
 
+    closedRevoker_.revoke();
     frameArrivedRevoker_.revoke();
 
     if (session_) {

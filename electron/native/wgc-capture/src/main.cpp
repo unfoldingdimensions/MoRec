@@ -409,7 +409,9 @@ int main(int argc, char* argv[]) {
     }
 
     // Wait for stop signal while pausing/resuming audio tracks in lockstep.
-    while (!g_stopRequested && !session.hasFatalError()) {
+    // A lost capture item (monitor unplugged, captured window closed) ends
+    // the loop too so the partial take is finalized instead of hanging.
+    while (!g_stopRequested && !session.hasFatalError() && !session.captureLost()) {
         if (g_pauseRequested) {
             if (audioActive) loopback.pause();
             if (micActive) micCapture.pause();
@@ -445,6 +447,11 @@ int main(int argc, char* argv[]) {
             DeleteFileW(micMetadataPathW.c_str());
         }
         return 1;
+    }
+
+    if (session.captureLost()) {
+        std::cerr << "WARNING: Capture target lost mid-recording; finalizing the partial take"
+                  << std::endl;
     }
 
     if (audioActive) {
