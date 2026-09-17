@@ -284,6 +284,12 @@ describe("register/recording start orchestration (win32)", () => {
 
 		expect(result).toEqual({ success: true, microphoneFallbackRequired: false });
 		expect(spawnMock).toHaveBeenCalledTimes(1);
+		// Console-subsystem helper must not open a visible console window.
+		expect(spawnMock).toHaveBeenCalledWith(
+			expect.anything(),
+			expect.anything(),
+			expect.objectContaining({ windowsHide: true }),
+		);
 	});
 
 	it("switches to browser mic fallback when the WASAPI warning lands after start", async () => {

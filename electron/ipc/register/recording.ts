@@ -680,6 +680,10 @@ export function registerRecordingHandlers(
 					wcProc = spawn(exePath, [JSON.stringify(config)], {
 						cwd: recordingsDir,
 						stdio: ["pipe", "pipe", "pipe"],
+						// Console-subsystem helper: without windowsHide a visible
+						// console window opens on the desktop (and can land in the
+						// captured region) for the whole recording.
+						windowsHide: true,
 						env: { ...process.env, __COMPAT_LAYER: "HighDpiAware" },
 					});
 					// The stop path writes "stop\n"; if the helper already died, that

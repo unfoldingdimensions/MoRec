@@ -104,6 +104,9 @@ export async function startNativeCursorMonitor() {
 		try {
 			proc = spawn(helperPath, [], {
 				stdio: ["pipe", "pipe", "pipe"],
+				// Console-subsystem helper: without windowsHide a visible console
+				// window stays on the desktop for the whole recording session.
+				windowsHide: true,
 			});
 		} catch (spawnError) {
 			console.warn("Failed to spawn cursor monitor:", spawnError);
