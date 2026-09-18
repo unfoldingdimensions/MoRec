@@ -27,6 +27,19 @@
 		"existsOrNoSpace": "Une zone de vitesse existe déjà à cet emplacement ou il n’y a pas assez d’espace disponible.",
 		"label": "Vitesse"
 	},
+	"silence": {
+		"removeDeadAir": "Supprimer les silences",
+		"analyzingAudio": "Analyse audio…",
+		"removedSilentSpans": "{{count}} passage(s) silencieux supprimé(s) ({{seconds}}s)",
+		"notEnoughSilence": "Pas assez de silence à couper",
+		"analysisFailed": "Impossible d'analyser l'audio de cet enregistrement."
+	},
+	"autospeed": {
+		"speedUpTyping": "Accélérer la frappe",
+		"speedUpDeadAir": "Accélérer les silences",
+		"addedSpeedRegions": "{{count}} zone(s) de vitesse ajoutée(s)",
+		"nothingToSpeedUp": "Rien à accélérer"
+	},
 	"annotation": {
 		"label": "Annotation",
 		"image": "Image",

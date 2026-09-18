@@ -93,7 +93,8 @@ export type CursorInteractionType =
 	| "double-click"
 	| "right-click"
 	| "middle-click"
-	| "mouseup";
+	| "mouseup"
+	| "key";
 
 export interface CursorTelemetryPoint {
 	timeMs: number;
@@ -117,7 +118,7 @@ export type NativeMacWindowSource = {
 	height?: number;
 };
 
-export type HookEventName = "mousedown" | "mouseup" | "mousemove";
+export type HookEventName = "mousedown" | "mouseup" | "mousemove" | "keydown";
 
 export type HookMouseEvent = {
 	button?: number;
@@ -136,15 +137,30 @@ export type HookMouseEvent = {
 	};
 };
 
+/** uiohook keydown event. Only its arrival time is recorded — never key content. */
+export type HookKeyboardEvent = {
+	keychar?: string | null;
+	keycode?: number;
+	data?: {
+		keychar?: string | null;
+		keycode?: number;
+	};
+};
+
 export type HookEventListener = (event: HookMouseEvent) => void;
 
-export type UiohookLike = {
-	on: (eventName: HookEventName, listener: HookEventListener) => void;
-	off?: (eventName: HookEventName, listener: HookEventListener) => void;
-	removeListener?: (eventName: HookEventName, listener: HookEventListener) => void;
+export type HookKeyboardListener = (event: HookKeyboardEvent) => void;
+
+export interface UiohookLike {
+	on(eventName: HookEventName, listener: HookEventListener | HookKeyboardListener): void;
+	off?(eventName: HookEventName, listener: HookEventListener | HookKeyboardListener): void;
+	removeListener?(
+		eventName: HookEventName,
+		listener: HookEventListener | HookKeyboardListener,
+	): void;
 	start: () => void;
 	stop?: () => void;
-};
+}
 
 export type UiohookModuleNamespace = {
 	uIOhook?: UiohookLike;

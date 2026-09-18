@@ -115,6 +115,30 @@ describe("cursor telemetry pause clock", () => {
 		expect(rm).not.toHaveBeenCalled();
 	});
 
+	it("loads legacy v2 payloads unchanged and normalizes v3 key events", () => {
+		// A v2 payload only ever carries the six pre-v3 interaction types; every
+		// field must survive the v3 normalizer untouched.
+		const v2Payload = [
+			{ timeMs: 5, cx: 0.1, cy: 0.2, interactionType: "click", cursorType: "arrow" },
+			{ timeMs: 15, cx: 0.3, cy: 0.4, interactionType: "mouseup" },
+		];
+		expect(normalizeCursorTelemetrySamples(v2Payload)).toEqual([
+			{ timeMs: 5, cx: 0.1, cy: 0.2, interactionType: "click", cursorType: "arrow" },
+			{ timeMs: 15, cx: 0.3, cy: 0.4, interactionType: "mouseup", cursorType: undefined },
+		]);
+
+		// v3 key events survive normalization; unknown interaction types do not.
+		expect(
+			normalizeCursorTelemetrySamples([
+				{ timeMs: 20, cx: 0.5, cy: 0.6, interactionType: "key" },
+				{ timeMs: 25, cx: 0.7, cy: 0.8, interactionType: "keystroke" },
+			]),
+		).toEqual([
+			{ timeMs: 20, cx: 0.5, cy: 0.6, interactionType: "key", cursorType: undefined },
+			{ timeMs: 25, cx: 0.7, cy: 0.8, interactionType: undefined, cursorType: undefined },
+		]);
+	});
+
 	it("removes the sidecar when saving an empty cursor telemetry payload", async () => {
 		await writeCursorTelemetry("/tmp/recording.mp4", []);
 

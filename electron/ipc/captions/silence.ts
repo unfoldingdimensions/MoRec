@@ -1,4 +1,5 @@
 import type { CaptionCuePayload, CaptionWordPayload } from "../types";
+import type { SilenceInterval } from "../ffmpeg/silencedetect";
 import { buildCaptionTextFromWords } from "./parser";
 
 /**
@@ -14,10 +15,11 @@ import { buildCaptionTextFromWords } from "./parser";
  * by a long pause is merged; a region with no speech is dropped (drops hallucinations).
  */
 
-/** ffmpeg `silencedetect` noise floor. Quieter than this counts as silence. */
-export const SILENCE_NOISE_DB = -30;
-/** ffmpeg `silencedetect` minimum silence duration (seconds) it should report at all. */
-export const SILENCE_DETECT_MIN_S = 0.5;
+// The silencedetect plumbing (constants + stderr parser) lives in ffmpeg/ and is
+// shared with the companion-audio silence analyzer; re-exported here so caption
+// pipeline imports keep their existing site.
+export { parseSilenceIntervals, SILENCE_DETECT_MIN_S, SILENCE_NOISE_DB } from "../ffmpeg/silencedetect";
+export type { SilenceInterval } from "../ffmpeg/silencedetect";
 
 /** A pause must be at least this long (ms) to break one phrase into two. The "sensitivity" knob. */
 const DEFAULT_SPLIT_SILENCE_MS = 1_500;
@@ -25,12 +27,6 @@ const DEFAULT_SPLIT_SILENCE_MS = 1_500;
 const DEFAULT_EDGE_PAD_MS = 80;
 /** Speech regions shorter than this (ms) are dropped as artifacts. */
 const DEFAULT_MIN_SPEECH_MS = 150;
-
-export interface SilenceInterval {
-	startMs: number;
-	/** `Number.POSITIVE_INFINITY` for a trailing silence that runs to end-of-audio. */
-	endMs: number;
-}
 
 export interface ResegmentOptions {
 	/** Minimum pause (ms) that splits a phrase. Higher = fewer splits. */
@@ -49,41 +45,6 @@ interface Span {
 interface CaptionPiece extends Span {
 	text: string;
 	words?: CaptionWordPayload[];
-}
-
-/**
- * Parse ffmpeg `silencedetect` stderr into ordered, non-overlapping silence intervals.
- * Lines look like:
- *   [silencedetect @ 0x..] silence_start: 12.34
- *   [silencedetect @ 0x..] silence_end: 15.67 | silence_duration: 3.33
- */
-export function parseSilenceIntervals(stderr: string): SilenceInterval[] {
-	const intervals: SilenceInterval[] = [];
-	let pendingStartMs: number | null = null;
-
-	for (const line of stderr.split(/\r?\n/)) {
-		const startMatch = line.match(/silence_start:\s*(-?[\d.]+)/);
-		if (startMatch) {
-			pendingStartMs = Math.max(0, Math.round(Number.parseFloat(startMatch[1]) * 1000));
-			continue;
-		}
-
-		const endMatch = line.match(/silence_end:\s*(-?[\d.]+)/);
-		if (endMatch && pendingStartMs !== null) {
-			const endMs = Math.round(Number.parseFloat(endMatch[1]) * 1000);
-			if (endMs > pendingStartMs) {
-				intervals.push({ startMs: pendingStartMs, endMs });
-			}
-			pendingStartMs = null;
-		}
-	}
-
-	// A trailing silence_start with no matching end runs to the end of the audio.
-	if (pendingStartMs !== null) {
-		intervals.push({ startMs: pendingStartMs, endMs: Number.POSITIVE_INFINITY });
-	}
-
-	return intervals.sort((left, right) => left.startMs - right.startMs);
 }
 
 /** Subtract a set of (sorted, non-overlapping) intervals from [startMs, endMs]. */

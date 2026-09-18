@@ -5,6 +5,7 @@ import path from "node:path";
 import { promisify } from "node:util";
 import { app } from "electron";
 import { getFfmpegBinaryPath } from "../ffmpeg/binary";
+import { runSilenceDetect, type SilenceInterval } from "../ffmpeg/silencedetect";
 import { getBundledWhisperExecutableCandidates } from "../paths/binaries";
 import { getUsableCompanionAudioCandidates } from "../recording/diagnostics";
 import { resolveRecordingSession } from "../project/session";
@@ -13,12 +14,6 @@ import { normalizeVideoSourcePath } from "../utils";
 import type { CaptionCuePayload } from "../types";
 import { parseSrtCues, parseWhisperJsonCues, shouldRetryWhisperWithoutJson } from "./parser";
 import { segmentCuesIntoPhrases } from "./segment";
-import {
-	parseSilenceIntervals,
-	SILENCE_DETECT_MIN_S,
-	SILENCE_NOISE_DB,
-	type SilenceInterval,
-} from "./silence";
 
 const execFileAsync = promisify(execFile);
 
@@ -250,24 +245,7 @@ export async function detectSilenceIntervals(options: {
 	ffmpegPath: string;
 	wavPath: string;
 }): Promise<SilenceInterval[]> {
-	// ffmpeg writes silencedetect results to stderr; the null muxer just runs the filter.
-	const { stderr } = await execFileAsync(
-		options.ffmpegPath,
-		[
-			"-hide_banner",
-			"-nostats",
-			"-i",
-			options.wavPath,
-			"-af",
-			`silencedetect=noise=${SILENCE_NOISE_DB}dB:d=${SILENCE_DETECT_MIN_S}`,
-			"-f",
-			"null",
-			"-",
-		],
-		{ timeout: 5 * 60 * 1000, maxBuffer: 20 * 1024 * 1024 },
-	);
-
-	return parseSilenceIntervals(stderr ?? "");
+	return runSilenceDetect({ ffmpegPath: options.ffmpegPath, audioPath: options.wavPath });
 }
 
 export async function generateAutoCaptionsFromVideo(options: {

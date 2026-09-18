@@ -27,6 +27,19 @@
 		"existsOrNoSpace": "此位置已存在变速区域或空间不足。",
 		"label": "变速"
 	},
+	"silence": {
+		"removeDeadAir": "删除静音",
+		"analyzingAudio": "正在分析音频…",
+		"removedSilentSpans": "已删除 {{count}} 个静音片段（{{seconds}} 秒）",
+		"notEnoughSilence": "没有足够的静音可删除",
+		"analysisFailed": "无法分析此录制的音频。"
+	},
+	"autospeed": {
+		"speedUpTyping": "加速打字",
+		"speedUpDeadAir": "加速静音",
+		"addedSpeedRegions": "已添加 {{count}} 个变速区域",
+		"nothingToSpeedUp": "没有可加速的内容"
+	},
 	"annotation": {
 		"label": "注释",
 		"image": "图片",

@@ -27,6 +27,19 @@
 		"existsOrNoSpace": "이 위치에는 이미 속도 구간이 있거나 사용할 수 있는 공간이 부족합니다.",
 		"label": "속도"
 	},
+	"silence": {
+		"removeDeadAir": "무음 구간 제거",
+		"analyzingAudio": "오디오 분석 중…",
+		"removedSilentSpans": "무음 구간 {{count}}개를 제거했습니다 ({{seconds}}초)",
+		"notEnoughSilence": "잘라낼 무음 구간이 충분하지 않습니다",
+		"analysisFailed": "이 녹화의 오디오를 분석할 수 없습니다."
+	},
+	"autospeed": {
+		"speedUpTyping": "타이핑 속도 높이기",
+		"speedUpDeadAir": "무음 구간 속도 높이기",
+		"addedSpeedRegions": "속도 구간 {{count}}개를 추가했습니다",
+		"nothingToSpeedUp": "빠르게 재생할 구간이 없습니다"
+	},
 	"annotation": {
 		"label": "주석",
 		"image": "이미지",
