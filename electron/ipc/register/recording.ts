@@ -48,11 +48,12 @@ import {
 	rememberApprovedLocalReadPath,
 } from "../project/manager";
 import { writeProjectFileAtomically } from "../project/atomicSave";
-	import {
-		getBrowserMicSidecarFilters,
-		getBrowserMicSidecarTimeoutMs,
-		shouldKeepRecordingAudioSidecars,
-	} from "../recording/audioFilters";
+import { analyzeCompanionAudioSilenceFromVideo } from "../recording/companionSilence";
+import {
+	getBrowserMicSidecarFilters,
+	getBrowserMicSidecarTimeoutMs,
+	shouldKeepRecordingAudioSidecars,
+} from "../recording/audioFilters";
 import {
 	getCompanionAudioFallbackInfo,
 	getFileSizeIfPresent,
@@ -1593,6 +1594,37 @@ export function registerRecordingHandlers(
 	ipcMain.handle("get-last-native-capture-diagnostics", async () => {
 		return { success: true, diagnostics: lastNativeCaptureDiagnostics };
 	});
+
+	// Silence analysis for the editor's dead-air trim/speed suggestions.
+	// Companion sidecar audio first, then the video's own embedded audio.
+	ipcMain.handle(
+		"analyze-companion-audio-silence",
+		async (_, videoPath?: string, options?: { totalDurationMs?: number }) => {
+			const targetVideoPath = normalizeVideoSourcePath(videoPath ?? currentVideoPath);
+			// Unapproved paths answer exactly like the "no path" case so the gate
+			// cannot double as an oracle for which paths exist on disk.
+			if (!targetVideoPath || !isAllowedLocalReadPath(targetVideoPath)) {
+				return { success: true, intervals: [], usedSource: "video" };
+			}
+
+			try {
+				const analysis = await analyzeCompanionAudioSilenceFromVideo({
+					videoPath: targetVideoPath,
+					totalDurationMs: options?.totalDurationMs,
+				});
+				return { success: true, ...analysis };
+			} catch (error) {
+				console.error("Failed to analyze companion audio silence:", error);
+				return {
+					success: false,
+					intervals: [],
+					usedSource: "video",
+					error: String(error),
+				};
+			}
+		},
+	);
+
 
 	ipcMain.handle("get-video-audio-fallback-paths", async (_event, videoPath: string) => {
 		if (!videoPath) {

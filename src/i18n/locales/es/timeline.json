@@ -27,6 +27,19 @@
 		"existsOrNoSpace": "Ya existe una región de velocidad en esta ubicación o no hay suficiente espacio.",
 		"label": "Velocidad"
 	},
+	"silence": {
+		"removeDeadAir": "Eliminar los silencios",
+		"analyzingAudio": "Analizando audio…",
+		"removedSilentSpans": "Se eliminaron {{count}} fragmento(s) silencioso(s) ({{seconds}}s)",
+		"notEnoughSilence": "No hay suficiente silencio para recortar",
+		"analysisFailed": "No se pudo analizar el audio de esta grabación."
+	},
+	"autospeed": {
+		"speedUpTyping": "Acelerar la escritura",
+		"speedUpDeadAir": "Acelerar los silencios",
+		"addedSpeedRegions": "Se agregaron {{count}} región(es) de velocidad",
+		"nothingToSpeedUp": "Nada que acelerar"
+	},
 	"annotation": {
 		"label": "Anotación",
 		"image": "Imagen",

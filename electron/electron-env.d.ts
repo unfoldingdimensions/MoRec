@@ -706,6 +706,15 @@ interface Window {
 			message?: string;
 			error?: string;
 		}>;
+		analyzeCompanionAudioSilence: (options: {
+			videoPath: string;
+			totalDurationMs?: number;
+		}) => Promise<{
+			success: boolean;
+			intervals?: Array<{ startMs: number; endMs: number }>;
+			usedSource?: "system" | "mic" | "video";
+			error?: string;
+		}>;
 		setCurrentVideoPath: (
 			path: string,
 			options?: {
@@ -974,7 +983,8 @@ interface CursorTelemetryPoint {
 		| "double-click"
 		| "right-click"
 		| "middle-click"
-		| "mouseup";
+		| "mouseup"
+		| "key";
 	cursorType?:
 		| "arrow"
 		| "text"

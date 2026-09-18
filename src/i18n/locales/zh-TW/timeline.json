@@ -27,6 +27,19 @@
 		"existsOrNoSpace": "此位置已存在速度區域，或可用空間不足。",
 		"label": "速度"
 	},
+	"silence": {
+		"removeDeadAir": "刪除靜音",
+		"analyzingAudio": "正在分析音訊…",
+		"removedSilentSpans": "已刪除 {{count}} 個靜音片段（{{seconds}} 秒）",
+		"notEnoughSilence": "沒有足夠的靜音可刪除",
+		"analysisFailed": "無法分析此錄製的音訊。"
+	},
+	"autospeed": {
+		"speedUpTyping": "加速打字",
+		"speedUpDeadAir": "加速靜音",
+		"addedSpeedRegions": "已新增 {{count}} 個變速區域",
+		"nothingToSpeedUp": "沒有可加速的內容"
+	},
 	"annotation": {
 		"label": "註解",
 		"image": "圖片",

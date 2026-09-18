@@ -549,6 +549,10 @@ describe("register/recording renderer path gates", () => {
 		validateRecordedVideo: ReturnType<typeof vi.fn>;
 		writeRecordingDiagnosticsSnapshot: ReturnType<typeof vi.fn>;
 	};
+	let companionSilenceMock: {
+		analyzeCompanionAudioSilenceFromVideo: ReturnType<typeof vi.fn>;
+		extractEmbeddedAudioToWav: ReturnType<typeof vi.fn>;
+	};
 
 	const makeOutsideVideoPath = async () => {
 		const outsideDir = path.join(fixtureRoot, "outside");
@@ -596,6 +600,11 @@ describe("register/recording renderer path gates", () => {
 			writeRecordingDiagnosticsSnapshot: vi.fn(async () => null),
 		};
 		vi.doMock("../recording/diagnostics", () => diagnosticsMock);
+		companionSilenceMock = {
+			analyzeCompanionAudioSilenceFromVideo: vi.fn(),
+			extractEmbeddedAudioToWav: vi.fn(),
+		};
+		vi.doMock("../recording/companionSilence", () => companionSilenceMock);
 
 		const { registerRecordingHandlers } = await import("./recording");
 		registerRecordingHandlers();
@@ -608,6 +617,7 @@ describe("register/recording renderer path gates", () => {
 		vi.doUnmock("node:child_process");
 		vi.doUnmock("../ffmpeg/binary");
 		vi.doUnmock("../recording/diagnostics");
+		vi.doUnmock("../recording/companionSilence");
 		await fs.rm(fixtureRoot, { recursive: true, force: true });
 	});
 
@@ -696,5 +706,61 @@ describe("register/recording renderer path gates", () => {
 			samples: [],
 		});
 		expect(readFileSpy).not.toHaveBeenCalled();
+	});
+
+	it("analyze-companion-audio-silence answers like no-path for an unapproved path", async () => {
+		const videoPath = await makeOutsideVideoPath();
+
+		expect(
+			await registry.invoke("analyze-companion-audio-silence", videoPath, {
+				totalDurationMs: 1000,
+			}),
+		).toEqual({ success: true, intervals: [], usedSource: "video" });
+		expect(companionSilenceMock.analyzeCompanionAudioSilenceFromVideo).not.toHaveBeenCalled();
+	});
+
+	it("analyze-companion-audio-silence analyzes an approved recording", async () => {
+		const recordingsDir = path.join(fixtureRoot, "userData", "recordings");
+		await fs.mkdir(recordingsDir, { recursive: true });
+		const videoPath = path.join(recordingsDir, "recording-42.webm");
+		await fs.writeFile(videoPath, "video");
+		companionSilenceMock.analyzeCompanionAudioSilenceFromVideo.mockResolvedValue({
+			intervals: [{ startMs: 100, endMs: 900 }],
+			usedSource: "mic",
+		});
+
+		expect(
+			await registry.invoke("analyze-companion-audio-silence", videoPath, {
+				totalDurationMs: 5000,
+			}),
+		).toEqual({
+			success: true,
+			intervals: [{ startMs: 100, endMs: 900 }],
+			usedSource: "mic",
+		});
+		expect(companionSilenceMock.analyzeCompanionAudioSilenceFromVideo).toHaveBeenCalledWith({
+			videoPath,
+			totalDurationMs: 5000,
+		});
+	});
+
+	it("analyze-companion-audio-silence reports analyzer failures without throwing", async () => {
+		const recordingsDir = path.join(fixtureRoot, "userData", "recordings");
+		await fs.mkdir(recordingsDir, { recursive: true });
+		const videoPath = path.join(recordingsDir, "recording-42.webm");
+		await fs.writeFile(videoPath, "video");
+		companionSilenceMock.analyzeCompanionAudioSilenceFromVideo.mockRejectedValue(
+			new Error("no audio"),
+		);
+
+		const result = (await registry.invoke("analyze-companion-audio-silence", videoPath)) as {
+			success: boolean;
+			intervals: unknown[];
+			error: string;
+		};
+
+		expect(result.success).toBe(false);
+		expect(result.intervals).toEqual([]);
+		expect(result.error).toContain("no audio");
 	});
 });

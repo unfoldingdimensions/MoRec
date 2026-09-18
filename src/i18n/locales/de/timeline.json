@@ -27,6 +27,19 @@
 		"existsOrNoSpace": "Geschwindigkeitsbereich existiert bereits an dieser Stelle oder es ist nicht genügend Platz verfügbar.",
 		"label": "Geschwindigkeit"
 	},
+	"silence": {
+		"removeDeadAir": "Stille Abschnitte entfernen",
+		"analyzingAudio": "Audio wird analysiert…",
+		"removedSilentSpans": "{{count}} stille Abschnitte entfernt ({{seconds}}s)",
+		"notEnoughSilence": "Nicht genug Stille zum Entfernen",
+		"analysisFailed": "Audio dieser Aufnahme konnte nicht analysiert werden."
+	},
+	"autospeed": {
+		"speedUpTyping": "Tippen beschleunigen",
+		"speedUpDeadAir": "Stille Abschnitte beschleunigen",
+		"addedSpeedRegions": "{{count}} Geschwindigkeitsbereiche hinzugefügt",
+		"nothingToSpeedUp": "Nichts zu beschleunigen"
+	},
 	"annotation": {
 		"label": "Anmerkung",
 		"image": "Bild",

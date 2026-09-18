@@ -733,6 +733,14 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	}) => {
 		return ipcRenderer.invoke("generate-auto-captions", options);
 	},
+	analyzeCompanionAudioSilence: (options: {
+		videoPath: string;
+		totalDurationMs?: number;
+	}) => {
+		return ipcRenderer.invoke("analyze-companion-audio-silence", options.videoPath, {
+			totalDurationMs: options.totalDurationMs,
+		});
+	},
 	setCurrentVideoPath: (
 		path: string,
 		options?: {

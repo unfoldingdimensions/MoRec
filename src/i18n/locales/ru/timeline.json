@@ -27,6 +27,19 @@
 		"existsOrNoSpace": "Скорость уже задана или недостаточно места.",
 		"label": "Скорость"
 	},
+	"silence": {
+		"removeDeadAir": "Убрать тишину",
+		"analyzingAudio": "Анализ аудио…",
+		"removedSilentSpans": "Удалено тихих фрагментов: {{count}} ({{seconds}} с)",
+		"notEnoughSilence": "Недостаточно тишины для обрезки",
+		"analysisFailed": "Не удалось проанализировать звук этой записи."
+	},
+	"autospeed": {
+		"speedUpTyping": "Ускорить набор текста",
+		"speedUpDeadAir": "Ускорить тишину",
+		"addedSpeedRegions": "Добавлено областей ускорения: {{count}}",
+		"nothingToSpeedUp": "Нечего ускорять"
+	},
 	"annotation": {
 		"label": "Аннотация",
 		"image": "Изображение",

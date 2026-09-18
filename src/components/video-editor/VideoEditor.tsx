@@ -6,8 +6,10 @@ import {
 	Crop,
 	Cursor,
 	DownloadSimple as Download,
+	FastForward,
 	FolderOpen,
 	Gear,
+	Keyboard,
 	Pause,
 	Camera as PhCameraRegular,
 	Play,
@@ -23,6 +25,7 @@ import {
 	SpeakerLow as Volume1,
 	SpeakerHigh as Volume2,
 	SpeakerX as VolumeX,
+	Waveform,
 	MagicWand as WandSparkles,
 	X,
 	MagnifyingGlassPlus as ZoomIn,
@@ -186,6 +189,16 @@ import {
 } from "./TutorialHelp";
 import TimelineEditor, { type TimelineEditorHandle } from "./timeline/TimelineEditor";
 import {
+	buildDeadAirSpeedSuggestions,
+	buildSilenceTrimSuggestions,
+	planSilenceTrimApplication,
+	type SuggestedSpan,
+} from "./timeline/silenceSuggestions";
+import {
+	DEFAULT_TYPING_SPEED,
+	buildTypingSpeedSuggestions,
+} from "./timeline/typingSuggestions";
+import {
 	normalizeCursorTelemetry,
 	shouldAutoApplyFreshRecordingZoomsForSource,
 } from "./timeline/zoomSuggestionUtils";
@@ -228,6 +241,7 @@ import {
 	type Padding,
 	mapSourceTimeToTimelineTime as resolveSourceTimeToTimelineTime,
 	mapTimelineTimeToSourceTime as resolveTimelineTimeToSourceTime,
+	type PlaybackSpeed,
 	type SpeedRegion,
 	type TrimRegion,
 	trimsToClips,
@@ -593,6 +607,9 @@ export default function VideoEditor() {
 	>(initialEditorPreferences.whisperModelPath ? "downloaded" : "idle");
 	const [whisperModelDownloadProgress, setWhisperModelDownloadProgress] = useState(0);
 	const [isGeneratingCaptions, setIsGeneratingCaptions] = useState(false);
+	// Dead-air analysis (silence IPC) is shared by the trim and speed buttons.
+	const [isAnalyzingAudio, setIsAnalyzingAudio] = useState(false);
+	const isAnalyzingAudioRef = useRef(false);
 	const [isExporting, setIsExporting] = useState(false);
 	const [exportProgress, setExportProgress] = useState<ExportProgress | null>(null);
 	const [exportError, setExportError] = useState<string | null>(null);
@@ -3682,6 +3699,180 @@ export default function VideoEditor() {
 		}
 		return result;
 	}, [clipRegions, speedRegions]);
+
+	// ── One-click smart regions (dead-air trims + typing/dead-air speed) ──
+
+	// Suggested trims/speed-ups never touch existing zoom or speed regions.
+	const reservedSpansForSuggestions = useMemo<SuggestedSpan[]>(
+		() => [
+			...effectiveZoomRegions.map((region) => ({
+				startMs: region.startMs,
+				endMs: region.endMs,
+			})),
+			...effectiveSpeedRegions.map((region) => ({
+				startMs: region.startMs,
+				endMs: region.endMs,
+			})),
+		],
+		[effectiveZoomRegions, effectiveSpeedRegions],
+	);
+
+	const analyzeSilenceForSuggestions = useCallback(async () => {
+		if (isAnalyzingAudioRef.current) {
+			return null;
+		}
+		if (!currentSourcePath) {
+			toast.error("No source video is loaded");
+			return null;
+		}
+
+		isAnalyzingAudioRef.current = true;
+		setIsAnalyzingAudio(true);
+		try {
+			const result = await window.electronAPI.analyzeCompanionAudioSilence({
+				videoPath: currentSourcePath,
+				totalDurationMs: Math.max(0, Math.round(duration * 1000)),
+			});
+			if (!result.success || !result.intervals) {
+				toast.error(
+					t(
+						"timeline.silence.analysisFailed",
+						"Couldn't analyze this recording's audio.",
+					),
+				);
+				return null;
+			}
+			return result.intervals;
+		} catch (error) {
+			toast.error(getErrorMessage(error));
+			return null;
+		} finally {
+			isAnalyzingAudioRef.current = false;
+			setIsAnalyzingAudio(false);
+		}
+	}, [currentSourcePath, duration, t]);
+
+	const addAutoSpeedRegions = useCallback(
+		(spans: SuggestedSpan[]) => {
+			let autoIndex = speedRegions.filter((region) => region.id.startsWith("autospeed-"))
+				.length;
+			const nextRegions: SpeedRegion[] = spans.map((span) => ({
+				id: `autospeed-${autoIndex++}`,
+				startMs: Math.round(span.startMs),
+				endMs: Math.round(span.endMs),
+				speed: DEFAULT_TYPING_SPEED as PlaybackSpeed,
+			}));
+			setSpeedRegions((prev) => [...prev, ...nextRegions]);
+			toast.success(
+				t("timeline.autospeed.addedSpeedRegions", "Added {{count}} speed region(s)", {
+					count: nextRegions.length,
+				}),
+			);
+		},
+		[speedRegions, t],
+	);
+
+	const handleRemoveDeadAir = useCallback(async () => {
+		const intervals = await analyzeSilenceForSuggestions();
+		if (!intervals) {
+			return;
+		}
+
+		const totalMs = Math.max(0, Math.round(duration * 1000));
+		const outcome = buildSilenceTrimSuggestions({
+			intervals,
+			totalMs,
+			reservedSpans: reservedSpansForSuggestions,
+		});
+		if (outcome.status !== "ok" || outcome.suggestions.length === 0) {
+			toast.info(t("timeline.silence.notEnoughSilence", "Not enough silence to trim"));
+			return;
+		}
+
+		const plan = planSilenceTrimApplication(clipRegions, outcome.suggestions);
+		let clipId = nextClipIdRef.current;
+		const nextClips: ClipRegion[] = plan.clipSegments.map((segment) => ({
+			...segment,
+			id: `clip-${clipId++}`,
+		}));
+		nextClipIdRef.current = clipId;
+
+		// Same region semantics as a manual clip resize: regions overlapping an
+		// actual cut are dropped (suggestions already reserve zooms/speeds, so
+		// this only catches audio/annotation/caption stragglers).
+		const removedSpans = plan.removedSpans;
+		const overlapsRemoved = (span: { startMs: number; endMs: number }) =>
+			removedSpans.some((removed) => removed.startMs < span.endMs && removed.endMs > span.startMs);
+
+		setClipRegions(nextClips);
+		setZoomRegions((prev) => prev.filter((region) => !overlapsRemoved(region)));
+		setAnnotationRegions((prev) => prev.filter((region) => !overlapsRemoved(region)));
+		setSpeedRegions((prev) => prev.filter((region) => !overlapsRemoved(region)));
+		setAudioRegions((prev) => prev.filter((region) => !overlapsRemoved(region)));
+		setAutoCaptions((prev) => prev.filter((cue) => !overlapsRemoved(cue)));
+
+		const removedSeconds =
+			Math.round(
+				removedSpans.reduce((sum, span) => sum + (span.endMs - span.startMs), 0) / 100,
+			) / 10;
+		toast.success(
+			t("timeline.silence.removedSilentSpans", "Removed {{count}} silent span(s) ({{seconds}}s)", {
+				count: removedSpans.length,
+				seconds: removedSeconds,
+			}),
+		);
+	}, [
+		analyzeSilenceForSuggestions,
+		clipRegions,
+		duration,
+		reservedSpansForSuggestions,
+		t,
+	]);
+
+	const handleSpeedUpDeadAir = useCallback(async () => {
+		const intervals = await analyzeSilenceForSuggestions();
+		if (!intervals) {
+			return;
+		}
+
+		const totalMs = Math.max(0, Math.round(duration * 1000));
+		const outcome = buildDeadAirSpeedSuggestions({
+			intervals,
+			totalMs,
+			reservedSpans: reservedSpansForSuggestions,
+			// Trims take precedence: already-cut silence is not also sped up.
+			trimmedSpans: clipsToTrims(clipRegions, totalMs),
+		});
+		if (outcome.status !== "ok" || outcome.suggestions.length === 0) {
+			toast.info(t("timeline.autospeed.nothingToSpeedUp", "Nothing to speed up"));
+			return;
+		}
+
+		addAutoSpeedRegions(outcome.suggestions);
+	}, [
+		addAutoSpeedRegions,
+		analyzeSilenceForSuggestions,
+		clipRegions,
+		duration,
+		reservedSpansForSuggestions,
+		t,
+	]);
+
+	const handleSpeedUpTyping = useCallback(() => {
+		const totalMs = Math.max(0, Math.round(duration * 1000));
+		const outcome = buildTypingSpeedSuggestions({
+			cursorTelemetry: normalizedCursorTelemetry,
+			totalMs,
+			reservedSpans: reservedSpansForSuggestions,
+		});
+		if (outcome.status !== "ok" || outcome.suggestions.length === 0) {
+			toast.info(t("timeline.autospeed.nothingToSpeedUp", "Nothing to speed up"));
+			return;
+		}
+
+		addAutoSpeedRegions(outcome.suggestions);
+	}, [addAutoSpeedRegions, duration, normalizedCursorTelemetry, reservedSpansForSuggestions, t]);
+
 	const audio = useVideoEditorAudio({
 		currentSourcePath,
 		selectedClipId,
@@ -6883,6 +7074,39 @@ export default function VideoEditor() {
 										title={t("editor.toolbar.splitClip")}
 									>
 										<Scissors className="w-4 h-4" />
+									</Button>
+									<Button
+										onClick={handleRemoveDeadAir}
+										disabled={isAnalyzingAudio}
+										variant="ghost"
+										size="icon"
+										className="h-7 w-7 rounded-full text-muted-foreground transition-all hover:bg-[#2563EB]/10 hover:text-[#2563EB] disabled:opacity-50"
+										title={
+											isAnalyzingAudio
+												? t("timeline.silence.analyzingAudio")
+												: t("timeline.silence.removeDeadAir")
+										}
+									>
+										<Waveform className="w-4 h-4" />
+									</Button>
+									<Button
+										onClick={handleSpeedUpTyping}
+										variant="ghost"
+										size="icon"
+										className="h-7 w-7 rounded-full text-muted-foreground transition-all hover:bg-[#2563EB]/10 hover:text-[#2563EB]"
+										title={t("timeline.autospeed.speedUpTyping")}
+									>
+										<Keyboard className="w-4 h-4" />
+									</Button>
+									<Button
+										onClick={handleSpeedUpDeadAir}
+										disabled={isAnalyzingAudio}
+										variant="ghost"
+										size="icon"
+										className="h-7 w-7 rounded-full text-muted-foreground transition-all hover:bg-[#2563EB]/10 hover:text-[#2563EB] disabled:opacity-50"
+										title={t("timeline.autospeed.speedUpDeadAir")}
+									>
+										<FastForward className="w-4 h-4" />
 									</Button>
 								</div>
 								{/* Playback controls - centered */}

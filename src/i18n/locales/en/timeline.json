@@ -27,6 +27,19 @@
 		"existsOrNoSpace": "Speed region already exists at this location or not enough space available.",
 		"label": "Speed"
 	},
+	"silence": {
+		"removeDeadAir": "Remove dead air",
+		"analyzingAudio": "Analyzing audio…",
+		"removedSilentSpans": "Removed {{count}} silent span(s) ({{seconds}}s)",
+		"notEnoughSilence": "Not enough silence to trim",
+		"analysisFailed": "Couldn't analyze this recording's audio."
+	},
+	"autospeed": {
+		"speedUpTyping": "Speed up typing",
+		"speedUpDeadAir": "Speed up dead air",
+		"addedSpeedRegions": "Added {{count}} speed region(s)",
+		"nothingToSpeedUp": "Nothing to speed up"
+	},
 	"annotation": {
 		"label": "Annotation",
 		"image": "Image",

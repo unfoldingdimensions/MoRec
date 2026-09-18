@@ -2,6 +2,7 @@ import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import type {
+	HookKeyboardEvent,
 	HookMouseEvent,
 	UiohookLike,
 	UiohookModuleNamespace,
@@ -303,8 +304,24 @@ export async function startInteractionCapture() {
 			setLinuxCursorScreenPoint({ x: point.x, y: point.y, updatedAt: Date.now() });
 		};
 
+		// Key events record only the timestamp plus the current cursor position —
+		// never which key was pressed — so the telemetry stays content-free.
+		const onKeyDown = (_event: HookKeyboardEvent) => {
+			if (!isCursorCaptureActive || isCursorCapturePaused()) {
+				return;
+			}
+
+			const point = getNormalizedCursorPoint();
+			if (!point) {
+				return;
+			}
+
+			pushCursorSample(point.cx, point.cy, getCursorCaptureElapsedMs(), "key");
+		};
+
 		hook.on("mousedown", onMouseDown);
 		hook.on("mouseup", onMouseUp);
+		hook.on("keydown", onKeyDown);
 		if (process.platform === "linux") {
 			hook.on("mousemove", onMouseMove);
 		}
@@ -314,12 +331,14 @@ export async function startInteractionCapture() {
 				if (typeof hook.off === "function") {
 					hook.off("mousedown", onMouseDown);
 					hook.off("mouseup", onMouseUp);
+					hook.off("keydown", onKeyDown);
 					if (process.platform === "linux") {
 						hook.off("mousemove", onMouseMove);
 					}
 				} else if (typeof hook.removeListener === "function") {
 					hook.removeListener("mousedown", onMouseDown);
 					hook.removeListener("mouseup", onMouseUp);
+					hook.removeListener("keydown", onKeyDown);
 					if (process.platform === "linux") {
 						hook.removeListener("mousemove", onMouseMove);
 					}

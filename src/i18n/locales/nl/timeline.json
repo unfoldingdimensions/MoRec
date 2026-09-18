@@ -27,6 +27,19 @@
 		"existsOrNoSpace": "Er bestaat al een snelheidsregio op deze locatie of er is niet genoeg ruimte beschikbaar.",
 		"label": "Snelheid"
 	},
+	"silence": {
+		"removeDeadAir": "Stille stukken verwijderen",
+		"analyzingAudio": "Audio analyseren…",
+		"removedSilentSpans": "{{count}} stille stukken verwijderd ({{seconds}}s)",
+		"notEnoughSilence": "Niet genoeg stilte om te knippen",
+		"analysisFailed": "Kan de audio van deze opname niet analyseren."
+	},
+	"autospeed": {
+		"speedUpTyping": "Typen versnellen",
+		"speedUpDeadAir": "Stille stukken versnellen",
+		"addedSpeedRegions": "{{count}} snelheidsgebieden toegevoegd",
+		"nothingToSpeedUp": "Niets te versnellen"
+	},
 	"annotation": {
 		"label": "Annotatie",
 		"image": "Afbeelding",

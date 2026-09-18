@@ -29,7 +29,8 @@ export interface CursorTelemetryPoint {
 		| "double-click"
 		| "right-click"
 		| "middle-click"
-		| "mouseup";
+		| "mouseup"
+		| "key";
 	cursorType?:
 		| "arrow"
 		| "text"
