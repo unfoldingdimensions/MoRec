@@ -340,7 +340,12 @@
 		"estimatedSizeUnavailable": "O tamanho estimado aparecerá quando a duração do vídeo for conhecida.",
 		"resumePreviousExport": "Retomar exportação anterior",
 		"segmentsDone": "{{done}} de {{total}} segmentos concluídos",
-		"discardResume": "Descartar"
+		"discardResume": "Descartar",
+		"canvasTitle": "Tela",
+		"canvasOriginal": "Original",
+		"canvasVertical": "9:16",
+		"canvasSquare": "1:1",
+		"canvasPortrait": "4:5"
 	},
 	"audio": {
 		"title": "Áudio",

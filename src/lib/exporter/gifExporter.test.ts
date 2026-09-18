@@ -4,6 +4,7 @@ import {
 	buildGifFrameRendererConfig,
 	calculateOutputDimensions,
 	getGifRepeat,
+	resolveGifCanvasComposition,
 } from "./gifExporter";
 import { GIF_SIZE_PRESETS, GifSizePreset } from "./types";
 
@@ -505,5 +506,53 @@ describe("Property 7: MP4 Export Regression", () => {
 			),
 			{ numRuns: 100 },
 		);
+	});
+});
+
+describe("resolveGifCanvasComposition", () => {
+	it("passes original canvas through untouched", () => {
+		const composition = resolveGifCanvasComposition({
+			sourceWidth: 1920,
+			sourceHeight: 1080,
+			sizePreset: "original",
+			canvas: "original",
+		});
+		expect(composition.composeWidth).toBe(1920);
+		expect(composition.composeHeight).toBe(1080);
+		expect(composition.cropRect).toBeNull();
+		expect(composition.outputWidth).toBe(1920);
+		expect(composition.outputHeight).toBe(1080);
+	});
+
+	it("crops the composition and rescales the crop rect into it", () => {
+		// 16:9 source at the original preset composes at 1920x1080; a 1:1
+		// canvas center-crops it to 1080x1080.
+		const composition = resolveGifCanvasComposition({
+			sourceWidth: 1920,
+			sourceHeight: 1080,
+			sizePreset: "original",
+			canvas: "1:1",
+		});
+		expect(composition.composeWidth).toBe(1920);
+		expect(composition.composeHeight).toBe(1080);
+		expect(composition.cropRect).toEqual({ x: 420, y: 0, width: 1080, height: 1080 });
+		expect(composition.outputWidth).toBe(1080);
+		expect(composition.outputHeight).toBe(1080);
+	});
+
+	it("applies the canvas first, then the size preset scale", () => {
+		// 2560x1440 at medium composes at 1280x720; the source-space 9:16 crop
+		// rect (874,0,810,1440) scales by 0.5 to (437,0,405,720).
+		const composition = resolveGifCanvasComposition({
+			sourceWidth: 2560,
+			sourceHeight: 1440,
+			sizePreset: "medium",
+			canvas: "9:16",
+		});
+		expect(composition.composeWidth).toBe(1280);
+		expect(composition.composeHeight).toBe(720);
+		expect(composition.cropRect).toEqual({ x: 437, y: 0, width: 405, height: 720 });
+		expect(composition.outputWidth).toBe(405);
+		expect(composition.outputHeight).toBe(720);
 	});
 });

@@ -142,6 +142,13 @@ function hasNonDefaultSourceTrackSettings(sourceAudioTrackSettings?: SourceAudio
 
 export class VideoExporter {
 	private config: VideoExporterConfig;
+	/** Final encoded dimensions: the canvas-crop size when a social canvas is active. */
+	private get outputWidth(): number {
+		return this.config.canvasCrop?.width ?? this.config.width;
+	}
+	private get outputHeight(): number {
+		return this.config.canvasCrop?.height ?? this.config.height;
+	}
 	private streamingDecoder: StreamingVideoDecoder | null = null;
 	private renderer: FrameRenderer | null = null;
 	private encoder: VideoEncoder | null = null;
@@ -693,17 +700,17 @@ export class VideoExporter {
 			return false;
 		}
 
-		if (this.config.width % 2 !== 0 || this.config.height % 2 !== 0) {
+		if (this.outputWidth % 2 !== 0 || this.outputHeight % 2 !== 0) {
 			console.warn(
-				`[VideoExporter] Native export requires even output dimensions, falling back to WebCodecs (${this.config.width}x${this.config.height})`,
+				`[VideoExporter] Native export requires even output dimensions, falling back to WebCodecs (${this.outputWidth}x${this.outputHeight})`,
 			);
 			return false;
 		}
 
 		const encoderConfig: VideoEncoderConfig = {
 			codec: "avc1.640034",
-			width: this.config.width,
-			height: this.config.height,
+			width: this.outputWidth,
+			height: this.outputHeight,
 			bitrate: this.config.bitrate,
 			framerate: this.config.frameRate,
 			hardwareAcceleration: "prefer-hardware",
@@ -714,7 +721,7 @@ export class VideoExporter {
 			const support = await VideoEncoder.isConfigSupported(encoderConfig);
 			if (!support.supported) {
 				console.warn(
-					`[VideoExporter] Native H.264 Annex B encoding is unsupported at ${this.config.width}x${this.config.height}`,
+					`[VideoExporter] Native H.264 Annex B encoding is unsupported at ${this.outputWidth}x${this.outputHeight}`,
 				);
 				return false;
 			}
@@ -724,8 +731,8 @@ export class VideoExporter {
 		}
 
 		const result = await window.electronAPI.nativeVideoExportStart({
-			width: this.config.width,
-			height: this.config.height,
+			width: this.outputWidth,
+			height: this.outputHeight,
 			frameRate: this.config.frameRate,
 			bitrate: this.config.bitrate,
 			encodingMode: this.config.encodingMode ?? "balanced",
@@ -1290,8 +1297,8 @@ export class VideoExporter {
 							const metadata: EncodedVideoChunkMetadata = {
 								decoderConfig: {
 									codec: resolvedCodec ?? (this.config.codec || "avc1.640033"),
-									codedWidth: this.config.width,
-									codedHeight: this.config.height,
+									codedWidth: this.outputWidth,
+									codedHeight: this.outputHeight,
 									description: this.videoDescription,
 									colorSpace,
 								},
@@ -1324,8 +1331,8 @@ export class VideoExporter {
 		});
 
 		const baseConfig: Omit<VideoEncoderConfig, "codec" | "hardwareAcceleration"> = {
-			width: this.config.width,
-			height: this.config.height,
+			width: this.outputWidth,
+			height: this.outputHeight,
 			bitrate: this.config.bitrate,
 			framerate: this.config.frameRate,
 			latencyMode: "quality",

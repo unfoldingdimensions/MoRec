@@ -340,7 +340,12 @@
 		"estimatedSizeUnavailable": "De geschatte grootte verschijnt zodra de videoduur bekend is.",
 		"resumePreviousExport": "Vorige export hervatten",
 		"segmentsDone": "{{done}} van {{total}} segmenten klaar",
-		"discardResume": "Weggooien"
+		"discardResume": "Weggooien",
+		"canvasTitle": "Canvas",
+		"canvasOriginal": "Origineel",
+		"canvasVertical": "9:16",
+		"canvasSquare": "1:1",
+		"canvasPortrait": "4:5"
 	},
 	"audio": {
 		"title": "Audio",

@@ -4,12 +4,14 @@ import { renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAudioLevelMeter } from "./useAudioLevelMeter";
 
+let analyserDataValue = 200;
+
 class MockAnalyser {
 	fftSize = 0;
 	smoothingTimeConstant = 0;
 	frequencyBinCount = 128;
 	getByteFrequencyData = vi.fn((array: Uint8Array) => {
-		array.fill(200);
+		array.fill(analyserDataValue);
 	});
 }
 
@@ -62,6 +64,7 @@ describe("useAudioLevelMeter", () => {
 	afterEach(() => {
 		vi.unstubAllGlobals();
 		rafCallbacks.length = 0;
+		analyserDataValue = 200;
 	});
 
 	it("acquires the microphone and derives a normalized level", async () => {
@@ -179,5 +182,142 @@ describe("useAudioLevelMeter", () => {
 		await new Promise((resolve) => setTimeout(resolve, 10));
 		expect(getUserMedia).toHaveBeenCalledTimes(1);
 		expect(removeEventListener).toHaveBeenCalledWith("devicechange", expect.any(Function));
+	});
+});
+
+describe("useAudioLevelMeter pre-flight detection", () => {
+	let getUserMedia: ReturnType<typeof vi.fn>;
+	let addEventListener: ReturnType<typeof vi.fn>;
+	let removeEventListener: ReturnType<typeof vi.fn>;
+
+	beforeEach(() => {
+		vi.stubGlobal("AudioContext", MockAudioContext);
+		vi.stubGlobal(
+			"requestAnimationFrame",
+			vi.fn((callback: () => void) => {
+				rafCallbacks.push(callback);
+				return rafCallbacks.length;
+			}),
+		);
+		vi.stubGlobal("cancelAnimationFrame", vi.fn());
+
+		getUserMedia = vi.fn(
+			async () =>
+				({ getTracks: () => [{ stop: vi.fn() }] }) as unknown as MediaStream,
+		);
+		addEventListener = vi.fn();
+		removeEventListener = vi.fn();
+		Object.defineProperty(navigator, "mediaDevices", {
+			configurable: true,
+			value: { getUserMedia, addEventListener, removeEventListener },
+		});
+	});
+
+	afterEach(() => {
+		vi.unstubAllGlobals();
+		rafCallbacks.length = 0;
+		analyserDataValue = 200;
+	});
+
+	/** Drives the meter with a constant level, one pump per time step. */
+	function pumpFrames(level: number, timeSteps: number[], now: { value: number }) {
+		analyserDataValue = level;
+		for (const step of timeSteps) {
+			now.value = step;
+			const frame = rafCallbacks[rafCallbacks.length - 1];
+			expect(frame).toBeTypeOf("function");
+			act(() => {
+				frame();
+			});
+		}
+	}
+
+	it("reports clipping only after the level holds above the threshold", async () => {
+		const now = { value: 0 };
+		const { result } = renderHook(() =>
+			useAudioLevelMeter({
+				enabled: true,
+				clippingLevel: 97,
+				clippingHoldMs: 300,
+				now: () => now.value,
+			}),
+		);
+		await waitFor(() => {
+			expect(rafCallbacks.length).toBe(1);
+		});
+
+		// Sustained max level (the mock fills every bin with 200 -> level 100).
+		pumpFrames(200, [150, 300], now);
+		expect(result.current.clipping).toBe(true);
+
+		// Dropping below the threshold clears it immediately.
+		pumpFrames(0, [400], now);
+		expect(result.current.clipping).toBe(false);
+	});
+
+	it("does not report clipping for a brief loud burst", async () => {
+		const now = { value: 0 };
+		const { result } = renderHook(() =>
+			useAudioLevelMeter({
+				enabled: true,
+				clippingLevel: 97,
+				clippingHoldMs: 300,
+				now: () => now.value,
+			}),
+		);
+		await waitFor(() => {
+			expect(rafCallbacks.length).toBe(1);
+		});
+
+		pumpFrames(200, [100, 200], now);
+		expect(result.current.clipping).toBe(false);
+	});
+
+	it("reports no input after sustained silence and clears on any sound", async () => {
+		const now = { value: 0 };
+		const { result } = renderHook(() =>
+			useAudioLevelMeter({
+				enabled: true,
+				silenceLevel: 2,
+				silenceWindowMs: 1000,
+				now: () => now.value,
+			}),
+		);
+		await waitFor(() => {
+			expect(rafCallbacks.length).toBe(1);
+		});
+
+		// Silence for the whole window flips the flag...
+		pumpFrames(0, [500, 1000], now);
+		expect(result.current.noInput).toBe(true);
+
+		// ...any louder sample clears it, and the window restarts.
+		pumpFrames(115, [1100], now);
+		expect(result.current.noInput).toBe(false);
+
+		pumpFrames(0, [1500, 2100], now);
+		expect(result.current.noInput).toBe(true);
+	});
+
+	it("keeps a moderate level from triggering either warning", async () => {
+		const now = { value: 0 };
+		const { result } = renderHook(() =>
+			useAudioLevelMeter({
+				enabled: true,
+				clippingLevel: 97,
+				clippingHoldMs: 300,
+				silenceLevel: 2,
+				silenceWindowMs: 1000,
+				now: () => now.value,
+			}),
+		);
+		await waitFor(() => {
+			expect(rafCallbacks.length).toBe(1);
+		});
+
+		// Fill 115 -> level ~90: neither silent nor clipping.
+		pumpFrames(115, [100, 500, 1000, 2000], now);
+		expect(result.current.clipping).toBe(false);
+		expect(result.current.noInput).toBe(false);
 	});
 });

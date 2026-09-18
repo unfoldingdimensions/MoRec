@@ -48,6 +48,7 @@ import {
 	rememberApprovedLocalReadPath,
 } from "../project/manager";
 import { writeProjectFileAtomically } from "../project/atomicSave";
+import { probeCompanionAudioLevels } from "../recording/companionAudioLevel";
 import { analyzeCompanionAudioSilenceFromVideo } from "../recording/companionSilence";
 import {
 	getBrowserMicSidecarFilters,
@@ -1624,6 +1625,25 @@ export function registerRecordingHandlers(
 			}
 		},
 	);
+
+	// Post-recording audio diagnostic: peak-probe each companion sidecar so
+	// the HUD can warn when a system-audio recording came out silent.
+	ipcMain.handle("analyze-companion-audio-levels", async (_, videoPath?: string) => {
+		const targetVideoPath = normalizeVideoSourcePath(videoPath ?? currentVideoPath);
+		// Unapproved paths answer exactly like the "no path" case so the gate
+		// cannot double as an oracle for which paths exist on disk.
+		if (!targetVideoPath || !isAllowedLocalReadPath(targetVideoPath)) {
+			return { success: true, levels: [] };
+		}
+
+		try {
+			const levels = await probeCompanionAudioLevels({ videoPath: targetVideoPath });
+			return { success: true, levels };
+		} catch (error) {
+			console.error("Failed to analyze companion audio levels:", error);
+			return { success: false, levels: [], error: String(error) };
+		}
+	});
 
 
 	ipcMain.handle("get-video-audio-fallback-paths", async (_event, videoPath: string) => {

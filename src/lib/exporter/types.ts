@@ -1,6 +1,16 @@
+import type { CanvasCropRect, ExportCanvas } from "@/components/video-editor/exportDimensions";
+
 export interface ExportConfig {
 	width: number;
 	height: number;
+	/**
+	 * Social canvas center-crop (9:16/1:1/4:5). The renderer still composes at
+	 * `width`×`height`; the crop rect (expressed inside that composition)
+	 * selects the band that is actually encoded, so `canvasCrop.width/height`
+	 * are the final output dimensions. Canvas applies after quality scaling
+	 * and after zoom.
+	 */
+	canvasCrop?: CanvasCropRect;
 	frameRate: number;
 	bitrate: number;
 	codec?: string;
@@ -214,6 +224,12 @@ export interface GifExportConfig {
 	sizePreset: GifSizePreset;
 	width: number;
 	height: number;
+	/**
+	 * Social canvas preset for GIF exports: `width`/`height` are the final
+	 * (post-canvas) frame size; the exporter composes at the uncropped
+	 * size-preset dimensions and center-crops captured frames.
+	 */
+	canvas?: ExportCanvas;
 }
 
 export interface ExportSettings {
@@ -223,6 +239,8 @@ export interface ExportSettings {
 	quality?: ExportQuality;
 	/** Only meaningful when `quality` is "target-size" — the desired output size in MB. */
 	targetSizeMb?: number;
+	/** Social canvas preset; non-original center-crops the composed frame at export time. */
+	canvas?: ExportCanvas;
 	encodingMode?: ExportEncodingMode;
 	mp4FrameRate?: ExportMp4FrameRate;
 	backendPreference?: ExportBackendPreference;

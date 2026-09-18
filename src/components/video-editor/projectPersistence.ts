@@ -11,6 +11,7 @@ import type {
 } from "@/lib/exporter";
 import { isValidMp4FrameRate } from "@/lib/exporter";
 import { normalizeTargetSizeMb } from "@/lib/exporter/exportBitrate";
+import { normalizeExportCanvas, type ExportCanvas } from "./exportDimensions";
 import {
 	TEMPORAL_MOTION_BLUR_DEFAULT_SAMPLE_COUNT,
 	TEMPORAL_MOTION_BLUR_DEFAULT_SHUTTER_FRACTION,
@@ -152,6 +153,8 @@ export interface ProjectEditorState {
 	exportQuality: ExportQuality;
 	/** Desired MP4 size in MB when `exportQuality` is "target-size". */
 	targetSizeMb: number;
+	/** Social canvas preset applied at export time (center-crop of the composition). */
+	exportCanvas: ExportCanvas;
 	mp4FrameRate: ExportMp4FrameRate;
 	exportFormat: ExportFormat;
 	gifFrameRate: GifFrameRate;
@@ -1064,6 +1067,7 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 				? editor.exportQuality
 				: "source",
 		targetSizeMb: normalizeTargetSizeMb(editor.targetSizeMb),
+		exportCanvas: normalizeExportCanvas(editor.exportCanvas),
 		mp4FrameRate: normalizeExportMp4FrameRate(editor.mp4FrameRate),
 		exportFormat: editor.exportFormat === "gif" ? "gif" : "mp4",
 		gifFrameRate:

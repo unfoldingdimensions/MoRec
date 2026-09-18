@@ -30,6 +30,8 @@ function renderMenu(overrides: Partial<Parameters<typeof ExportSettingsMenu>[0]>
 		gifSizePreset: "source",
 		onGifSizePresetChange: vi.fn(),
 		gifOutputDimensions: { width: 1920, height: 1080 },
+		exportCanvas: "original" as const,
+		onExportCanvasChange: vi.fn(),
 		onExport: vi.fn(),
 		...overrides,
 	} as Parameters<typeof ExportSettingsMenu>[0];
@@ -130,5 +132,58 @@ describe("ExportSettingsMenu", () => {
 
 		renderMenu({ exportFormat: "gif" });
 		expect(screen.getByRole("button", { name: /Export GIF/i })).toBeInTheDocument();
+	});
+
+	it("renders the canvas picker and dispatches canvas changes", async () => {
+		const user = userEvent.setup();
+		const { props } = renderMenu();
+
+		expect(screen.getByText(/Canvas/i)).toBeInTheDocument();
+		await user.click(screen.getByRole("button", { name: /9:16/ }));
+		expect(props.onExportCanvasChange).toHaveBeenCalledWith("9:16");
+
+		await user.click(screen.getByRole("button", { name: /1:1/ }));
+		expect(props.onExportCanvasChange).toHaveBeenCalledWith("1:1");
+	});
+
+	it("shows live dimensions for the active canvas from the quality grid", () => {
+		renderMenu({
+			exportCanvas: "1:1",
+			mp4OutputDimensions: {
+				original: {
+					medium: { width: 1152, height: 648 },
+					good: { width: 1440, height: 810 },
+					high: { width: 1728, height: 972 },
+					source: { width: 1920, height: 1080 },
+					"target-size": { width: 1920, height: 1080 },
+				},
+				"9:16": {
+					medium: { width: 364, height: 648 },
+					good: { width: 456, height: 810 },
+					high: { width: 546, height: 972 },
+					source: { width: 606, height: 1080 },
+					"target-size": { width: 606, height: 1080 },
+				},
+				"1:1": {
+					medium: { width: 648, height: 648 },
+					good: { width: 810, height: 810 },
+					high: { width: 972, height: 972 },
+					source: { width: 1080, height: 1080 },
+					"target-size": { width: 1080, height: 1080 },
+				},
+				"4:5": {
+					medium: { width: 518, height: 648 },
+					good: { width: 648, height: 810 },
+					high: { width: 778, height: 972 },
+					source: { width: 864, height: 1080 },
+					"target-size": { width: 864, height: 1080 },
+				},
+			},
+		});
+
+		// Canvas picker readout for the active canvas at the active quality.
+		expect(screen.getByText(/1080 x 1080/)).toBeInTheDocument();
+		// Quality grid reflects the active (1:1) canvas: "good" shows 810x810.
+		expect(screen.getByText(/810 x 810/)).toBeInTheDocument();
 	});
 });

@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
+import type { ExportQuality } from "@/lib/exporter";
 import {
+	calculateCanvasCropRect,
 	calculateMp4ExportDimensions,
 	calculateMp4SourceDimensions,
+	getCanvasCropOutputSize,
+	normalizeExportCanvas,
 	shouldDebounceMp4SupportProbe,
 } from "./exportDimensions";
 
@@ -99,6 +103,98 @@ describe("calculateMp4ExportDimensions", () => {
 	});
 });
 
+describe("calculateCanvasCropRect", () => {
+	it("returns null for original canvas", () => {
+		expect(calculateCanvasCropRect(1920, 1080, "original")).toBeNull();
+		expect(calculateCanvasCropRect(1920, 1080, normalizeExportCanvas("bogus"))).toBeNull();
+	});
+
+	it("returns null for invalid dimensions", () => {
+		expect(calculateCanvasCropRect(0, 1080, "1:1")).toBeNull();
+		expect(calculateCanvasCropRect(1920, Number.NaN, "1:1")).toBeNull();
+	});
+
+	it("center-crops a landscape composition to 9:16 with even rect and offsets", () => {
+		expect(calculateCanvasCropRect(1920, 1080, "9:16")).toEqual({
+			x: 656,
+			y: 0,
+			width: 606,
+			height: 1080,
+		});
+	});
+
+	it("center-crops to 1:1 and 4:5", () => {
+		expect(calculateCanvasCropRect(1920, 1080, "1:1")).toEqual({
+			x: 420,
+			y: 0,
+			width: 1080,
+			height: 1080,
+		});
+		expect(calculateCanvasCropRect(1920, 1080, "4:5")).toEqual({
+			x: 528,
+			y: 0,
+			width: 864,
+			height: 1080,
+		});
+	});
+
+	it("passes a portrait source through 9:16 untouched", () => {
+		expect(calculateCanvasCropRect(1080, 1920, "9:16")).toBeNull();
+	});
+
+	it("crops the vertical axis for landscape canvases from portrait sources", () => {
+		expect(calculateCanvasCropRect(1080, 1920, "4:5")).toEqual({
+			x: 0,
+			y: 284,
+			width: 1080,
+			height: 1350,
+		});
+	});
+
+	it("handles odd source dimensions with even normalization", () => {
+		const rect = calculateCanvasCropRect(1919, 1079, "1:1");
+		expect(rect).toEqual({ x: 420, y: 0, width: 1078, height: 1078 });
+	});
+});
+
+describe("canvas × quality dimension matrix", () => {
+	const qualities: ExportQuality[] = ["medium", "good", "high", "source"];
+
+	it("applies the canvas after quality scaling (even dims, centered rect)", () => {
+		// 1920x1080 source, "high" quality scales to 1728x972; 9:16 crops it.
+		const qualityDims = calculateMp4ExportDimensions(1920, 1080, "high");
+		expect(qualityDims).toEqual({ width: 1728, height: 972 });
+
+		const rect = calculateCanvasCropRect(qualityDims.width, qualityDims.height, "9:16");
+		expect(rect).toEqual({ x: 590, y: 0, width: 546, height: 972 });
+
+		// The crop rect must sit inside the composition and be even.
+		for (const quality of qualities) {
+			const dims = calculateMp4ExportDimensions(1920, 1080, quality);
+			const crop = calculateCanvasCropRect(dims.width, dims.height, "1:1");
+			expect(crop).not.toBeNull();
+			expect(crop!.width % 2).toBe(0);
+			expect(crop!.height % 2).toBe(0);
+			expect(crop!.x % 2).toBe(0);
+			expect(crop!.y % 2).toBe(0);
+			expect(crop!.x + crop!.width).toBeLessThanOrEqual(dims.width);
+			expect(crop!.y + crop!.height).toBeLessThanOrEqual(dims.height);
+			expect(Math.abs(crop!.width / crop!.height - 1)).toBeLessThan(0.02);
+		}
+	});
+
+	it("keeps original canvas output equal to quality dims", () => {
+		const dims = calculateMp4ExportDimensions(1920, 1080, "good");
+		expect(getCanvasCropOutputSize({ ...dims })).toEqual(dims);
+	});
+
+	it("reports the crop size as the final output size", () => {
+		const crop = calculateCanvasCropRect(1920, 1080, "1:1");
+		expect(
+			getCanvasCropOutputSize({ width: 1920, height: 1080, canvasCrop: crop }),
+		).toEqual({ width: 1080, height: 1080 });
+	});
+});
 describe("shouldDebounceMp4SupportProbe", () => {
 	const baseSnapshot = {
 		sourceWidth: 1920,

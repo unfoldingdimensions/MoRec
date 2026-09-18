@@ -313,6 +313,13 @@ export class ModernVideoExporter {
 	private static readonly NATIVE_WRITE_BATCH_MAX_BYTES = 2 * 1024 * 1024;
 
 	private config: VideoExporterConfig;
+	/** Final encoded dimensions: the canvas-crop size when a social canvas is active. */
+	private get outputWidth(): number {
+		return this.config.canvasCrop?.width ?? this.config.width;
+	}
+	private get outputHeight(): number {
+		return this.config.canvasCrop?.height ?? this.config.height;
+	}
 	private streamingDecoder: StreamingVideoDecoder | null = null;
 	private renderer: ModernFrameRenderer | null = null;
 	private encoder: VideoEncoder | null = null;
@@ -476,8 +483,8 @@ export class ModernVideoExporter {
 				this.backpressureProfile = getExportBackpressureProfile({
 					encodeBackend:
 						shouldDeferNativeEncoderStart || useNativeEncoder ? "ffmpeg" : "webcodecs",
-					width: this.config.width,
-					height: this.config.height,
+					width: this.outputWidth,
+					height: this.outputHeight,
 					frameRate: this.config.frameRate,
 					encodingMode: this.config.encodingMode,
 				});
@@ -589,8 +596,8 @@ export class ModernVideoExporter {
 						shouldDeferNativeEncoderStart = false;
 						this.backpressureProfile = getExportBackpressureProfile({
 							encodeBackend: "webcodecs",
-							width: this.config.width,
-							height: this.config.height,
+							width: this.outputWidth,
+							height: this.outputHeight,
 							frameRate: this.config.frameRate,
 							encodingMode: this.config.encodingMode,
 						});
@@ -1547,7 +1554,7 @@ export class ModernVideoExporter {
 			reasons.push("native-static-api-unavailable");
 		}
 
-		if (this.config.width % 2 !== 0 || this.config.height % 2 !== 0) {
+		if (this.outputWidth % 2 !== 0 || this.outputHeight % 2 !== 0) {
 			reasons.push("odd-output-dimensions");
 		}
 
@@ -1765,8 +1772,8 @@ export class ModernVideoExporter {
 
 		try {
 			const canvas = document.createElement("canvas");
-			canvas.width = Math.max(1, Math.round(this.config.width));
-			canvas.height = Math.max(1, Math.round(this.config.height));
+			canvas.width = Math.max(1, Math.round(this.outputWidth));
+			canvas.height = Math.max(1, Math.round(this.outputHeight));
 			const ctx = canvas.getContext("2d");
 			if (!ctx) {
 				return null;
@@ -1824,16 +1831,20 @@ export class ModernVideoExporter {
 			return null;
 		}
 
+		// Size the gradient to the canvas it paints (the output-canvas-sized
+		// background), falling back to the composition dims.
+		const gradientWidth = ctx.canvas?.width ?? this.config.width;
+		const gradientHeight = ctx.canvas?.height ?? this.config.height;
 		const gradient =
 			type === "linear"
-				? ctx.createLinearGradient(0, 0, 0, this.config.height)
+				? ctx.createLinearGradient(0, 0, 0, gradientHeight)
 				: ctx.createRadialGradient(
-						this.config.width / 2,
-						this.config.height / 2,
+						gradientWidth / 2,
+						gradientHeight / 2,
 						0,
-						this.config.width / 2,
-						this.config.height / 2,
-						Math.max(this.config.width, this.config.height) / 2,
+						gradientWidth / 2,
+						gradientHeight / 2,
+						Math.max(gradientWidth, gradientHeight) / 2,
 					);
 
 		if (colorStops.length === 1) {
@@ -2089,10 +2100,14 @@ export class ModernVideoExporter {
 			legacyCorner: webcam.corner,
 		});
 
+		// The canvas crop shifts the visible window, so the webcam's absolute
+		// position moves left/up by the crop offset (content-relative geometry
+		// like cursor/zoom telemetry is unaffected).
+		const crop = this.config.canvasCrop;
 		return {
 			inputPath,
-			left: Math.round(position.x),
-			top: Math.round(position.y),
+			left: Math.round(position.x) - (crop?.x ?? 0),
+			top: Math.round(position.y) - (crop?.y ?? 0),
 			size,
 			radius: Math.max(0, webcam.cornerRadius ?? 18),
 			shadowIntensity: Math.min(1, Math.max(0, webcam.shadow ?? 0)),
@@ -2267,7 +2282,18 @@ export class ModernVideoExporter {
 			});
 		}
 
-		return samples;
+		// Zoom transforms are expressed in composition-canvas pixels; the
+		// canvas crop moves the composition origin, so shift the translations
+		// to keep zoom framing identical in the cropped output.
+		const crop = this.config.canvasCrop;
+		if (!crop) {
+			return samples;
+		}
+		return samples.map((sample) => ({
+			...sample,
+			x: sample.x - crop.x,
+			y: sample.y - crop.y,
+		}));
 	}
 
 	private async tryExportNativeStaticLayout(
@@ -2348,8 +2374,13 @@ export class ModernVideoExporter {
 			return null;
 		}
 
-		const offsetX = Math.round(layout.centerOffsetX);
-		const offsetY = Math.round(layout.centerOffsetY);
+		// A social canvas crop selects the middle band of the composed frame:
+		// output canvas = crop size, content offset shifted by the crop origin.
+		// Content-relative geometry (cursor, zoom, shadow) is unaffected; the
+		// crop composes after zoom by construction.
+		const canvasCrop = this.config.canvasCrop;
+		const offsetX = Math.round(layout.centerOffsetX) - (canvasCrop?.x ?? 0);
+		const offsetY = Math.round(layout.centerOffsetY) - (canvasCrop?.y ?? 0);
 		const sourceCrop = this.isDefaultCropRegion()
 			? null
 			: this.getNativeStaticLayoutSourceCrop(videoInfo);
@@ -2519,8 +2550,8 @@ export class ModernVideoExporter {
 				sessionId,
 				inputPath: sourcePath,
 				resumableSession: this.config.resumableSession ?? undefined,
-				width: this.config.width,
-				height: this.config.height,
+				width: this.outputWidth,
+				height: this.outputHeight,
 				frameRate: this.config.frameRate,
 				bitrate: this.config.bitrate,
 				encodingMode: this.config.encodingMode ?? "balanced",
@@ -2672,10 +2703,10 @@ export class ModernVideoExporter {
 			return false;
 		}
 
-		if (this.config.width % 2 !== 0 || this.config.height % 2 !== 0) {
-			this.lastNativeExportError = `${NATIVE_EXPORT_ENGINE_NAME} export requires even output dimensions (${this.config.width}x${this.config.height}).`;
+		if (this.outputWidth % 2 !== 0 || this.outputHeight % 2 !== 0) {
+			this.lastNativeExportError = `${NATIVE_EXPORT_ENGINE_NAME} export requires even output dimensions (${this.outputWidth}x${this.outputHeight}).`;
 			console.warn(
-				`[VideoExporter] ${NATIVE_EXPORT_ENGINE_NAME} export requires even output dimensions, falling back to WebCodecs (${this.config.width}x${this.config.height})`,
+				`[VideoExporter] ${NATIVE_EXPORT_ENGINE_NAME} export requires even output dimensions, falling back to WebCodecs (${this.outputWidth}x${this.outputHeight})`,
 			);
 			return false;
 		}
@@ -2690,8 +2721,8 @@ export class ModernVideoExporter {
 
 		const encoderConfig: VideoEncoderConfig = {
 			codec: "avc1.640034",
-			width: this.config.width,
-			height: this.config.height,
+			width: this.outputWidth,
+			height: this.outputHeight,
 			bitrate: this.config.bitrate,
 			framerate: this.config.frameRate,
 			hardwareAcceleration: "prefer-hardware",
@@ -2701,7 +2732,7 @@ export class ModernVideoExporter {
 		try {
 			const support = await VideoEncoder.isConfigSupported(encoderConfig);
 			if (!support.supported) {
-				this.lastNativeExportError = `H.264 Annex B encoding is not supported at ${this.config.width}x${this.config.height}.`;
+				this.lastNativeExportError = `H.264 Annex B encoding is not supported at ${this.outputWidth}x${this.outputHeight}.`;
 				return false;
 			}
 		} catch (error) {
@@ -2714,8 +2745,8 @@ export class ModernVideoExporter {
 		}
 
 		const result = await window.electronAPI.nativeVideoExportStart({
-			width: this.config.width,
-			height: this.config.height,
+			width: this.outputWidth,
+			height: this.outputHeight,
 			frameRate: this.config.frameRate,
 			bitrate: this.config.bitrate,
 			encodingMode: this.config.encodingMode ?? "balanced",
@@ -3471,8 +3502,8 @@ export class ModernVideoExporter {
 							const metadata: EncodedVideoChunkMetadata = {
 								decoderConfig: {
 									codec: resolvedCodec ?? (this.config.codec || "avc1.640033"),
-									codedWidth: this.config.width,
-									codedHeight: this.config.height,
+									codedWidth: this.outputWidth,
+									codedHeight: this.outputHeight,
 									description: this.videoDescription,
 									colorSpace,
 								},
@@ -3510,8 +3541,8 @@ export class ModernVideoExporter {
 			VideoEncoderConfig,
 			"codec" | "hardwareAcceleration" | "latencyMode"
 		> = {
-			width: this.config.width,
-			height: this.config.height,
+			width: this.outputWidth,
+			height: this.outputHeight,
 			bitrate: this.config.bitrate,
 			framerate: this.config.frameRate,
 			bitrateMode: "variable",

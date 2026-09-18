@@ -553,6 +553,9 @@ describe("register/recording renderer path gates", () => {
 		analyzeCompanionAudioSilenceFromVideo: ReturnType<typeof vi.fn>;
 		extractEmbeddedAudioToWav: ReturnType<typeof vi.fn>;
 	};
+	let companionAudioLevelMock: {
+		probeCompanionAudioLevels: ReturnType<typeof vi.fn>;
+	};
 
 	const makeOutsideVideoPath = async () => {
 		const outsideDir = path.join(fixtureRoot, "outside");
@@ -605,6 +608,10 @@ describe("register/recording renderer path gates", () => {
 			extractEmbeddedAudioToWav: vi.fn(),
 		};
 		vi.doMock("../recording/companionSilence", () => companionSilenceMock);
+		companionAudioLevelMock = {
+			probeCompanionAudioLevels: vi.fn(async () => []),
+		};
+		vi.doMock("../recording/companionAudioLevel", () => companionAudioLevelMock);
 
 		const { registerRecordingHandlers } = await import("./recording");
 		registerRecordingHandlers();
@@ -618,6 +625,7 @@ describe("register/recording renderer path gates", () => {
 		vi.doUnmock("../ffmpeg/binary");
 		vi.doUnmock("../recording/diagnostics");
 		vi.doUnmock("../recording/companionSilence");
+		vi.doUnmock("../recording/companionAudioLevel");
 		await fs.rm(fixtureRoot, { recursive: true, force: true });
 	});
 
@@ -741,6 +749,36 @@ describe("register/recording renderer path gates", () => {
 		expect(companionSilenceMock.analyzeCompanionAudioSilenceFromVideo).toHaveBeenCalledWith({
 			videoPath,
 			totalDurationMs: 5000,
+		});
+	});
+
+	it("analyze-companion-audio-levels answers like no-path for an unapproved path", async () => {
+		const videoPath = await makeOutsideVideoPath();
+
+		expect(await registry.invoke("analyze-companion-audio-levels", videoPath)).toEqual({
+			success: true,
+			levels: [],
+		});
+		expect(companionAudioLevelMock.probeCompanionAudioLevels).not.toHaveBeenCalled();
+	});
+
+	it("analyze-companion-audio-levels probes an approved recording", async () => {
+		const recordingsDir = path.join(fixtureRoot, "userData", "recordings");
+		await fs.mkdir(recordingsDir, { recursive: true });
+		const videoPath = path.join(recordingsDir, "recording-42.webm");
+		await fs.writeFile(videoPath, "video");
+		companionAudioLevelMock.probeCompanionAudioLevels.mockResolvedValue([
+			{ path: "/r/recording.system.wav", kind: "system", maxVolumeDb: -91, meanVolumeDb: -95 },
+		]);
+
+		expect(await registry.invoke("analyze-companion-audio-levels", videoPath)).toEqual({
+			success: true,
+			levels: [
+				{ path: "/r/recording.system.wav", kind: "system", maxVolumeDb: -91, meanVolumeDb: -95 },
+			],
+		});
+		expect(companionAudioLevelMock.probeCompanionAudioLevels).toHaveBeenCalledWith({
+			videoPath,
 		});
 	});
 
