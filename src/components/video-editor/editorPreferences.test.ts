@@ -97,6 +97,31 @@ describe("editorPreferences", () => {
 		expect(DEFAULT_EDITOR_PREFERENCES.exportPipelineModel).toBe("modern");
 	});
 
+	it("defaults the motion profile to balanced and normalizes unknown values", () => {
+		expect(DEFAULT_EDITOR_PREFERENCES.motionProfile).toBe("balanced");
+
+		expect(normalizeEditorPreferences({ motionProfile: "off" }).motionProfile).toBe("off");
+		expect(normalizeEditorPreferences({ motionProfile: "energetic" }).motionProfile).toBe(
+			"energetic",
+		);
+		expect(normalizeEditorPreferences({ motionProfile: "cinematic" }).motionProfile).toBe(
+			"balanced",
+		);
+		expect(normalizeEditorPreferences({ motionProfile: 42 }).motionProfile).toBe("balanced");
+		expect(normalizeEditorPreferences({}).motionProfile).toBe("balanced");
+	});
+
+	it("round-trips the motion profile through save and load", () => {
+		const localStorage = createStorageMock();
+		vi.stubGlobal("localStorage", localStorage);
+
+		saveEditorPreferences({ motionProfile: "subtle" });
+		expect(loadEditorPreferences().motionProfile).toBe("subtle");
+
+		saveEditorPreferences({ motionProfile: "energetic" });
+		expect(loadEditorPreferences().motionProfile).toBe("energetic");
+	});
+
 	it("bakes in the stronger split motion blur defaults", () => {
 		expect(DEFAULT_EDITOR_PREFERENCES.zoomMotionBlurTuning).toMatchObject({
 			panVelocityThreshold: 0,
