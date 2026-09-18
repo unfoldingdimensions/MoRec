@@ -7,7 +7,19 @@
 		"modeManual": "Manual",
 		"modeManualDescription": "Set a fixed focus point for this zoom",
 		"modeAutoDescription": "Camera recenters when the cursor nears the edge of the zoomed view",
-		"globalSettings": "Animation"
+		"globalSettings": "Animation",
+		"motionProfile": "Motion Profile",
+		"motionProfiles": {
+			"off": "Off",
+			"offDescription": "No suggested zooms — nothing moves unless you add it.",
+			"subtle": "Subtle",
+			"subtleDescription": "Suggested zooms stay gentle, capped at 1.5× depth.",
+			"balanced": "Balanced",
+			"balancedDescription": "The default mix of suggested zooms, up to 1.8× depth.",
+			"energetic": "Energetic",
+			"energeticDescription": "More suggested zooms at up to 2.2× depth, with snappier motion."
+		},
+		"motionProfileHint": "Suggestions only — zooms you add or edit yourself are never changed."
 	},
 	"trim": {
 		"deleteRegion": "Delete Trim Region"

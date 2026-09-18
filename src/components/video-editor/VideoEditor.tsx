@@ -161,6 +161,7 @@ import {
 	serializeEditorPresetSnapshot,
 } from "./editorPreferences";
 import ProjectBrowserDialog, { type ProjectLibraryEntry } from "./ProjectBrowserDialog";
+import { clampSuggestedDepth, DEFAULT_MOTION_PROFILE, type MotionProfile } from "./motionProfile";
 import { hasUnsavedProjectChanges } from "./projectDirtyState";
 import {
 	createProjectData,
@@ -450,6 +451,12 @@ export default function VideoEditor() {
 	const [autoApplyFreshRecordingAutoZooms, setAutoApplyFreshRecordingAutoZooms] = useState(
 		initialEditorPreferences.autoApplyFreshRecordingAutoZooms,
 	);
+	const [motionProfile, setMotionProfile] = useState<MotionProfile>(
+		initialEditorPreferences.motionProfile ?? DEFAULT_MOTION_PROFILE,
+	);
+	// Suggested zooms honor the auto-apply toggle and the motion profile;
+	// zoom regions the user creates or edits are never clamped or removed.
+	const disableSuggestedZooms = !autoApplyFreshRecordingAutoZooms || motionProfile === "off";
 	const [connectZooms, setConnectZooms] = useState(initialEditorPreferences.connectZooms);
 	const [zoomInDurationMs, setZoomInDurationMs] = useState(
 		initialEditorPreferences.zoomInDurationMs ?? DEFAULT_ZOOM_IN_DURATION_MS,
@@ -2441,9 +2448,9 @@ export default function VideoEditor() {
 					setCurrentProjectPath(null);
 					setLastSavedSnapshot(null);
 					resetSourceScopedEditorState();
-					pendingFreshRecordingAutoZoomPathRef.current = autoApplyFreshRecordingAutoZooms
-						? sourceVideoUrl
-						: null;
+					pendingFreshRecordingAutoZoomPathRef.current = disableSuggestedZooms
+						? null
+						: sourceVideoUrl;
 					setWebcam((prev) => ({
 						...prev,
 						enabled: Boolean(webcamSourcePath),
@@ -2542,9 +2549,9 @@ export default function VideoEditor() {
 					setCurrentProjectPath(null);
 					setLastSavedSnapshot(null);
 					resetSourceScopedEditorState();
-					pendingFreshRecordingAutoZoomPathRef.current = autoApplyFreshRecordingAutoZooms
-						? sourceVideoUrl
-						: null;
+					pendingFreshRecordingAutoZoomPathRef.current = disableSuggestedZooms
+						? null
+						: sourceVideoUrl;
 					applySessionPresentation(sessionResult.session);
 					setWebcam((prev) => ({
 						...prev,
@@ -2587,9 +2594,9 @@ export default function VideoEditor() {
 	}, [
 		applyLoadedProject,
 		applySessionPresentation,
-		autoApplyFreshRecordingAutoZooms,
 		devOpenRecordingConfig.inputPath,
 		devOpenRecordingConfig.webcamInputPath,
+		disableSuggestedZooms,
 		initialEditorPreferences,
 		resetSourceScopedEditorState,
 		smokeExportConfig.enabled,
@@ -2647,10 +2654,10 @@ export default function VideoEditor() {
 	}, [webcam.sourcePath]);
 
 	useEffect(() => {
-		if (!autoApplyFreshRecordingAutoZooms) {
+		if (disableSuggestedZooms) {
 			pendingFreshRecordingAutoZoomPathRef.current = null;
 		}
-	}, [autoApplyFreshRecordingAutoZooms]);
+	}, [disableSuggestedZooms]);
 
 	useEffect(() => {
 		const timer = setTimeout(() => {
@@ -2664,6 +2671,7 @@ export default function VideoEditor() {
 				zoomMotionBlurSampleCount,
 				zoomMotionBlurShutterFraction,
 				autoApplyFreshRecordingAutoZooms,
+				motionProfile,
 				connectZooms,
 				zoomInDurationMs,
 				zoomInOverlapMs,
@@ -2725,6 +2733,7 @@ export default function VideoEditor() {
 		zoomMotionBlurSampleCount,
 		zoomMotionBlurShutterFraction,
 		autoApplyFreshRecordingAutoZooms,
+		motionProfile,
 		connectZooms,
 		zoomInDurationMs,
 		zoomInOverlapMs,
@@ -3389,9 +3398,9 @@ export default function VideoEditor() {
 		setCurrentProjectPath(null);
 		setLastSavedSnapshot(null);
 		resetSourceScopedEditorState();
-		pendingFreshRecordingAutoZoomPathRef.current = autoApplyFreshRecordingAutoZooms
-			? sourceVideoUrl
-			: null;
+		pendingFreshRecordingAutoZoomPathRef.current = disableSuggestedZooms
+			? null
+			: sourceVideoUrl;
 		setWebcam((prev) => ({
 			...prev,
 			enabled: false,
@@ -3406,8 +3415,8 @@ export default function VideoEditor() {
 	}, [
 		applyLoadedProject,
 		applySessionPresentation,
-		autoApplyFreshRecordingAutoZooms,
 		confirmReplaceSourceWithUnsavedChanges,
+		disableSuggestedZooms,
 		refreshProjectLibrary,
 		resetSourceScopedEditorState,
 	]);
@@ -3915,14 +3924,16 @@ export default function VideoEditor() {
 	);
 
 	const handleZoomSuggested = useCallback(
-		(span: Span, focus: ZoomFocus) => {
+		(span: Span, focus: ZoomFocus, suggestedDepth?: ZoomDepth) => {
 			const id = `zoom-${nextZoomIdRef.current++}`;
+			const depth =
+				suggestedDepth ?? clampSuggestedDepth(motionProfile, DEFAULT_AUTO_ZOOM_DEPTH);
 			const newRegion: ZoomRegion = {
 				id,
 				startMs: Math.round(span.start),
 				endMs: Math.round(span.end),
-				depth: DEFAULT_AUTO_ZOOM_DEPTH,
-				focus: clampFocusToDepth(focus, DEFAULT_AUTO_ZOOM_DEPTH),
+				depth,
+				focus: clampFocusToDepth(focus, depth),
 				mode: "auto",
 			};
 			if (videoPath && pendingFreshRecordingAutoZoomPathRef.current === videoPath) {
@@ -3936,7 +3947,7 @@ export default function VideoEditor() {
 				data: { id, startMs: newRegion.startMs, endMs: newRegion.endMs },
 			});
 		},
-		[videoPath],
+		[motionProfile, videoPath],
 	);
 
 	useEffect(() => {
@@ -6555,6 +6566,8 @@ export default function VideoEditor() {
 									onAutoApplyFreshRecordingAutoZoomsChange={
 										setAutoApplyFreshRecordingAutoZooms
 									}
+									motionProfile={motionProfile}
+									onMotionProfileChange={setMotionProfile}
 									connectZooms={connectZooms}
 									onConnectZoomsChange={setConnectZooms}
 									zoomInDurationMs={zoomInDurationMs}
@@ -6994,7 +7007,8 @@ export default function VideoEditor() {
 						cursorTelemetry={normalizedCursorTelemetry}
 						autoSuggestZoomsTrigger={autoSuggestZoomsTrigger}
 						onAutoSuggestZoomsConsumed={handleAutoSuggestZoomsConsumed}
-						disableSuggestedZooms={!autoApplyFreshRecordingAutoZooms}
+						disableSuggestedZooms={disableSuggestedZooms}
+						motionProfile={motionProfile}
 						zoomRegions={zoomRegions}
 						onZoomAdded={handleZoomAdded}
 						onZoomSuggested={handleZoomSuggested}

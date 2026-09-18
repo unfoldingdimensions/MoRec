@@ -1,5 +1,10 @@
 import { loadAppSetting, saveAppSetting } from "../../lib/appSettings";
 import {
+	DEFAULT_MOTION_PROFILE,
+	normalizeMotionProfile,
+	type MotionProfile,
+} from "./motionProfile";
+import {
 	normalizeExportBackendPreference,
 	normalizeExportMp4FrameRate,
 	normalizeExportPipelineModel,
@@ -88,6 +93,7 @@ export interface EditorPreferences extends PersistedEditorControls {
 	customAspectHeight: string;
 	customWallpapers: string[];
 	autoApplyFreshRecordingAutoZooms: boolean;
+	motionProfile: MotionProfile;
 	whisperExecutablePath: string | null;
 	whisperModelPath: string | null;
 }
@@ -153,6 +159,7 @@ export const DEFAULT_EDITOR_PREFERENCES: EditorPreferences = {
 	customAspectHeight: "9",
 	customWallpapers: [],
 	autoApplyFreshRecordingAutoZooms: true,
+	motionProfile: DEFAULT_MOTION_PROFILE,
 	whisperExecutablePath: null,
 	whisperModelPath: null,
 };
@@ -447,6 +454,10 @@ export function normalizeEditorPreferences(
 			raw.autoApplyFreshRecordingAutoZooms,
 			fallback.autoApplyFreshRecordingAutoZooms,
 		),
+		motionProfile:
+			raw.motionProfile === undefined
+				? fallback.motionProfile
+				: normalizeMotionProfile(raw.motionProfile),
 		whisperExecutablePath:
 			normalizeNullablePath(raw.whisperExecutablePath) ?? fallback.whisperExecutablePath,
 		whisperModelPath: normalizeNullablePath(raw.whisperModelPath) ?? fallback.whisperModelPath,

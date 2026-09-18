@@ -7,7 +7,19 @@
 		"modeManual": "手动",
 		"modeManualDescription": "为此缩放设置固定焦点",
 		"modeAutoDescription": "镜头会自动跟随光标",
-		"globalSettings": "Animation"
+		"globalSettings": "Animation",
+		"motionProfile": "运动强度",
+		"motionProfiles": {
+			"off": "关闭",
+			"offDescription": "不自动建议缩放——除非手动添加，画面不会移动。",
+			"subtle": "轻微",
+			"subtleDescription": "建议的缩放保持轻柔，深度最高 1.5×。",
+			"balanced": "均衡",
+			"balancedDescription": "默认的建议缩放组合，深度最高 1.8×。",
+			"energetic": "活跃",
+			"energeticDescription": "更多建议缩放，深度最高 2.2×，动作更轻快。"
+		},
+		"motionProfileHint": "仅影响建议——你手动添加或编辑的缩放不会被更改。"
 	},
 	"trim": {
 		"deleteRegion": "删除修剪区域"

@@ -1,6 +1,12 @@
 import type { Span } from "dnd-timeline";
 import { useCallback, useEffect, useMemo } from "react";
-import type { CursorTelemetryPoint, ZoomFocus, ZoomRegion } from "../../../types";
+import type { CursorTelemetryPoint, ZoomDepth, ZoomFocus, ZoomRegion } from "../../../types";
+import { DEFAULT_AUTO_ZOOM_DEPTH } from "../../../types";
+import {
+	clampSuggestedDepth,
+	DEFAULT_MOTION_PROFILE,
+	type MotionProfile,
+} from "../../../motionProfile";
 import { buildInteractionZoomSuggestions } from "../../zoomSuggestionUtils";
 import { timelineNotifications } from "../utils/timelineNotifications";
 
@@ -17,11 +23,13 @@ interface UseTimelineZoomActionsParams {
 	cursorTelemetry: CursorTelemetryPoint[];
 	options: {
 		disableSuggestedZooms: boolean;
+		/** Caps the depth of suggested zoom regions; "off" suppresses them entirely. */
+		motionProfile?: MotionProfile;
 	};
 	autoSuggestZoomsTrigger: number;
 	onAutoSuggestZoomsConsumed?: () => void;
 	onZoomAdded: (span: Span) => void;
-	onZoomSuggested?: (span: Span, focus: ZoomFocus) => void;
+	onZoomSuggested?: (span: Span, focus: ZoomFocus, depth: ZoomDepth) => void;
 }
 
 export function useTimelineZoomActions({
@@ -36,7 +44,7 @@ export function useTimelineZoomActions({
 }: UseTimelineZoomActionsParams) {
 	const { videoDuration, totalMs, currentTimeMs } = timeline;
 	const { zoom: zoomRegions, clip: clipRegions } = regions;
-	const { disableSuggestedZooms } = options;
+	const { disableSuggestedZooms, motionProfile = DEFAULT_MOTION_PROFILE } = options;
 	const defaultRegionDurationMs = useMemo(() => Math.min(1000, totalMs), [totalMs]);
 
 	const canPlaceZoomAtMs = useCallback(
@@ -112,6 +120,14 @@ export function useTimelineZoomActions({
 			return;
 		}
 
+		if (motionProfile === "off") {
+			timelineNotifications.info(
+				"Suggested zooms are turned off",
+				"The motion profile is set to Off. Zooms you add manually are unaffected.",
+			);
+			return;
+		}
+
 		if (disableSuggestedZooms) {
 			timelineNotifications.info(
 				"Suggested zooms are unavailable while cursor looping is enabled.",
@@ -170,8 +186,10 @@ export function useTimelineZoomActions({
 			return;
 		}
 
+		const suggestedDepth = clampSuggestedDepth(motionProfile, DEFAULT_AUTO_ZOOM_DEPTH);
+
 		for (const region of result.suggestions) {
-			onZoomSuggested({ start: region.start, end: region.end }, region.focus);
+			onZoomSuggested({ start: region.start, end: region.end }, region.focus, suggestedDepth);
 		}
 
 		timelineNotifications.success(
@@ -180,6 +198,7 @@ export function useTimelineZoomActions({
 	}, [
 		videoDuration,
 		totalMs,
+		motionProfile,
 		disableSuggestedZooms,
 		onZoomSuggested,
 		cursorTelemetry,

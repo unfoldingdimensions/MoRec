@@ -7,7 +7,19 @@
 		"modeManual": "Handmatig",
 		"modeManualDescription": "Stel een vast focuspunt in voor deze zoom",
 		"modeAutoDescription": "De camera volgt de cursor automatisch",
-		"globalSettings": "Animation"
+		"globalSettings": "Animation",
+		"motionProfile": "Bewegingsprofiel",
+		"motionProfiles": {
+			"off": "Uit",
+			"offDescription": "Geen voorgestelde zooms — niets beweegt tenzij je het zelf toevoegt.",
+			"subtle": "Subtiel",
+			"subtleDescription": "Voorgestelde zooms blijven subtiel, maximaal 1,5× diepte.",
+			"balanced": "Gebalanceerd",
+			"balancedDescription": "De standaardmix van voorgestelde zooms, tot 1,8× diepte.",
+			"energetic": "Energiek",
+			"energeticDescription": "Meer voorgestelde zooms tot 2,2× diepte, met snellere beweging."
+		},
+		"motionProfileHint": "Alleen suggesties — zooms die je zelf toevoegt of bewerkt worden nooit gewijzigd."
 	},
 	"trim": {
 		"deleteRegion": "Trimgebied verwijderen"
