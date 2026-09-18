@@ -7,7 +7,19 @@
 		"modeManual": "수동",
 		"modeManualDescription": "이 확대에 고정 초점을 설정합니다",
 		"modeAutoDescription": "카메라가 커서를 자동으로 따라갑니다",
-		"globalSettings": "Animation"
+		"globalSettings": "Animation",
+		"motionProfile": "모션 프로필",
+		"motionProfiles": {
+			"off": "끄기",
+			"offDescription": "자동 줌 제안이 없습니다. 직접 추가하지 않으면 화면이 움직이지 않습니다.",
+			"subtle": "은은하게",
+			"subtleDescription": "제안된 줌이 부드럽게 유지되며 최대 1.5× 깊이로 제한됩니다.",
+			"balanced": "균형",
+			"balancedDescription": "기본 제안 줌 구성으로 최대 1.8× 깊이까지 적용됩니다.",
+			"energetic": "활발하게",
+			"energeticDescription": "최대 2.2× 깊이의 더 많은 제안 줌과 더 빠른 움직임."
+		},
+		"motionProfileHint": "제안에만 적용됩니다 — 직접 추가하거나 편집한 줌은 변경되지 않습니다."
 	},
 	"trim": {
 		"deleteRegion": "트림 구간 삭제"

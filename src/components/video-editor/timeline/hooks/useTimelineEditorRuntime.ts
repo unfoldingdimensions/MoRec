@@ -9,9 +9,11 @@ import type {
 	CursorTelemetryPoint,
 	SpeedRegion,
 	TrimRegion,
+	ZoomDepth,
 	ZoomFocus,
 	ZoomRegion,
 } from "../../types";
+import type { MotionProfile } from "../../motionProfile";
 import type { TimelineShortcutBindings } from "../core/timelineTypes";
 import type { TimelineEditorHandle } from "../TimelineEditor";
 import { useTimelineAudioActions } from "./actions/useTimelineAudioActions";
@@ -32,9 +34,10 @@ interface UseTimelineEditorRuntimeParams {
 	autoSuggestZoomsTrigger: number;
 	onAutoSuggestZoomsConsumed?: () => void;
 	disableSuggestedZooms: boolean;
+	motionProfile?: MotionProfile;
 	zoomRegions: ZoomRegion[];
 	onZoomAdded: (span: Span) => void;
-	onZoomSuggested?: (span: Span, focus: ZoomFocus) => void;
+	onZoomSuggested?: (span: Span, focus: ZoomFocus, depth: ZoomDepth) => void;
 	onZoomSpanChange: (id: string, span: Span) => void;
 	onZoomDelete: (id: string) => void;
 	selectedZoomId: string | null;
@@ -81,6 +84,7 @@ export function useTimelineEditorRuntime({
 	autoSuggestZoomsTrigger,
 	onAutoSuggestZoomsConsumed,
 	disableSuggestedZooms,
+	motionProfile,
 	zoomRegions,
 	onZoomAdded,
 	onZoomSuggested,
@@ -212,7 +216,7 @@ export function useTimelineEditorRuntime({
 		timeline: { videoDuration, totalMs, currentTimeMs },
 		regions: { zoom: zoomRegions, clip: clipRegions },
 		cursorTelemetry,
-		options: { disableSuggestedZooms },
+		options: { disableSuggestedZooms, motionProfile },
 		autoSuggestZoomsTrigger,
 		onAutoSuggestZoomsConsumed,
 		onZoomAdded,

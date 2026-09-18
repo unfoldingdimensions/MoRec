@@ -7,7 +7,19 @@
 		"modeManual": "Manual",
 		"modeManualDescription": "Establece un punto de enfoque fijo para este zoom",
 		"modeAutoDescription": "La cámara sigue el cursor automáticamente",
-		"globalSettings": "Animation"
+		"globalSettings": "Animation",
+		"motionProfile": "Perfil de movimiento",
+		"motionProfiles": {
+			"off": "No",
+			"offDescription": "Sin zooms sugeridos: nada se mueve a menos que lo añadas.",
+			"subtle": "Sutil",
+			"subtleDescription": "Zooms sugeridos suaves, con una profundidad máxima de 1,5×.",
+			"balanced": "Equilibrado",
+			"balancedDescription": "La combinación predeterminada de zooms sugeridos, hasta 1,8×.",
+			"energetic": "Enérgico",
+			"energeticDescription": "Más zooms sugeridos de hasta 2,2×, con un movimiento más rápido."
+		},
+		"motionProfileHint": "Solo sugerencias: los zooms que añadas o edites nunca se cambian."
 	},
 	"trim": {
 		"deleteRegion": "Eliminar región de recorte"

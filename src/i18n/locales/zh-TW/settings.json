@@ -7,7 +7,19 @@
 		"modeManual": "手動",
 		"modeManualDescription": "為此縮放設定固定的對焦點",
 		"modeAutoDescription": "相機會自動跟隨游標",
-		"globalSettings": "Animation"
+		"globalSettings": "Animation",
+		"motionProfile": "運動強度",
+		"motionProfiles": {
+			"off": "關閉",
+			"offDescription": "不自動建議縮放——除非手動新增，畫面不會移動。",
+			"subtle": "輕微",
+			"subtleDescription": "建議的縮放保持輕柔，深度最高 1.5×。",
+			"balanced": "均衡",
+			"balancedDescription": "預設的建議縮放組合，深度最高 1.8×。",
+			"energetic": "活躍",
+			"energeticDescription": "更多建議縮放，深度最高 2.2×，動作更輕快。"
+		},
+		"motionProfileHint": "僅影響建議——你手動新增或編輯的縮放不會被更改。"
 	},
 	"trim": {
 		"deleteRegion": "刪除修剪區域"

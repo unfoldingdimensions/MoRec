@@ -7,6 +7,7 @@ import type {
 } from "@/components/video-editor/audio/audioTypes";
 import { useScopedT } from "@/contexts/I18nContext";
 import { useShortcuts } from "@/contexts/ShortcutsContext";
+import type { MotionProfile } from "../motionProfile";
 import { fromFileUrl } from "../projectPersistence";
 import type {
 	AnnotationRegion,
@@ -16,6 +17,7 @@ import type {
 	CursorTelemetryPoint,
 	SpeedRegion,
 	TrimRegion,
+	ZoomDepth,
 	ZoomFocus,
 	ZoomRegion,
 } from "../types";
@@ -40,9 +42,10 @@ export interface TimelineEditorProps {
 	autoSuggestZoomsTrigger?: number;
 	onAutoSuggestZoomsConsumed?: () => void;
 	disableSuggestedZooms?: boolean;
+	motionProfile?: MotionProfile;
 	zoomRegions: ZoomRegion[];
 	onZoomAdded: (span: Span) => void;
-	onZoomSuggested?: (span: Span, focus: ZoomFocus) => void;
+	onZoomSuggested?: (span: Span, focus: ZoomFocus, depth: ZoomDepth) => void;
 	onZoomSpanChange: (id: string, span: Span) => void;
 	onZoomDelete: (id: string) => void;
 	selectedZoomId: string | null;
@@ -124,6 +127,7 @@ const TimelineEditor = forwardRef<TimelineEditorHandle, TimelineEditorProps>(
 			autoSuggestZoomsTrigger = 0,
 			onAutoSuggestZoomsConsumed,
 			disableSuggestedZooms = false,
+			motionProfile,
 			zoomRegions,
 			onZoomAdded,
 			onZoomSuggested,
@@ -369,6 +373,7 @@ const TimelineEditor = forwardRef<TimelineEditorHandle, TimelineEditorProps>(
 			autoSuggestZoomsTrigger,
 			onAutoSuggestZoomsConsumed,
 			disableSuggestedZooms,
+			motionProfile,
 			zoomRegions,
 			onZoomAdded,
 			onZoomSuggested,

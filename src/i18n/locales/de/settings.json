@@ -7,7 +7,19 @@
 		"modeManual": "Manuell",
 		"modeManualDescription": "Legen Sie einen festen Fokuspunkt für diesen Zoom fest",
 		"modeAutoDescription": "Die Kamera zentriert sich neu, wenn sich der Cursor dem Rand der gezoomten Ansicht nähert",
-		"globalSettings": "Animation"
+		"globalSettings": "Animation",
+		"motionProfile": "Bewegungsprofil",
+		"motionProfiles": {
+			"off": "Aus",
+			"offDescription": "Keine vorgeschlagenen Zooms – nichts bewegt sich, außer Sie fügen es hinzu.",
+			"subtle": "Dezent",
+			"subtleDescription": "Vorgeschlagene Zooms bleiben dezent, maximal 1,5-fache Tiefe.",
+			"balanced": "Ausgewogen",
+			"balancedDescription": "Die Standardmischung vorgeschlagener Zooms, bis zu 1,8-facher Tiefe.",
+			"energetic": "Dynamisch",
+			"energeticDescription": "Mehr vorgeschlagene Zooms mit bis zu 2,2-facher Tiefe und flotterer Bewegung."
+		},
+		"motionProfileHint": "Nur Vorschläge – Zooms, die Sie selbst hinzufügen oder bearbeiten, werden nie geändert."
 	},
 	"trim": {
 		"deleteRegion": "Trimmbereich löschen"

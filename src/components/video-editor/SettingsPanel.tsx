@@ -57,6 +57,7 @@ import {
 	getMatchingCursorMotionPresetId,
 } from "./cursorMotionPresets";
 import { loadEditorPreferences, saveEditorPreferences } from "./editorPreferences";
+import { MOTION_PROFILES, type MotionProfile } from "./motionProfile";
 import { SliderControl } from "./SliderControl";
 import { KeyboardShortcutsDialog } from "./TutorialHelp";
 import type {
@@ -800,6 +801,8 @@ interface SettingsPanelProps {
 	onConnectZoomsChange?: (enabled: boolean) => void;
 	autoApplyFreshRecordingAutoZooms?: boolean;
 	onAutoApplyFreshRecordingAutoZoomsChange?: (enabled: boolean) => void;
+	motionProfile?: MotionProfile;
+	onMotionProfileChange?: (profile: MotionProfile) => void;
 	zoomInDurationMs?: number;
 	onZoomInDurationMsChange?: (duration: number) => void;
 	zoomInOverlapMs?: number;
@@ -1264,6 +1267,8 @@ export function SettingsPanel({
 	onConnectZoomsChange,
 	autoApplyFreshRecordingAutoZooms = true,
 	onAutoApplyFreshRecordingAutoZoomsChange,
+	motionProfile = "balanced",
+	onMotionProfileChange,
 	zoomInDurationMs = DEFAULT_ZOOM_IN_DURATION_MS,
 	onZoomInDurationMsChange,
 	zoomOutDurationMs = DEFAULT_ZOOM_OUT_DURATION_MS,
@@ -3484,28 +3489,22 @@ export function SettingsPanel({
 										)}
 							</p>
 						</div>
-						<div className="grid grid-cols-6 gap-1.5">
-							{ZOOM_DEPTH_OPTIONS.map((option) => {
-								const isActive = selectedZoomDepth === option.depth;
-								return (
-									<Button
-										key={option.depth}
-										type="button"
-										onClick={() => onZoomDepthChange?.(option.depth)}
-										className={cn(
-											"h-auto w-full rounded-lg border px-1 py-2 text-center shadow-sm transition-all duration-200 ease-out cursor-pointer",
-											isActive
-												? "border-[#2563EB] bg-[#2563EB] text-white"
-												: "border-foreground/5 bg-foreground/5 text-muted-foreground hover:bg-foreground/10 hover:border-foreground/10 hover:text-foreground",
-										)}
-									>
-										<span className="text-xs font-semibold">
-											{option.label}
-										</span>
-									</Button>
-								);
-							})}
-						</div>
+						<SliderControl
+							label={tSettings("zoom.level", "Zoom Level")}
+							value={selectedZoomDepth ?? 2}
+							defaultValue={2}
+							min={1}
+							max={6}
+							step={1}
+							onChange={(depth) => onZoomDepthChange?.(depth as ZoomDepth)}
+							formatValue={(depth) =>
+								ZOOM_DEPTH_OPTIONS[depth - 1]?.label ?? `${depth}×`
+							}
+							parseInput={(text) => {
+								const parsed = Number.parseInt(text, 10);
+								return Number.isFinite(parsed) ? parsed : null;
+							}}
+						/>
 						<div className="h-px bg-foreground/[0.06] my-1" />
 					</>
 				)}
@@ -3537,6 +3536,39 @@ export function SettingsPanel({
 						)}
 					</div>
 				)}
+				<div className="h-px bg-foreground/[0.06] my-1" />
+				<section className="flex flex-col gap-2">
+					<SectionLabel>{tSettings("zoom.motionProfile", "Motion Profile")}</SectionLabel>
+					<div className="flex rounded-lg border border-foreground/10 bg-foreground/5 p-0.5">
+						{MOTION_PROFILES.map((profile) => (
+							<button
+								key={profile}
+								type="button"
+								onClick={() => onMotionProfileChange?.(profile)}
+								className={cn(
+									"flex-1 rounded-md px-2 py-1.5 text-xs font-medium capitalize transition-all",
+									motionProfile === profile
+										? "bg-[#2563EB] text-white shadow-sm"
+										: "text-muted-foreground hover:text-foreground",
+								)}
+							>
+								{tSettings(`zoom.motionProfiles.${profile}`, profile)}
+							</button>
+						))}
+					</div>
+					<p className="text-[10px] text-muted-foreground/70">
+						{tSettings(
+							`zoom.motionProfiles.${motionProfile}Description`,
+							"How strongly the editor suggests zooms for you.",
+						)}
+					</p>
+					<p className="text-[10px] text-muted-foreground/70">
+						{tSettings(
+							"zoom.motionProfileHint",
+							"Suggestions only — zooms you add or edit yourself are never changed.",
+						)}
+					</p>
+				</section>
 				{showDevMotionControls ? (
 					<div className="rounded-lg border border-foreground/10 bg-foreground/[0.03] px-3 py-2">
 						<div className="text-[10px] text-muted-foreground">
