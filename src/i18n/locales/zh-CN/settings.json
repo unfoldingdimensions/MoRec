@@ -340,7 +340,12 @@
 		"estimatedSizeUnavailable": "视频时长确定后将显示预计大小。",
 		"resumePreviousExport": "继续上次导出",
 		"segmentsDone": "已完成 {{total}} 个分段中的 {{done}} 个",
-		"discardResume": "丢弃"
+		"discardResume": "丢弃",
+		"canvasTitle": "画布",
+		"canvasOriginal": "原始",
+		"canvasVertical": "9:16",
+		"canvasSquare": "1:1",
+		"canvasPortrait": "4:5"
 	},
 	"audio": {
 		"title": "音频",

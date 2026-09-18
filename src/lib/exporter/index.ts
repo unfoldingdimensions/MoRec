@@ -1,5 +1,9 @@
 export { FrameRenderer } from "./frameRenderer";
-export { calculateOutputDimensions, GifExporter } from "./gifExporter";
+export {
+	calculateOutputDimensions,
+	GifExporter,
+	resolveGifCanvasComposition,
+} from "./gifExporter";
 export {
 	getMp4ExportBitrate,
 	getSourceQualityBitrate,
@@ -49,5 +53,13 @@ export {
 	MP4_FRAME_RATES,
 	VALID_GIF_FRAME_RATES,
 } from "./types";
+export type { CanvasCropRect, ExportCanvas } from "@/components/video-editor/exportDimensions";
+export {
+	calculateCanvasCropRect,
+	EXPORT_CANVAS_PRESETS,
+	getCanvasCropOutputSize,
+	normalizeExportCanvas,
+	scaleCanvasCropRect,
+} from "@/components/video-editor/exportDimensions";
 export { VideoFileDecoder } from "./videoDecoder";
 export { VideoExporter } from "./videoExporter";

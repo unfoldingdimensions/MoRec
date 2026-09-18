@@ -768,6 +768,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
 			totalDurationMs: options.totalDurationMs,
 		});
 	},
+	analyzeCompanionAudioLevels: (videoPath: string) => {
+		return ipcRenderer.invoke("analyze-companion-audio-levels", videoPath);
+	},
 	setCurrentVideoPath: (
 		path: string,
 		options?: {

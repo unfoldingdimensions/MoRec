@@ -2,6 +2,7 @@ import { fixWebmDuration } from "@fix-webm-duration/fix";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useScopedT } from "@/contexts/I18nContext";
+import { detectSilentSystemAudio } from "@/lib/audioPreflight";
 import { getEffectiveRecordingDurationMs } from "@/lib/mediaTiming";
 import {
 	getVideoExtensionForMimeType,
@@ -372,6 +373,8 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 	const [microphoneEnabled, setMicrophoneEnabled] = useState(false);
 	const [microphoneDeviceId, setMicrophoneDeviceId] = useState<string | undefined>(undefined);
 	const [systemAudioEnabled, setSystemAudioEnabled] = useState(false);
+	const systemAudioEnabledRef = useRef(systemAudioEnabled);
+	systemAudioEnabledRef.current = systemAudioEnabled;
 	const [webcamEnabled, setWebcamEnabled] = useState(false);
 	const [webcamDeviceId, setWebcamDeviceId] = useState<string | undefined>(undefined);
 	const [countdownDelay, setCountdownDelayState] = useState(3);
@@ -745,6 +748,18 @@ export function useScreenRecorder(): UseScreenRecorderReturn {
 					});
 				}
 			}
+
+			// Post-recording audio diagnostic: warn once when the system-audio
+			// companion came out silent. Best-effort and non-blocking.
+			void detectSilentSystemAudio(videoPath, systemAudioEnabledRef.current).then(
+				(silent) => {
+					if (silent) {
+						toast.warning(t("recording.lastRecordingSilent"), {
+							duration: 10000,
+						});
+					}
+				},
+			);
 
 			setFinalizing(false);
 			try {

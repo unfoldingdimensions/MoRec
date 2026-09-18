@@ -27,6 +27,8 @@ import type {
 	ZoomTransitionEasing,
 } from "@/components/video-editor/types";
 import { getDefaultCaptionFontFamily, ZOOM_DEPTH_SCALES } from "@/components/video-editor/types";
+import { CanvasCropApplier } from "./canvasCropDraw";
+import type { CanvasCropRect } from "@/components/video-editor/exportDimensions";
 import { DEFAULT_FOCUS } from "@/components/video-editor/videoPlayback/constants";
 import {
 	type CursorFollowCameraState,
@@ -167,6 +169,12 @@ interface FrameRenderConfig {
 	zoomClassicMode?: boolean;
 	frame?: string | null;
 	nativeReadbackMode?: "pixels" | "canvas";
+	/**
+	 * Social canvas center-crop: the composition still renders at
+	 * `width`×`height`, but `getCanvas()` returns only this rect, so encoded
+	 * frames (and the encoder config) use the crop size.
+	 */
+	canvasCrop?: CanvasCropRect;
 }
 
 interface AnimationState {
@@ -488,6 +496,7 @@ export class FrameRenderer {
 	private retainedBackgroundBitmapTimestamp: number | null = null;
 	private retainedBackgroundBitmap: ImageBitmap | null = null;
 	private compositeCanvas: HTMLCanvasElement | null = null;
+	private cropApplier = new CanvasCropApplier();
 	private compositeCtx: CanvasRenderingContext2D | null = null;
 	private lastEmittedClickTimeMs = -1;
 	private cleanupWebcamSource: (() => void) | null = null;
@@ -3859,11 +3868,19 @@ export class FrameRenderer {
 			throw new Error("Renderer not initialized");
 		}
 
-		if (this.shouldCompositeExtensionFrame() && this.compositeCanvas) {
-			return this.compositeCanvas;
-		}
+		const source = this.shouldCompositeExtensionFrame() && this.compositeCanvas
+			? this.compositeCanvas
+			: (this.outputCanvasOverride ?? (this.app.canvas as HTMLCanvasElement));
+		return this.resolveCroppedCanvas(source);
+	}
 
-		return this.outputCanvasOverride ?? (this.app.canvas as HTMLCanvasElement);
+	/**
+	 * Canvas crop at capture: draw the crop rect out of the composition into a
+	 * cache canvas sized to the final output. Applied after the full
+	 * composition (including zoom) has rendered.
+	 */
+	private resolveCroppedCanvas(source: HTMLCanvasElement): HTMLCanvasElement {
+		return this.cropApplier.apply(source, this.config.canvasCrop);
 	}
 
 	capturePixelsForNativeExport(): Uint8ClampedArray | null {
@@ -3893,6 +3910,7 @@ export class FrameRenderer {
 	}
 
 	destroy(): void {
+		this.cropApplier.dispose();
 		const texturesToDestroy = new Set<Texture>();
 		if (this.videoSprite?.texture) {
 			texturesToDestroy.add(this.videoSprite.texture);

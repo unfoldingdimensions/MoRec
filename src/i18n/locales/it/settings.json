@@ -340,7 +340,12 @@
 		"estimatedSizeUnavailable": "La dimensione stimata apparirà quando la durata del video sarà nota.",
 		"resumePreviousExport": "Riprendi esportazione precedente",
 		"segmentsDone": "{{done}} di {{total}} segmenti completati",
-		"discardResume": "Scarta"
+		"discardResume": "Scarta",
+		"canvasTitle": "Area video",
+		"canvasOriginal": "Originale",
+		"canvasVertical": "9:16",
+		"canvasSquare": "1:1",
+		"canvasPortrait": "4:5"
 	},
 	"audio": {
 		"title": "Audio",

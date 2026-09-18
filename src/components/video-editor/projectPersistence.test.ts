@@ -106,3 +106,20 @@ describe("normalizeProjectEditor", () => {
 		expect(normalizeProjectEditor({ borderRadius: undefined }).borderRadius).toBe(12.5);
 	});
 });
+
+describe("exportCanvas persistence", () => {
+	it("round-trips a valid exportCanvas value", () => {
+		expect(normalizeProjectEditor({ exportCanvas: "9:16" }).exportCanvas).toBe("9:16");
+		expect(normalizeProjectEditor({ exportCanvas: "1:1" }).exportCanvas).toBe("1:1");
+		expect(normalizeProjectEditor({ exportCanvas: "4:5" }).exportCanvas).toBe("4:5");
+		expect(normalizeProjectEditor({ exportCanvas: "original" }).exportCanvas).toBe(
+			"original",
+		);
+	});
+
+	it("normalizes unknown exportCanvas values to original", () => {
+		expect(normalizeProjectEditor({ exportCanvas: "16:9" }).exportCanvas).toBe("original");
+		expect(normalizeProjectEditor({ exportCanvas: 42 }).exportCanvas).toBe("original");
+		expect(normalizeProjectEditor({}).exportCanvas).toBe("original");
+	});
+});

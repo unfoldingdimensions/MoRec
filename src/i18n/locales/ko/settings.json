@@ -340,7 +340,12 @@
 		"estimatedSizeUnavailable": "비디오 길이를 알면 예상 크기가 표시됩니다.",
 		"resumePreviousExport": "이전 내보내기 재개",
 		"segmentsDone": "{{total}}개 세그먼트 중 {{done}}개 완료",
-		"discardResume": "버리기"
+		"discardResume": "버리기",
+		"canvasTitle": "캔버스",
+		"canvasOriginal": "원본",
+		"canvasVertical": "9:16",
+		"canvasSquare": "1:1",
+		"canvasPortrait": "4:5"
 	},
 	"audio": {
 		"title": "오디오",

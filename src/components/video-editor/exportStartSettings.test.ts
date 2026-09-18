@@ -9,6 +9,7 @@ const baseOptions = {
 	exportEncodingMode: "balanced" as const,
 	exportQuality: "good" as const,
 	targetSizeMb: 50,
+	exportCanvas: "original" as const,
 	mp4FrameRate: 30 as const,
 	exportBackendPreference: "auto" as const,
 	exportPipelineModel: "modern" as const,
@@ -28,6 +29,7 @@ describe("resolveExportStartSettings", () => {
 			pipelineModel: "modern",
 			quality: "good",
 			targetSizeMb: 50,
+			canvas: "original",
 			resume: undefined,
 			gifConfig: undefined,
 		});
@@ -71,6 +73,7 @@ describe("resolveExportStartSettings", () => {
 			pipelineModel: undefined,
 			quality: undefined,
 			targetSizeMb: undefined,
+			canvas: undefined,
 			resume: undefined,
 			gifConfig: {
 				frameRate: 15,
@@ -78,6 +81,7 @@ describe("resolveExportStartSettings", () => {
 				sizePreset: "medium",
 				width: 1280,
 				height: 720,
+				canvas: "original",
 			},
 		});
 	});
@@ -96,5 +100,38 @@ describe("resolveExportStartSettings", () => {
 			width: 1234,
 			height: 678,
 		});
+	});
+
+	it("applies the canvas before the GIF size preset (9:16 crop, then scale)", () => {
+		const settings = resolveExportStartSettings({
+			...baseOptions,
+			sourceWidth: 2560,
+			sourceHeight: 1440,
+			exportFormat: "gif",
+			gifSizePreset: "medium",
+			exportCanvas: "9:16",
+		});
+
+		// Composition stays at the uncropped preset size (1280x720); the crop
+		// rect rescaled into it yields the final 405x720 frame.
+		expect(settings.gifConfig).toMatchObject({
+			sizePreset: "medium",
+			canvas: "9:16",
+			width: 405,
+			height: 720,
+		});
+	});
+
+	it("passes the canvas through for MP4 exports only", () => {
+		expect(
+			resolveExportStartSettings({ ...baseOptions, exportCanvas: "1:1" }).canvas,
+		).toBe("1:1");
+		expect(
+			resolveExportStartSettings({
+				...baseOptions,
+				exportFormat: "gif",
+				exportCanvas: "1:1",
+			}).canvas,
+		).toBeUndefined();
 	});
 });

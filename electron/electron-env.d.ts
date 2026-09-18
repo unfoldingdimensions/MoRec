@@ -734,6 +734,16 @@ interface Window {
 			usedSource?: "system" | "mic" | "video";
 			error?: string;
 		}>;
+		analyzeCompanionAudioLevels: (videoPath: string) => Promise<{
+			success: boolean;
+			levels?: Array<{
+				path: string;
+				kind: "system" | "mic";
+				maxVolumeDb: number | null;
+				meanVolumeDb: number | null;
+			}>;
+			error?: string;
+		}>;
 		setCurrentVideoPath: (
 			path: string,
 			options?: {

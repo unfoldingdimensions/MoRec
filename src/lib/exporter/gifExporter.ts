@@ -17,13 +17,19 @@ import type {
 } from "@/components/video-editor/types";
 import { FrameRenderer } from "./frameRenderer";
 import { StreamingVideoDecoder } from "./streamingDecoder";
+import { GIF_SIZE_PRESETS } from "./types";
 import type {
 	ExportProgress,
 	ExportResult,
-	GIF_SIZE_PRESETS,
 	GifFrameRate,
 	GifSizePreset,
 } from "./types";
+import {
+	type CanvasCropRect,
+	calculateCanvasCropRect,
+	type ExportCanvas,
+	scaleCanvasCropRect,
+} from "@/components/video-editor/exportDimensions";
 
 const GIF_WORKER_URL = new URL("gif.js/dist/gif.worker.js", import.meta.url).toString();
 
@@ -36,6 +42,8 @@ interface GifExporterConfig {
 	frameRate: GifFrameRate;
 	loop: boolean;
 	sizePreset: GifSizePreset;
+	/** Social canvas preset; non-original center-crops composed frames at capture. */
+	canvas?: ExportCanvas;
 	wallpaper: string;
 	zoomRegions: ZoomRegion[];
 	trimRegions?: TrimRegion[];
@@ -134,6 +142,54 @@ export function getGifRepeat(loop: boolean): 0 | 1 {
 	return loop ? 0 : 1;
 }
 
+/**
+ * Social canvas × size preset for GIF exports. The composition canvas stays
+ * at the uncropped size-preset dimensions (the frame renderer fits content
+ * into the canvas, so a smaller canvas would letterbox instead of crop);
+ * captured frames are center-cropped from it, which yields the final output
+ * size. Canvas applies first, then the size preset scales the result.
+ */
+export function resolveGifCanvasComposition(params: {
+	sourceWidth: number;
+	sourceHeight: number;
+	sizePreset: GifSizePreset;
+	canvas?: ExportCanvas;
+}): {
+	composeWidth: number;
+	composeHeight: number;
+	cropRect: CanvasCropRect | null;
+	outputWidth: number;
+	outputHeight: number;
+} {
+	const composeDimensions = calculateOutputDimensions(
+		params.sourceWidth,
+		params.sourceHeight,
+		params.sizePreset,
+		GIF_SIZE_PRESETS,
+	);
+	const sourceCropRect = calculateCanvasCropRect(
+		params.sourceWidth,
+		params.sourceHeight,
+		params.canvas ?? "original",
+	);
+	const cropRect = sourceCropRect
+		? scaleCanvasCropRect(sourceCropRect, {
+				fromWidth: params.sourceWidth,
+				fromHeight: params.sourceHeight,
+				toWidth: composeDimensions.width,
+				toHeight: composeDimensions.height,
+			})
+		: null;
+
+	return {
+		composeWidth: composeDimensions.width,
+		composeHeight: composeDimensions.height,
+		cropRect,
+		outputWidth: cropRect?.width ?? composeDimensions.width,
+		outputHeight: cropRect?.height ?? composeDimensions.height,
+	};
+}
+
 export function buildGifFrameRendererConfig(
 	config: GifExporterConfig,
 	videoInfo: { width: number; height: number },
@@ -230,8 +286,21 @@ export class GifExporter {
 			});
 			const videoInfo = await this.streamingDecoder.loadMetadata(this.config.videoUrl);
 
-			// Initialize frame renderer
-			this.renderer = new FrameRenderer(buildGifFrameRendererConfig(this.config, videoInfo));
+			// Initialize frame renderer. With a social canvas the renderer still
+			// composes at the uncropped preset size; the crop rect makes
+			// getCanvas() return only the center band.
+			const composition = resolveGifCanvasComposition({
+				sourceWidth: videoInfo.width,
+				sourceHeight: videoInfo.height,
+				sizePreset: this.config.sizePreset,
+				canvas: this.config.canvas,
+			});
+			this.renderer = new FrameRenderer({
+				...buildGifFrameRendererConfig(this.config, videoInfo),
+				width: composition.composeWidth,
+				height: composition.composeHeight,
+				canvasCrop: composition.cropRect ?? undefined,
+			});
 			await this.renderer.initialize();
 
 			// Initialize GIF encoder

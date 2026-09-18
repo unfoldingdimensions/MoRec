@@ -51,6 +51,7 @@ describe("computeExportSettingsHash", () => {
 			settings({ encodingMode: "quality" }),
 			settings({ mp4FrameRate: 60 }),
 			settings({ targetSizeMb: 25 }),
+			settings({ canvas: "9:16" as const }),
 		];
 
 		for (const variant of variants) {

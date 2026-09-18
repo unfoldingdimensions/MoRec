@@ -73,6 +73,7 @@ import {
 	type GifSizePreset,
 	ModernVideoExporter,
 	probeSupportedMp4Dimensions,
+	resolveGifCanvasComposition,
 	type SupportedMp4Dimensions,
 	VideoExporter,
 } from "@/lib/exporter";
@@ -92,8 +93,12 @@ import {
 import { planClipSpeedChange } from "./clipSpeedChange";
 import { ExtensionIcon } from "./ExtensionIcon";
 import {
+	calculateCanvasCropRect,
 	calculateMp4ExportDimensions,
 	calculateMp4SourceDimensions,
+	EXPORT_CANVAS_PRESETS,
+	type ExportCanvas,
+	getCanvasCropOutputSize,
 	type Mp4SupportProbeSnapshot,
 	shouldDebounceMp4SupportProbe,
 } from "./exportDimensions";
@@ -651,6 +656,9 @@ export default function VideoEditor() {
 	const [targetSizeMb, setTargetSizeMb] = useState<number>(
 		initialEditorPreferences.targetSizeMb,
 	);
+	const [exportCanvas, setExportCanvas] = useState<ExportCanvas>(
+		initialEditorPreferences.exportCanvas,
+	);
 	const [exportEncodingMode, setExportEncodingMode] = useState<ExportEncodingMode>(
 		initialEditorPreferences.exportEncodingMode,
 	);
@@ -844,6 +852,7 @@ export default function VideoEditor() {
 			exportPipelineModel,
 			exportQuality,
 			targetSizeMb,
+			exportCanvas,
 			mp4FrameRate,
 			exportFormat,
 			gifFrameRate,
@@ -902,6 +911,7 @@ export default function VideoEditor() {
 			exportPipelineModel,
 			exportQuality,
 			targetSizeMb,
+			exportCanvas,
 			mp4FrameRate,
 			exportFormat,
 			gifFrameRate,
@@ -1001,6 +1011,7 @@ export default function VideoEditor() {
 		setExportPipelineModel(snapshot.exportPipelineModel);
 		setExportQuality(snapshot.exportQuality);
 		setTargetSizeMb(snapshot.targetSizeMb);
+		setExportCanvas(snapshot.exportCanvas);
 		setMp4FrameRate(snapshot.mp4FrameRate);
 		setExportFormat(snapshot.exportFormat);
 		setGifFrameRate(snapshot.gifFrameRate);
@@ -1531,6 +1542,22 @@ export default function VideoEditor() {
 		[gifSizePreset],
 	);
 
+	const gifCanvasOutputDimensions = useMemo(() => {
+		const sourceWidth = videoPlaybackRef.current?.video?.videoWidth || 1920;
+		const sourceHeight = videoPlaybackRef.current?.video?.videoHeight || 1080;
+		return Object.fromEntries(
+			EXPORT_CANVAS_PRESETS.map((canvas) => {
+				const compose = resolveGifCanvasComposition({
+					sourceWidth,
+					sourceHeight,
+					sizePreset: gifSizePreset,
+					canvas,
+				});
+				return [canvas, { width: compose.outputWidth, height: compose.outputHeight }];
+			}),
+		) as Record<ExportCanvas, { width: number; height: number }>;
+	}, [gifSizePreset]);
+
 	const mp4SourceDimensions = useMemo(() => {
 		const sourceVideo = isPreviewReady ? videoPlaybackRef.current?.video : null;
 		return {
@@ -1556,13 +1583,38 @@ export default function VideoEditor() {
 			? supportedMp4SourceDimensions.height
 			: desiredMp4SourceDimensions.height;
 
-		return {
+		const qualityDimensions = {
 			medium: calculateMp4ExportDimensions(baseWidth, baseHeight, "medium"),
 			good: calculateMp4ExportDimensions(baseWidth, baseHeight, "good"),
 			high: calculateMp4ExportDimensions(baseWidth, baseHeight, "high"),
 			source: calculateMp4ExportDimensions(baseWidth, baseHeight, "source"),
 			"target-size": calculateMp4ExportDimensions(baseWidth, baseHeight, "target-size"),
 		};
+
+		// Per-canvas readouts: the canvas center-crops the quality-scaled frame.
+		const canvasDimensions = Object.fromEntries(
+			EXPORT_CANVAS_PRESETS.map((canvas) => [
+				canvas,
+				Object.fromEntries(
+					(
+						Object.entries(qualityDimensions) as Array<
+							[ExportQuality, { width: number; height: number }]
+						>
+					).map(([quality, dims]) => {
+						const crop = calculateCanvasCropRect(dims.width, dims.height, canvas);
+						return [
+							quality,
+							getCanvasCropOutputSize({
+								width: dims.width,
+								height: dims.height,
+								canvasCrop: crop,
+							}),
+						];
+					}),
+				),
+			]),
+		) as Record<ExportCanvas, Record<ExportQuality, { width: number; height: number }>>;
+		return canvasDimensions;
 	}, [
 		desiredMp4SourceDimensions.height,
 		desiredMp4SourceDimensions.width,
@@ -1784,6 +1836,7 @@ export default function VideoEditor() {
 				exportPipelineModel: ExportPipelineModel;
 				exportQuality: ExportQuality;
 				targetSizeMb: number;
+				exportCanvas: ExportCanvas;
 				mp4FrameRate: ExportMp4FrameRate;
 				exportFormat: ExportFormat;
 				gifFrameRate: GifFrameRate;
@@ -1909,6 +1962,7 @@ export default function VideoEditor() {
 				exportPipelineModel,
 				exportQuality,
 				targetSizeMb,
+				exportCanvas,
 				mp4FrameRate,
 				exportFormat,
 				gifFrameRate,
@@ -1975,6 +2029,7 @@ export default function VideoEditor() {
 			exportPipelineModel,
 			exportQuality,
 			targetSizeMb,
+			exportCanvas,
 			mp4FrameRate,
 			exportFormat,
 			gifFrameRate,
@@ -2177,6 +2232,7 @@ export default function VideoEditor() {
 			setExportPipelineModel(normalizedEditor.exportPipelineModel);
 			setExportQuality(normalizedEditor.exportQuality);
 			setTargetSizeMb(normalizedEditor.targetSizeMb);
+			setExportCanvas(normalizedEditor.exportCanvas);
 			setMp4FrameRate(normalizedEditor.mp4FrameRate);
 			setExportFormat(normalizedEditor.exportFormat);
 			setGifFrameRate(normalizedEditor.gifFrameRate);
@@ -2566,6 +2622,7 @@ export default function VideoEditor() {
 						);
 						setExportQuality(initialEditorPreferences.exportQuality);
 						setTargetSizeMb(initialEditorPreferences.targetSizeMb);
+						setExportCanvas(initialEditorPreferences.exportCanvas);
 						setExportEncodingMode(initialEditorPreferences.exportEncodingMode);
 						setExportBackendPreference(
 							initialEditorPreferences.exportBackendPreference,
@@ -2749,6 +2806,7 @@ export default function VideoEditor() {
 				exportPipelineModel,
 				exportQuality,
 				targetSizeMb,
+				exportCanvas,
 				mp4FrameRate,
 				exportFormat,
 				gifFrameRate,
@@ -2812,6 +2870,7 @@ export default function VideoEditor() {
 		exportPipelineModel,
 		exportQuality,
 		targetSizeMb,
+		exportCanvas,
 		mp4FrameRate,
 		exportFormat,
 		gifFrameRate,
@@ -4959,6 +5018,7 @@ export default function VideoEditor() {
 						frameRate: settings.gifConfig.frameRate,
 						loop: settings.gifConfig.loop,
 						sizePreset: settings.gifConfig.sizePreset,
+						canvas: settings.gifConfig.canvas,
 						wallpaper,
 						trimRegions,
 						speedRegions: effectiveSpeedRegions,
@@ -5108,15 +5168,27 @@ export default function VideoEditor() {
 					});
 					const supportedSourceDimensions =
 						await ensureSupportedMp4SourceDimensions(selectedMp4FrameRate);
+					// Quality scaling first; the social canvas center-crops the
+					// quality-scaled composition (after zoom) at capture time.
 					const { width: exportWidth, height: exportHeight } =
 						calculateMp4ExportDimensions(
 							supportedSourceDimensions.width,
 							supportedSourceDimensions.height,
 							quality,
 						);
-					const bitrate = getMp4ExportBitrate({
+					const canvasCrop = calculateCanvasCropRect(
+						exportWidth,
+						exportHeight,
+						settings.canvas ?? "original",
+					);
+					const outputDimensions = getCanvasCropOutputSize({
 						width: exportWidth,
 						height: exportHeight,
+						canvasCrop,
+					});
+					const bitrate = getMp4ExportBitrate({
+						width: outputDimensions.width,
+						height: outputDimensions.height,
 						frameRate: selectedMp4FrameRate,
 						quality,
 						encodingMode,
@@ -5131,8 +5203,11 @@ export default function VideoEditor() {
 
 					const exporterConfig = {
 						videoUrl: videoPath,
+						// width/height are the composition canvas; canvasCrop carries
+						// the final output rect (crop size) applied at capture.
 						width: exportWidth,
 						height: exportHeight,
+						canvasCrop: canvasCrop ?? undefined,
 						frameRate: selectedMp4FrameRate,
 						bitrate,
 						codec: DEFAULT_MP4_CODEC,
@@ -5633,6 +5708,7 @@ export default function VideoEditor() {
 			exportEncodingMode,
 			exportQuality,
 			targetSizeMb,
+			exportCanvas,
 			mp4FrameRate,
 			exportBackendPreference,
 			exportPipelineModel,
@@ -5647,6 +5723,7 @@ export default function VideoEditor() {
 		exportEncodingMode,
 		exportQuality,
 		targetSizeMb,
+		exportCanvas,
 		mp4FrameRate,
 		exportBackendPreference,
 		exportPipelineModel,
@@ -6641,12 +6718,14 @@ export default function VideoEditor() {
 										setExperimentalNvidiaCudaExport
 									}
 									nvidiaCudaExportAvailable={nvidiaCudaExportAvailable}
-									exportQuality={exportQuality}
-									onExportQualityChange={setExportQuality}
-									targetSizeMb={targetSizeMb}
-									onTargetSizeMbChange={setTargetSizeMb}
-									targetSizeDurationSec={timelineDuration}
-									gifFrameRate={gifFrameRate}
+								exportQuality={exportQuality}
+								onExportQualityChange={setExportQuality}
+								targetSizeMb={targetSizeMb}
+								onTargetSizeMbChange={setTargetSizeMb}
+								targetSizeDurationSec={timelineDuration}
+								exportCanvas={exportCanvas}
+								onExportCanvasChange={setExportCanvas}
+								gifFrameRate={gifFrameRate}
 									onGifFrameRateChange={setGifFrameRate}
 									gifLoop={gifLoop}
 									onGifLoopChange={setGifLoop}
@@ -6657,10 +6736,13 @@ export default function VideoEditor() {
 									}
 									includeCaptionSidecar={includeCaptionSidecar}
 									onIncludeCaptionSidecarChange={setIncludeCaptionSidecar}
-									mp4OutputDimensions={mp4OutputDimensions}
-									resumeBanner={resumeBanner}
+								mp4OutputDimensions={mp4OutputDimensions}
+								gifCanvasOutputDimensions={gifCanvasOutputDimensions}
+								resumeBanner={resumeBanner}
 									onDiscardResume={handleDiscardResume}
-									gifOutputDimensions={gifOutputDimensions}
+									gifOutputDimensions={
+										gifCanvasOutputDimensions[exportCanvas] ?? gifOutputDimensions
+									}
 									onExport={handleStartExportFromDropdown}
 									className="shadow-2xl"
 								/>

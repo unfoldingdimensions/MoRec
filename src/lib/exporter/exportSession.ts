@@ -49,8 +49,10 @@ export function computeExportSettingsHash({
 	const hashInput = {
 		videoPath,
 		backendPreference: settings.backendPreference ?? null,
+		canvas: settings.canvas ?? null,
 		encodingMode: settings.encodingMode ?? null,
 		format: settings.format,
+		gifCanvas: settings.gifConfig?.canvas ?? null,
 		gifFrameRate: settings.gifConfig?.frameRate ?? null,
 		gifLoop: settings.gifConfig?.loop ?? null,
 		gifSizePreset: settings.gifConfig?.sizePreset ?? null,

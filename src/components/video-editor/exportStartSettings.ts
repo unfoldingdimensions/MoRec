@@ -12,6 +12,11 @@ import {
 	type GifFrameRate,
 	type GifSizePreset,
 } from "@/lib/exporter";
+import {
+	calculateCanvasCropRect,
+	type ExportCanvas,
+	scaleCanvasCropRect,
+} from "./exportDimensions";
 
 export function resolveExportStartSettings({
 	sourceWidth,
@@ -21,6 +26,7 @@ export function resolveExportStartSettings({
 	exportEncodingMode,
 	exportQuality,
 	targetSizeMb,
+	exportCanvas,
 	mp4FrameRate,
 	exportBackendPreference,
 	exportPipelineModel,
@@ -36,6 +42,7 @@ export function resolveExportStartSettings({
 	exportEncodingMode: ExportEncodingMode;
 	exportQuality: ExportQuality;
 	targetSizeMb: number;
+	exportCanvas: ExportCanvas;
 	mp4FrameRate: ExportMp4FrameRate;
 	exportBackendPreference: ExportBackendPreference;
 	exportPipelineModel: ExportPipelineModel;
@@ -44,10 +51,27 @@ export function resolveExportStartSettings({
 	gifLoop: boolean;
 	gifSizePreset: GifSizePreset;
 }): ExportSettings {
-	const gifDimensions =
-		exportFormat === "gif"
-			? calculateOutputDimensions(sourceWidth, sourceHeight, gifSizePreset, GIF_SIZE_PRESETS)
-			: null;
+	// Canvas applies first (center-crop at source scale), then the GIF size
+	// preset scales the cropped frame. The composition canvas itself stays at
+	// the uncropped preset size; GifExporter crops at capture with a rect
+	// rescaled into that composition space.
+	const composeDimensions = calculateOutputDimensions(
+		sourceWidth,
+		sourceHeight,
+		gifSizePreset,
+		GIF_SIZE_PRESETS,
+	);
+	const sourceCropRect =
+		exportFormat === "gif" ? calculateCanvasCropRect(sourceWidth, sourceHeight, exportCanvas) : null;
+	const gifCropRect = sourceCropRect
+		? scaleCanvasCropRect(sourceCropRect, {
+				fromWidth: sourceWidth,
+				fromHeight: sourceHeight,
+				toWidth: composeDimensions.width,
+				toHeight: composeDimensions.height,
+			})
+		: null;
+	const gifDimensions = gifCropRect ?? composeDimensions;
 
 	return {
 		format: exportFormat,
@@ -58,6 +82,7 @@ export function resolveExportStartSettings({
 		pipelineModel: exportFormat === "mp4" ? exportPipelineModel : undefined,
 		quality: exportFormat === "mp4" ? exportQuality : undefined,
 		targetSizeMb: exportFormat === "mp4" ? targetSizeMb : undefined,
+		canvas: exportFormat === "mp4" ? exportCanvas : undefined,
 		resume: exportFormat === "mp4" && exportPipelineModel === "modern" ? resume : undefined,
 		gifConfig:
 			exportFormat === "gif" && gifDimensions
@@ -67,6 +92,7 @@ export function resolveExportStartSettings({
 						sizePreset: gifSizePreset,
 						width: gifDimensions.width,
 						height: gifDimensions.height,
+						canvas: exportCanvas,
 					}
 				: undefined,
 	};

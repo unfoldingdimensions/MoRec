@@ -20,6 +20,7 @@ import {
 	MP4_FRAME_RATES,
 	normalizeTargetSizeMb,
 } from "@/lib/exporter";
+import { EXPORT_CANVAS_PRESETS, type ExportCanvas } from "./exportDimensions";
 import { cn } from "@/lib/utils";
 
 interface ExportSettingsMenuProps {
@@ -42,7 +43,14 @@ interface ExportSettingsMenuProps {
 	showCaptionSidecarOption?: boolean;
 	includeCaptionSidecar?: boolean;
 	onIncludeCaptionSidecarChange?: (enabled: boolean) => void;
-	mp4OutputDimensions?: Record<ExportQuality, { width: number; height: number }>;
+	exportCanvas: ExportCanvas;
+	onExportCanvasChange?: (canvas: ExportCanvas) => void;
+	mp4OutputDimensions?: Record<
+		ExportCanvas,
+		Record<ExportQuality, { width: number; height: number }>
+	>;
+	/** Per-canvas GIF frame size, used for the canvas picker readout in GIF mode. */
+	gifCanvasOutputDimensions?: Record<ExportCanvas, { width: number; height: number }>;
 	resumeBanner?: { doneCount: number; segmentCount: number } | null;
 	onDiscardResume?: () => void;
 	gifFrameRate: GifFrameRate;
@@ -76,7 +84,10 @@ export function ExportSettingsMenu({
 	showCaptionSidecarOption = false,
 	includeCaptionSidecar = false,
 	onIncludeCaptionSidecarChange,
+	exportCanvas,
+	onExportCanvasChange,
 	mp4OutputDimensions,
+	gifCanvasOutputDimensions,
 	resumeBanner,
 	onDiscardResume,
 	gifFrameRate,
@@ -159,6 +170,69 @@ export function ExportSettingsMenu({
 					})}
 				</LayoutGroup>
 			</div>
+
+			<div className="mb-1 flex items-center justify-between px-1">
+					<span className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/70">
+						{tSettings("export.canvasTitle", "Canvas")}
+					</span>
+				</div>
+				<div className="mb-3 grid min-h-11 w-full grid-cols-4 rounded-xl border border-foreground/5 bg-foreground/5 p-0.5">
+					{EXPORT_CANVAS_PRESETS.map((canvas) => {
+						const isActive = exportCanvas === canvas;
+						const canvasDims =
+							exportFormat === "mp4"
+								? mp4OutputDimensions?.[canvas]?.[exportQuality]
+								: gifCanvasOutputDimensions?.[canvas];
+						const canvasLabel =
+							canvas === "original"
+								? tSettings("export.canvasOriginal", "Original")
+								: canvas === "9:16"
+									? tSettings("export.canvasVertical", "9:16")
+									: canvas === "1:1"
+										? tSettings("export.canvasSquare", "1:1")
+										: tSettings("export.canvasPortrait", "4:5");
+						return (
+							<button
+								key={canvas}
+								type="button"
+								onClick={() => onExportCanvasChange?.(canvas)}
+								aria-pressed={isActive}
+								className="relative rounded-lg px-1 py-1 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB]"
+							>
+								{isActive ? (
+									<motion.span
+										layoutId="header-export-canvas-pill"
+										className="absolute inset-0 rounded-lg bg-neutral-800 dark:bg-white"
+										transition={{ type: "spring", stiffness: 420, damping: 34 }}
+									/>
+								) : null}
+								<span className="relative z-10 flex h-full flex-col items-center justify-center leading-tight">
+									<span
+										className={cn(
+											isActive
+												? "text-white dark:text-black"
+												: "text-muted-foreground hover:text-foreground",
+										)}
+									>
+										{canvasLabel}
+									</span>
+									{canvasDims ? (
+										<span
+											className={cn(
+												"mt-0.5 text-[9px]",
+												isActive
+													? "text-white/75 dark:text-black/75"
+													: "text-muted-foreground/70",
+											)}
+										>
+											{canvasDims.width} × {canvasDims.height}
+										</span>
+									) : null}
+								</span>
+							</button>
+						);
+					})}
+				</div>
 
 			{exportFormat === "mp4" && resumeBanner ? (
 				<div className="mb-3 flex items-center justify-between gap-3 rounded-lg border border-[#2563EB]/20 bg-[#2563EB]/5 px-3 py-2">
@@ -250,7 +324,8 @@ export function ExportSettingsMenu({
 													MB
 												</span>
 											) : null
-										) : mp4OutputDimensions ? (
+										) : mp4OutputDimensions &&
+										  mp4OutputDimensions[exportCanvas]?.[option.value] ? (
 											<span
 												className={cn(
 													"mt-0.5 text-[9px]",
@@ -259,8 +334,8 @@ export function ExportSettingsMenu({
 														: "text-muted-foreground/70",
 												)}
 											>
-												{mp4OutputDimensions[option.value].width} x{" "}
-												{mp4OutputDimensions[option.value].height}
+												{mp4OutputDimensions[exportCanvas][option.value].width} x{" "}
+												{mp4OutputDimensions[exportCanvas][option.value].height}
 											</span>
 										) : null}
 									</span>

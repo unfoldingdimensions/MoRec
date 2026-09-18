@@ -22,6 +22,7 @@ import {
 	ZOOM_DEPTH_SCALES,
 } from "@/components/video-editor/types";
 import { DEFAULT_FOCUS } from "@/components/video-editor/videoPlayback/constants";
+import type { CanvasCropRect } from "@/components/video-editor/exportDimensions";
 import {
 	type CursorFollowCameraState,
 	computeCursorFollowFocus,
@@ -79,6 +80,7 @@ import {
 } from "@/lib/pixiApplicationLifecycle";
 import { isVideoWallpaperSource } from "@/lib/wallpapers";
 import { renderAnnotations } from "./annotationRenderer";
+import { CanvasCropApplier } from "./canvasCropDraw";
 import { renderCaptions } from "./captionRenderer";
 import { ForwardFrameSource } from "./forwardFrameSource";
 import { resolveMediaElementSource } from "./localMediaSource";
@@ -145,6 +147,12 @@ interface FrameRenderConfig {
 	cursorClickBounceDuration?: number;
 	cursorSway?: number;
 	frame?: string | null;
+	/**
+	 * Social canvas center-crop: the composition still renders at
+	 * `width`×`height`, but `getCanvas()` returns only this rect, so encoded
+	 * frames (and the encoder config) use the crop size.
+	 */
+	canvasCrop?: CanvasCropRect;
 }
 
 interface AnimationState {
@@ -254,6 +262,7 @@ export class FrameRenderer {
 	private shadowCtx: CanvasRenderingContext2D | null = null;
 	private compositeCanvas: HTMLCanvasElement | null = null;
 	private compositeCtx: CanvasRenderingContext2D | null = null;
+	private cropApplier = new CanvasCropApplier();
 	private temporalAccumulationCanvas: HTMLCanvasElement | null = null;
 	private temporalAccumulationCtx: CanvasRenderingContext2D | null = null;
 	private backgroundForwardFrameSource: ForwardFrameSource | null = null;
@@ -2594,10 +2603,20 @@ export class FrameRenderer {
 		if (!this.compositeCanvas) {
 			throw new Error("Renderer not initialized");
 		}
-		return this.compositeCanvas;
+		return this.resolveCroppedCanvas(this.compositeCanvas);
+	}
+
+	/**
+	 * Canvas crop at capture: draw the crop rect out of the composition into a
+	 * cache canvas sized to the final output. Applied after the full
+	 * composition (including zoom) has rendered.
+	 */
+	private resolveCroppedCanvas(source: HTMLCanvasElement): HTMLCanvasElement {
+		return this.cropApplier.apply(source, this.config.canvasCrop);
 	}
 
 	destroy(): void {
+		this.cropApplier.dispose();
 		if (this.videoSprite) {
 			const videoTexture = this.videoSprite.texture;
 			this.videoSprite.destroy({ texture: false, textureSource: false });
