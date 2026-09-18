@@ -10,6 +10,7 @@ import type {
 	GifSizePreset,
 } from "@/lib/exporter";
 import { isValidMp4FrameRate } from "@/lib/exporter";
+import { normalizeTargetSizeMb } from "@/lib/exporter/exportBitrate";
 import {
 	TEMPORAL_MOTION_BLUR_DEFAULT_SAMPLE_COUNT,
 	TEMPORAL_MOTION_BLUR_DEFAULT_SHUTTER_FRACTION,
@@ -149,6 +150,8 @@ export interface ProjectEditorState {
 	exportBackendPreference: ExportBackendPreference;
 	exportPipelineModel: ExportPipelineModel;
 	exportQuality: ExportQuality;
+	/** Desired MP4 size in MB when `exportQuality` is "target-size". */
+	targetSizeMb: number;
 	mp4FrameRate: ExportMp4FrameRate;
 	exportFormat: ExportFormat;
 	gifFrameRate: GifFrameRate;
@@ -1056,9 +1059,11 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 			editor.exportQuality === "medium" ||
 			editor.exportQuality === "good" ||
 			editor.exportQuality === "high" ||
-			editor.exportQuality === "source"
+			editor.exportQuality === "source" ||
+			editor.exportQuality === "target-size"
 				? editor.exportQuality
 				: "source",
+		targetSizeMb: normalizeTargetSizeMb(editor.targetSizeMb),
 		mp4FrameRate: normalizeExportMp4FrameRate(editor.mp4FrameRate),
 		exportFormat: editor.exportFormat === "gif" ? "gif" : "mp4",
 		gifFrameRate:

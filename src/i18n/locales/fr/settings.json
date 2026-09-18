@@ -333,7 +333,14 @@
 			"lightningHint": "Lightning (Beta) automatically uses the fastest compatible backend and falls back when needed.",
 			"modern": "Lightning (Beta)"
 		},
-		"pipelineTitle": "Pipeline"
+		"pipelineTitle": "Pipeline",
+		"targetFileSize": "Taille cible",
+		"estimatedSize": "≈ {{size}} Mo estimés",
+		"smallestAchievable": "La plus petite taille possible est ≈ {{size}} Mo",
+		"estimatedSizeUnavailable": "La taille estimée apparaîtra une fois la durée de la vidéo connue.",
+		"resumePreviousExport": "Reprendre l'exportation précédente",
+		"segmentsDone": "{{done}} segments sur {{total}} terminés",
+		"discardResume": "Abandonner"
 	},
 	"audio": {
 		"title": "Audio",

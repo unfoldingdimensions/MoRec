@@ -1,5 +1,13 @@
 export { FrameRenderer } from "./frameRenderer";
 export { calculateOutputDimensions, GifExporter } from "./gifExporter";
+export {
+	getMp4ExportBitrate,
+	getSourceQualityBitrate,
+	getTargetSizeExportBitrate,
+	normalizeTargetSizeMb,
+	TARGET_SIZE_CONTAINER_OVERHEAD_FACTOR,
+	TARGET_SIZE_VIDEO_BITRATE_SHARE,
+} from "./exportBitrate";
 export { ModernVideoExporter } from "./modernVideoExporter";
 export type {
 	SupportedMp4Dimensions,
@@ -25,6 +33,7 @@ export type {
 	ExportProgress,
 	ExportQuality,
 	ExportRenderBackend,
+	ExportResumableSessionRef,
 	ExportResult,
 	ExportSettings,
 	GifExportConfig,

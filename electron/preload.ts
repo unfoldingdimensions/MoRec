@@ -77,6 +77,8 @@ type NativeStaticLayoutProgress = {
 	currentFrame: number;
 	totalFrames: number;
 	percentage: number;
+	segmentIndex?: number;
+	segmentCount?: number;
 };
 type NativeVideoMetadataProbe = {
 	width: number;
@@ -291,6 +293,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
 			speed: number;
 		}>;
 		chunkDurationSec?: number;
+		resumableSession?: { exportId: string; settingsHash: string };
 		experimentalWindowsGpuCompositor?: boolean;
 		experimentalNvidiaCudaExport?: boolean;
 		audioOptions?: {
@@ -319,6 +322,30 @@ contextBridge.exposeInMainWorld("electronAPI", {
 		return ipcRenderer.invoke("native-static-layout-export-cancel", sessionId) as Promise<{
 			success: boolean;
 		}>;
+	},
+	nativeStaticLayoutExportSessionStatus: (exportId: string) => {
+		return ipcRenderer.invoke(
+			"native-static-layout-export-session-status",
+			exportId,
+		) as Promise<{
+			found: boolean;
+			exportId?: string;
+			settingsHash?: string;
+			segmentCount?: number;
+			doneCount?: number;
+			updatedAt?: string;
+		}>;
+	},
+	nativeStaticLayoutExportSessionDiscard: (exportId: string) => {
+		return ipcRenderer.invoke(
+			"native-static-layout-export-session-discard",
+			exportId,
+		) as Promise<{ success: boolean; error?: string }>;
+	},
+	nativeStaticLayoutExportSessionSweep: () => {
+		return ipcRenderer.invoke(
+			"native-static-layout-export-session-sweep",
+		) as Promise<{ success: boolean; removed?: string[]; error?: string }>;
 	},
 	onNativeStaticLayoutExportProgress: (
 		callback: (progress: NativeStaticLayoutProgress) => void,

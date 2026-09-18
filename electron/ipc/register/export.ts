@@ -36,6 +36,15 @@ import {
 	sendNativeVideoExportWriteFrameResult,
 	settleNativeVideoExportWriteFrameRequest,
 } from "../export/native-video";
+import {
+	discardExportSession,
+	getExportSessionDirPath,
+	getExportSessionsRootPath,
+	EXPORT_SESSION_MAX_AGE_MS,
+	isSafeExportSessionId,
+	readExportSessionManifest,
+	sweepStaleExportSessions,
+} from "../export/exportSession";
 import { getFfmpegBinaryPath } from "../ffmpeg/binary";
 import {
 	buildNativeH264StreamExportArgs,
@@ -220,6 +229,19 @@ async function sanitizeNativeStaticLayoutExportOptions(
 		} else if (value !== null) {
 			throw new Error(`${label} must be a file path`);
 		}
+	}
+
+	// The exportId flows into temp-directory paths and the hash gates resume
+	// matching, so both are validated here rather than trusted from the
+	// renderer. Invalid values degrade to a non-resumable export.
+	if (sanitized.resumableSession) {
+		const { exportId, settingsHash } = sanitized.resumableSession;
+		sanitized.resumableSession =
+			isSafeExportSessionId(exportId) &&
+			typeof settingsHash === "string" &&
+			settingsHash.length > 0
+				? { exportId, settingsHash }
+				: undefined;
 	}
 
 	const audioOptions = sanitized.audioOptions;
@@ -490,6 +512,62 @@ export function registerExportHandlers() {
 		}
 
 		return { success: true };
+	});
+
+	ipcMain.handle("native-static-layout-export-session-status", async (_, exportId: string) => {
+		if (!isSafeExportSessionId(exportId)) {
+			return { found: false };
+		}
+
+		const tempRoot = app.getPath("temp");
+		const sessionDir = getExportSessionDirPath(tempRoot, exportId);
+		if (!sessionDir) {
+			return { found: false };
+		}
+
+		const manifest = await readExportSessionManifest(sessionDir);
+		if (!manifest) {
+			return { found: false };
+		}
+
+		return {
+			found: true,
+			exportId: manifest.exportId,
+			settingsHash: manifest.settingsHash,
+			segmentCount: manifest.segmentCount,
+			doneCount: Object.keys(manifest.segments).length,
+			updatedAt: manifest.updatedAt,
+		};
+	});
+
+	ipcMain.handle("native-static-layout-export-session-discard", async (_, exportId: string) => {
+		if (!isSafeExportSessionId(exportId)) {
+			return { success: false, error: "Invalid export session id" };
+		}
+
+		const sessionDir = getExportSessionDirPath(app.getPath("temp"), exportId);
+		if (!sessionDir) {
+			return { success: false, error: "Invalid export session id" };
+		}
+
+		try {
+			await discardExportSession(sessionDir);
+			return { success: true };
+		} catch (error) {
+			return { success: false, error: String(error) };
+		}
+	});
+
+	ipcMain.handle("native-static-layout-export-session-sweep", async () => {
+		try {
+			const result = await sweepStaleExportSessions({
+				sessionsRoot: getExportSessionsRootPath(app.getPath("temp")),
+				maxAgeMs: EXPORT_SESSION_MAX_AGE_MS,
+			});
+			return { success: true, removed: result.removed };
+		} catch (error) {
+			return { success: false, error: String(error) };
+		}
 	});
 
 	ipcMain.on(

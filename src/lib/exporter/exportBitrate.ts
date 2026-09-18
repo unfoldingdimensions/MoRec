@@ -1,8 +1,73 @@
 import type { ExportEncodingMode, ExportMp4FrameRate, ExportQuality } from "./types";
 
-const MIN_MP4_BITRATE = 2_000_000;
+export const MIN_MP4_BITRATE = 2_000_000;
 const REFERENCE_PIXEL_RATE = 1920 * 1080 * 30;
 const REFERENCE_FRAME_RATE = 30;
+/**
+ * MP4 container + muxing overhead: ~7% of the file is not A/V payload, so the
+ * target-size preset budgets the requested size against this factor.
+ */
+export const TARGET_SIZE_CONTAINER_OVERHEAD_FACTOR = 0.93;
+/**
+ * Share of the total target-size bitrate budget given to video; the rest is
+ * reserved for the audio track.
+ */
+export const TARGET_SIZE_VIDEO_BITRATE_SHARE = 0.9;
+const BITS_PER_MEGABIT = 8 * 1024 * 1024;
+const DEFAULT_TARGET_SIZE_MB = 50;
+const MIN_TARGET_SIZE_MB = 1;
+const MAX_TARGET_SIZE_MB = 4096;
+
+export function normalizeTargetSizeMb(value: unknown): number {
+	if (typeof value !== "number" || !Number.isFinite(value)) {
+		return DEFAULT_TARGET_SIZE_MB;
+	}
+
+	return Math.min(MAX_TARGET_SIZE_MB, Math.max(MIN_TARGET_SIZE_MB, Math.round(value)));
+}
+
+export interface TargetSizeBitrateResult {
+	videoBitrate: number;
+	/** Video + audio bitrate the estimate is based on, in bits per second. */
+	totalBitrate: number;
+	estimatedSizeMb: number;
+	/** True when the requested target was below the minimum bitrate floor. */
+	clampedToMinBitrate: boolean;
+}
+
+export function getTargetSizeExportBitrate(options: {
+	targetSizeMb: number;
+	durationSec: number;
+}): TargetSizeBitrateResult {
+	const targetSizeMb = normalizeTargetSizeMb(options.targetSizeMb);
+	const durationSec =
+		Number.isFinite(options.durationSec) && options.durationSec > 0 ? options.durationSec : 0;
+	if (durationSec <= 0) {
+		return {
+			videoBitrate: MIN_MP4_BITRATE,
+			totalBitrate: MIN_MP4_BITRATE,
+			estimatedSizeMb: 0,
+			clampedToMinBitrate: false,
+		};
+	}
+
+	const requestedTotalBitrate =
+		((targetSizeMb * BITS_PER_MEGABIT) / durationSec) * TARGET_SIZE_CONTAINER_OVERHEAD_FACTOR;
+	const requestedVideoBitrate = requestedTotalBitrate * TARGET_SIZE_VIDEO_BITRATE_SHARE;
+	const clampedToMinBitrate = requestedVideoBitrate < MIN_MP4_BITRATE;
+	const videoBitrate = Math.max(MIN_MP4_BITRATE, Math.round(requestedVideoBitrate));
+	const totalBitrate = videoBitrate / TARGET_SIZE_VIDEO_BITRATE_SHARE;
+
+	return {
+		videoBitrate,
+		totalBitrate,
+		// The expected file size: A/V payload plus the container overhead share,
+		// so an unclamped request estimates back to (approximately) the target.
+		estimatedSizeMb:
+			(totalBitrate * durationSec) / BITS_PER_MEGABIT / TARGET_SIZE_CONTAINER_OVERHEAD_FACTOR,
+		clampedToMinBitrate,
+	};
+}
 
 export function getEncodingModeBitrateMultiplier(encodingMode: ExportEncodingMode): number {
 	switch (encodingMode) {
@@ -93,7 +158,29 @@ export function getMp4ExportBitrate(options: {
 	quality: ExportQuality;
 	encodingMode: ExportEncodingMode;
 	useModernNativeStaticLayout?: boolean;
+	targetSizeMb?: number;
+	durationSec?: number;
 }): number {
+	if (options.quality === "target-size") {
+		const durationSec = options.durationSec;
+		if (
+			typeof durationSec === "number" &&
+			Number.isFinite(durationSec) &&
+			durationSec > 0 &&
+			typeof options.targetSizeMb === "number" &&
+			Number.isFinite(options.targetSizeMb) &&
+			options.targetSizeMb > 0
+		) {
+			// The whole point of the target-size preset is a predictable file size,
+			// so the native floor/cap adjustments are bypassed; only the minimum
+			// bitrate floor applies.
+			return getTargetSizeExportBitrate({
+				targetSizeMb: options.targetSizeMb,
+				durationSec,
+			}).videoBitrate;
+		}
+	}
+
 	const requestedBitrate = Math.round(
 		getBaseMp4ExportBitrate(options.width, options.height, options.quality) *
 			getFrameRateBitrateMultiplier(options.frameRate) *

@@ -12,6 +12,7 @@ export type ExportStatusModel = {
 	isLightningExportInProgress: boolean;
 	shouldSuspendPreviewRendering: boolean;
 	isLegacyExportInProgress: boolean;
+	isResumableExport: boolean;
 	renderSpeedFps: string | null;
 	runtimeLabel: string | null;
 	nativeSkipReasons: string[];
@@ -75,6 +76,7 @@ export function resolveExportStatusModel({
 			? exportProgress.renderFps.toFixed(1)
 			: null;
 	const runtimeLabel = resolveRuntimeLabel(exportProgress);
+	const isResumableExport = exportProgress?.resumable === true;
 	const nativeSkipReasons =
 		exportProgress?.nativeStaticLayoutSkipReasons &&
 		exportProgress.nativeStaticLayoutSkipReasons.length > 0
@@ -101,6 +103,7 @@ export function resolveExportStatusModel({
 		isLightningExportInProgress,
 		shouldSuspendPreviewRendering,
 		isLegacyExportInProgress,
+		isResumableExport,
 		renderSpeedFps,
 		runtimeLabel,
 		nativeSkipReasons,
@@ -126,9 +129,28 @@ function resolveRuntimeLabel(exportProgress: ExportProgress | null): string | nu
 			? `${rendererLabel} + ${encoderLabel}`
 			: (rendererLabel ?? encoderLabel);
 
+	let label: string;
 	if (!pathLabel) {
-		return encoderName ?? null;
+		label = encoderName ?? "";
+	} else {
+		label = encoderName ? `${pathLabel} (${encoderName})` : pathLabel;
 	}
 
-	return encoderName ? `${pathLabel} (${encoderName})` : pathLabel;
+	// Segment-resumable Lightning renders report which of the N segments is
+	// being worked on so long exports show honest fine-grained progress.
+	const segmentIndex = exportProgress?.segmentIndex;
+	const segmentCount = exportProgress?.segmentCount;
+	if (
+		typeof segmentIndex === "number" &&
+		Number.isFinite(segmentIndex) &&
+		typeof segmentCount === "number" &&
+		Number.isFinite(segmentCount) &&
+		segmentCount > 0 &&
+		segmentIndex >= 0 &&
+		segmentIndex < segmentCount
+	) {
+		label += ` · segment ${segmentIndex + 1}/${segmentCount}`;
+	}
+
+	return label.length > 0 ? label : null;
 }

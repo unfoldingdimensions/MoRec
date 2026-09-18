@@ -173,6 +173,8 @@ interface RendererNativeStaticLayoutProgress {
 	currentFrame: number;
 	totalFrames: number;
 	percentage: number;
+	segmentIndex?: number;
+	segmentCount?: number;
 }
 
 interface RendererNativeVideoMetadataProbe {
@@ -399,6 +401,7 @@ interface Window {
 				speed: number;
 			}>;
 			chunkDurationSec?: number;
+			resumableSession?: { exportId: string; settingsHash: string };
 			experimentalWindowsGpuCompositor?: boolean;
 			experimentalNvidiaCudaExport?: boolean;
 			audioOptions?: {
@@ -423,6 +426,22 @@ interface Window {
 		}>;
 		nativeStaticLayoutExportCancel: (sessionId: string) => Promise<{
 			success: boolean;
+		}>;
+		nativeStaticLayoutExportSessionStatus: (exportId: string) => Promise<{
+			found: boolean;
+			exportId?: string;
+			settingsHash?: string;
+			segmentCount?: number;
+			doneCount?: number;
+			updatedAt?: string;
+		}>;
+		nativeStaticLayoutExportSessionDiscard: (
+			exportId: string,
+		) => Promise<{ success: boolean; error?: string }>;
+		nativeStaticLayoutExportSessionSweep: () => Promise<{
+			success: boolean;
+			removed?: string[];
+			error?: string;
 		}>;
 		onNativeStaticLayoutExportProgress: (
 			callback: (progress: RendererNativeStaticLayoutProgress) => void,

@@ -173,4 +173,53 @@ describe("resolveExportStatusModel", () => {
 		]);
 		expect(status.nativeSkipLabel).toBe("Native skipped: timeline-edits-present (+1 more)");
 	});
+
+	it("appends segment i/N to the runtime label for resumable segment renders", () => {
+		const status = resolveExportStatusModel({
+			isExporting: true,
+			exportProgress: progress({
+				renderBackend: "webgpu",
+				encodeBackend: "ffmpeg",
+				segmentIndex: 2,
+				segmentCount: 10,
+			}),
+			exportFormat: "mp4",
+			exportPipelineModel: "modern",
+		});
+
+		expect(status.runtimeLabel).toBe("WebGPU + Breeze · segment 3/10");
+	});
+
+	it("ignores out-of-range segment indices in the runtime label", () => {
+		const status = resolveExportStatusModel({
+			isExporting: true,
+			exportProgress: progress({
+				encoderName: "static-layout-h264-nvenc",
+				segmentIndex: 10,
+				segmentCount: 10,
+			}),
+			exportFormat: "mp4",
+			exportPipelineModel: "modern",
+		});
+
+		expect(status.runtimeLabel).toBe("static-layout-h264-nvenc");
+	});
+
+	it("exposes the resumable hint from export progress", () => {
+		const resumable = resolveExportStatusModel({
+			isExporting: true,
+			exportProgress: progress({ resumable: true }),
+			exportFormat: "mp4",
+			exportPipelineModel: "modern",
+		});
+		const notResumable = resolveExportStatusModel({
+			isExporting: true,
+			exportProgress: progress(),
+			exportFormat: "mp4",
+			exportPipelineModel: "modern",
+		});
+
+		expect(resumable.isResumableExport).toBe(true);
+		expect(notResumable.isResumableExport).toBe(false);
+	});
 });

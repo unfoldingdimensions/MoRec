@@ -61,6 +61,7 @@ type PersistedEditorControls = Pick<
 	| "exportBackendPreference"
 	| "exportPipelineModel"
 	| "exportQuality"
+	| "targetSizeMb"
 	| "mp4FrameRate"
 	| "exportFormat"
 	| "gifFrameRate"
@@ -150,6 +151,7 @@ export const DEFAULT_EDITOR_PREFERENCES: EditorPreferences = {
 	exportBackendPreference: DEFAULT_EDITOR_CONTROLS.exportBackendPreference,
 	exportPipelineModel: DEFAULT_EDITOR_CONTROLS.exportPipelineModel,
 	exportQuality: DEFAULT_EDITOR_CONTROLS.exportQuality,
+	targetSizeMb: DEFAULT_EDITOR_CONTROLS.targetSizeMb,
 	mp4FrameRate: DEFAULT_EDITOR_CONTROLS.mp4FrameRate,
 	exportFormat: DEFAULT_EDITOR_CONTROLS.exportFormat,
 	gifFrameRate: DEFAULT_EDITOR_CONTROLS.gifFrameRate,
@@ -362,6 +364,7 @@ function normalizeEditorControls(
 				? fallback.exportPipelineModel
 				: normalizeExportPipelineModel(sanitizedRaw.exportPipelineModel),
 		exportQuality: sanitizedRaw.exportQuality ?? fallback.exportQuality,
+		targetSizeMb: sanitizedRaw.targetSizeMb ?? fallback.targetSizeMb,
 		mp4FrameRate:
 			sanitizedRaw.mp4FrameRate === undefined
 				? fallback.mp4FrameRate
@@ -421,6 +424,7 @@ function normalizeEditorControls(
 		exportBackendPreference: normalized.exportBackendPreference,
 		exportPipelineModel: normalized.exportPipelineModel,
 		exportQuality: normalized.exportQuality,
+		targetSizeMb: normalized.targetSizeMb,
 		mp4FrameRate: normalized.mp4FrameRate,
 		exportFormat: normalized.exportFormat,
 		gifFrameRate: normalized.gifFrameRate,

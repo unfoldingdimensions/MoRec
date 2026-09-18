@@ -9,6 +9,12 @@ export interface ExportConfig {
 	preferredRenderBackend?: ExportRenderBackend;
 	experimentalNativeExport?: boolean;
 	experimentalNvidiaCudaExport?: boolean;
+	/**
+	 * Enables segment-resumable rendering for the native static-layout route:
+	 * segments land in a per-export session dir tracked by an atomic manifest.
+	 * The WebCodecs route ignores it (non-resumable by design).
+	 */
+	resumableSession?: ExportResumableSessionRef;
 	maxEncodeQueue?: number;
 	maxDecodeQueue?: number;
 	maxPendingFrames?: number;
@@ -35,6 +41,12 @@ export interface ExportProgress {
 	phase?: "preparing" | "extracting" | "finalizing" | "saving"; // Phase of export
 	renderProgress?: number; // 0-100, progress of GIF rendering phase
 	audioProgress?: number; // 0-1, progress of real-time audio rendering (speed/audio regions)
+	/** 0-based resumable segment currently rendering (Lightning route only). */
+	segmentIndex?: number;
+	/** Total resumable segment count; only set alongside segmentIndex. */
+	segmentCount?: number;
+	/** True while the export runs with a resumable session dir on disk. */
+	resumable?: boolean;
 }
 
 export interface ExportFinalizationStageMetrics {
@@ -163,6 +175,11 @@ export interface ExportResult {
 	error?: string;
 	/** True when the export ended because the user cancelled it — not an error. */
 	cancelled?: boolean;
+	/**
+	 * Present when the export failed but a resumable native session dir was
+	 * kept on disk; the renderer can offer to resume via this token.
+	 */
+	resumeToken?: string;
 	metrics?: ExportMetrics;
 }
 
@@ -174,7 +191,13 @@ export interface VideoFrameData {
 
 export type ExportEncodingMode = "fast" | "balanced" | "quality";
 
-export type ExportQuality = "medium" | "good" | "high" | "source";
+/** Identifies a resumable export session; the hash gates settings-match. */
+export interface ExportResumableSessionRef {
+	exportId: string;
+	settingsHash: string;
+}
+
+export type ExportQuality = "medium" | "good" | "high" | "source" | "target-size";
 
 export type ExportMp4FrameRate = 24 | 30 | 60;
 
@@ -198,10 +221,14 @@ export interface ExportSettings {
 	includeCaptionSidecar?: boolean;
 	// MP4 settings
 	quality?: ExportQuality;
+	/** Only meaningful when `quality` is "target-size" — the desired output size in MB. */
+	targetSizeMb?: number;
 	encodingMode?: ExportEncodingMode;
 	mp4FrameRate?: ExportMp4FrameRate;
 	backendPreference?: ExportBackendPreference;
 	pipelineModel?: ExportPipelineModel;
+	/** Resume an interrupted native export session (Lightning route only). */
+	resume?: ExportResumableSessionRef;
 	// GIF settings
 	gifConfig?: GifExportConfig;
 }
