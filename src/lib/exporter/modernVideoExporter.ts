@@ -95,6 +95,7 @@ import type {
 	ExportMetrics,
 	ExportProgress,
 	ExportRenderBackend,
+	ExportResumableSessionRef,
 	ExportResult,
 } from "./types";
 
@@ -318,6 +319,9 @@ export class ModernVideoExporter {
 	private muxer: VideoMuxer | null = null;
 	private audioProcessor: AudioProcessor | null = null;
 	private cancelled = false;
+	private keptResumableSession: ExportResumableSessionRef | null = null;
+	private nativeSegmentIndex = -1;
+	private nativeSegmentCount = 0;
 	private encodeQueue = 0;
 	private webCodecsEncodeQueueLimit = 0;
 	private keyFrameInterval = 0;
@@ -386,6 +390,9 @@ export class ModernVideoExporter {
 				this.cancelled = false;
 				this.encoderError = null;
 				this.nativeEncoderError = null;
+				this.keptResumableSession = null;
+				this.nativeSegmentIndex = -1;
+				this.nativeSegmentCount = 0;
 				this.nativeStaticLayoutSkipReason = null;
 				this.nativeStaticLayoutSkipReasons = [];
 				this.nativeStaticLayoutBackgroundSkipReason = null;
@@ -880,6 +887,9 @@ export class ModernVideoExporter {
 						return {
 							success: false,
 							error: muxedResult.error || "Failed to mux audio with FFmpeg",
+							...(this.getKeptResumableSessionToken()
+								? { resumeToken: this.getKeptResumableSessionToken() }
+								: {}),
 							metrics: this.buildExportMetrics(),
 						};
 					}
@@ -930,9 +940,11 @@ export class ModernVideoExporter {
 
 					const resolvedError = this.encoderError ?? error;
 					console.error("Export error:", error);
+					const resumeToken = this.getKeptResumableSessionToken();
 					return {
 						success: false,
 						error: this.buildLightningExportError(resolvedError),
+						...(resumeToken ? { resumeToken } : {}),
 						metrics: this.buildExportMetrics(),
 					};
 				}
@@ -2490,6 +2502,10 @@ export class ModernVideoExporter {
 								? progress.averageFps
 								: null;
 				this.processedFrameCount = currentFrame;
+				this.nativeSegmentIndex =
+					typeof progress.segmentIndex === "number" ? progress.segmentIndex : -1;
+				this.nativeSegmentCount =
+					typeof progress.segmentCount === "number" ? progress.segmentCount : 0;
 				if (progress.stage === "finalizing" || nativeFramesComplete) {
 					this.reportFinalizingProgress(totalFrames, nativeFinalizingProgress);
 				} else {
@@ -2502,6 +2518,7 @@ export class ModernVideoExporter {
 			const result = await window.electronAPI.nativeStaticLayoutExport({
 				sessionId,
 				inputPath: sourcePath,
+				resumableSession: this.config.resumableSession ?? undefined,
 				width: this.config.width,
 				height: this.config.height,
 				frameRate: this.config.frameRate,
@@ -2559,6 +2576,7 @@ export class ModernVideoExporter {
 				console.warn("[VideoExporter] Native static layout export unavailable", {
 					error: result.error,
 				});
+				this.keepResumableSessionForFallback();
 				restoreEncoderState();
 				return null;
 			}
@@ -2591,6 +2609,8 @@ export class ModernVideoExporter {
 				this.finalizationStageMs.ffmpegAudioMuxBreakdown = metrics;
 			}
 			this.reportFinalizingProgress(totalFrames, 99);
+			this.nativeSegmentIndex = -1;
+			this.nativeSegmentCount = 0;
 
 			return {
 				success: true,
@@ -2610,6 +2630,7 @@ export class ModernVideoExporter {
 			console.warn("[VideoExporter] Native static layout export failed; falling back", error);
 			this.nativeStaticLayoutSkipReason = "native-static-runtime-failed";
 			this.nativeStaticLayoutSkipReasons = [this.nativeStaticLayoutSkipReason];
+			this.keepResumableSessionForFallback();
 			restoreEncoderState();
 			return null;
 		} finally {
@@ -2619,6 +2640,28 @@ export class ModernVideoExporter {
 				this.nativeStaticLayoutSessionId = null;
 			}
 		}
+	}
+
+	/**
+	 * The native static-layout route failed but its resumable session dir was
+	 * kept on disk: remember it so a failed overall export carries a
+	 * resumeToken, and label the WebCodecs fallback as non-resumable.
+	 */
+	private keepResumableSessionForFallback(): void {
+		if (!this.config.resumableSession || this.cancelled) {
+			return;
+		}
+
+		this.keptResumableSession = this.config.resumableSession;
+		this.nativeStaticLayoutSkipReasons = [
+			...this.nativeStaticLayoutSkipReasons,
+			"resume-unavailable-webcodecs",
+		];
+	}
+
+	/** Kept-session token for failure results; null when nothing was kept. */
+	private getKeptResumableSessionToken(): string | undefined {
+		return this.keptResumableSession?.exportId ?? undefined;
 	}
 
 	private async tryStartNativeVideoExport(): Promise<boolean> {
@@ -3235,6 +3278,13 @@ export class ModernVideoExporter {
 				phase,
 				renderProgress: safeRenderProgress,
 				audioProgress,
+				...(this.nativeSegmentCount > 0
+					? {
+							segmentIndex: this.nativeSegmentIndex,
+							segmentCount: this.nativeSegmentCount,
+							resumable: true,
+						}
+					: {}),
 			});
 		}
 	}

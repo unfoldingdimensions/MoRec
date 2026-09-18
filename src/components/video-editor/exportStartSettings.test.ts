@@ -8,6 +8,7 @@ const baseOptions = {
 	includeCaptionSidecar: true,
 	exportEncodingMode: "balanced" as const,
 	exportQuality: "good" as const,
+	targetSizeMb: 50,
 	mp4FrameRate: 30 as const,
 	exportBackendPreference: "auto" as const,
 	exportPipelineModel: "modern" as const,
@@ -26,8 +27,28 @@ describe("resolveExportStartSettings", () => {
 			backendPreference: "auto",
 			pipelineModel: "modern",
 			quality: "good",
+			targetSizeMb: 50,
+			resume: undefined,
 			gifConfig: undefined,
 		});
+	});
+
+	it("attaches the resume ref for modern MP4 exports", () => {
+		const resume = { exportId: "export-1", settingsHash: "abcd1234" };
+		expect(
+			resolveExportStartSettings({ ...baseOptions, resume }).resume,
+		).toEqual(resume);
+	});
+
+	it("drops the resume ref for legacy-pipeline MP4 exports", () => {
+		const resume = { exportId: "export-1", settingsHash: "abcd1234" };
+		expect(
+			resolveExportStartSettings({
+				...baseOptions,
+				exportPipelineModel: "legacy",
+				resume,
+			}).resume,
+		).toBeUndefined();
 	});
 
 	it("omits MP4-only fields and resolves GIF dimensions for GIF exports", () => {
@@ -49,6 +70,8 @@ describe("resolveExportStartSettings", () => {
 			backendPreference: undefined,
 			pipelineModel: undefined,
 			quality: undefined,
+			targetSizeMb: undefined,
+			resume: undefined,
 			gifConfig: {
 				frameRate: 15,
 				loop: false,

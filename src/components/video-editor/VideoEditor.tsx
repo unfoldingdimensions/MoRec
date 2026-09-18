@@ -98,6 +98,14 @@ import {
 	shouldDebounceMp4SupportProbe,
 } from "./exportDimensions";
 import { resolveSavingExportProgress } from "./exportProgressState";
+import {
+	clearPendingResumableExport,
+	computeExportSettingsHash,
+	loadPendingResumableExport,
+	type ResumableExportBanner,
+	resolveResumableExportBanner,
+	savePendingResumableExport,
+} from "@/lib/exporter/exportSession";
 import { resolveExportStartSettings } from "./exportStartSettings";
 import { resolveExportStatusModel } from "./exportStatusModel";
 import { resolveMp4ExportRouting } from "./mp4ExportRouting";
@@ -613,6 +621,7 @@ export default function VideoEditor() {
 	const [isExporting, setIsExporting] = useState(false);
 	const [exportProgress, setExportProgress] = useState<ExportProgress | null>(null);
 	const [exportError, setExportError] = useState<string | null>(null);
+	const [resumeBanner, setResumeBanner] = useState<ResumableExportBanner | null>(null);
 	const [showExportDropdown, setShowExportDropdown] = useState(false);
 	const [previewVolume, setPreviewVolume] = useState(1);
 	const applySessionPresentation = useCallback(
@@ -638,6 +647,9 @@ export default function VideoEditor() {
 	const [activeEffectSection, setActiveEffectSection] = useState<EditorEffectSection>("scene");
 	const [exportQuality, setExportQuality] = useState<ExportQuality>(
 		initialEditorPreferences.exportQuality,
+	);
+	const [targetSizeMb, setTargetSizeMb] = useState<number>(
+		initialEditorPreferences.targetSizeMb,
 	);
 	const [exportEncodingMode, setExportEncodingMode] = useState<ExportEncodingMode>(
 		initialEditorPreferences.exportEncodingMode,
@@ -831,6 +843,7 @@ export default function VideoEditor() {
 			exportBackendPreference,
 			exportPipelineModel,
 			exportQuality,
+			targetSizeMb,
 			mp4FrameRate,
 			exportFormat,
 			gifFrameRate,
@@ -888,6 +901,7 @@ export default function VideoEditor() {
 			exportBackendPreference,
 			exportPipelineModel,
 			exportQuality,
+			targetSizeMb,
 			mp4FrameRate,
 			exportFormat,
 			gifFrameRate,
@@ -986,6 +1000,7 @@ export default function VideoEditor() {
 		setExportBackendPreference(snapshot.exportBackendPreference);
 		setExportPipelineModel(snapshot.exportPipelineModel);
 		setExportQuality(snapshot.exportQuality);
+		setTargetSizeMb(snapshot.targetSizeMb);
 		setMp4FrameRate(snapshot.mp4FrameRate);
 		setExportFormat(snapshot.exportFormat);
 		setGifFrameRate(snapshot.gifFrameRate);
@@ -1546,6 +1561,7 @@ export default function VideoEditor() {
 			good: calculateMp4ExportDimensions(baseWidth, baseHeight, "good"),
 			high: calculateMp4ExportDimensions(baseWidth, baseHeight, "high"),
 			source: calculateMp4ExportDimensions(baseWidth, baseHeight, "source"),
+			"target-size": calculateMp4ExportDimensions(baseWidth, baseHeight, "target-size"),
 		};
 	}, [
 		desiredMp4SourceDimensions.height,
@@ -1767,6 +1783,7 @@ export default function VideoEditor() {
 				exportBackendPreference: ExportBackendPreference;
 				exportPipelineModel: ExportPipelineModel;
 				exportQuality: ExportQuality;
+				targetSizeMb: number;
 				mp4FrameRate: ExportMp4FrameRate;
 				exportFormat: ExportFormat;
 				gifFrameRate: GifFrameRate;
@@ -1891,6 +1908,7 @@ export default function VideoEditor() {
 				exportBackendPreference,
 				exportPipelineModel,
 				exportQuality,
+				targetSizeMb,
 				mp4FrameRate,
 				exportFormat,
 				gifFrameRate,
@@ -1956,6 +1974,7 @@ export default function VideoEditor() {
 			exportBackendPreference,
 			exportPipelineModel,
 			exportQuality,
+			targetSizeMb,
 			mp4FrameRate,
 			exportFormat,
 			gifFrameRate,
@@ -2157,6 +2176,7 @@ export default function VideoEditor() {
 			setExportBackendPreference(normalizedEditor.exportBackendPreference);
 			setExportPipelineModel(normalizedEditor.exportPipelineModel);
 			setExportQuality(normalizedEditor.exportQuality);
+			setTargetSizeMb(normalizedEditor.targetSizeMb);
 			setMp4FrameRate(normalizedEditor.mp4FrameRate);
 			setExportFormat(normalizedEditor.exportFormat);
 			setGifFrameRate(normalizedEditor.gifFrameRate);
@@ -2545,6 +2565,7 @@ export default function VideoEditor() {
 							initialEditorPreferences.mp4FrameRate ?? DEFAULT_MP4_EXPORT_FRAME_RATE,
 						);
 						setExportQuality(initialEditorPreferences.exportQuality);
+						setTargetSizeMb(initialEditorPreferences.targetSizeMb);
 						setExportEncodingMode(initialEditorPreferences.exportEncodingMode);
 						setExportBackendPreference(
 							initialEditorPreferences.exportBackendPreference,
@@ -2727,6 +2748,7 @@ export default function VideoEditor() {
 				exportBackendPreference,
 				exportPipelineModel,
 				exportQuality,
+				targetSizeMb,
 				mp4FrameRate,
 				exportFormat,
 				gifFrameRate,
@@ -2789,6 +2811,7 @@ export default function VideoEditor() {
 		exportBackendPreference,
 		exportPipelineModel,
 		exportQuality,
+		targetSizeMb,
 		mp4FrameRate,
 		exportFormat,
 		gifFrameRate,
@@ -5098,6 +5121,8 @@ export default function VideoEditor() {
 						quality,
 						encodingMode,
 						useModernNativeStaticLayout: useExperimentalNativeExport,
+						targetSizeMb: quality === "target-size" ? targetSizeMb : undefined,
+						durationSec: timelineDuration,
 					});
 					const sourceAudioTrackSettingsForExport =
 						selectedClipId !== null
@@ -5191,11 +5216,18 @@ export default function VideoEditor() {
 							? new ModernVideoExporter({
 									...exporterConfig,
 									backendPreference,
+									resumableSession: settings.resume,
 								})
 							: new VideoExporter(exporterConfig);
 
 					exporterRef.current = exporter;
 					const result = await exporter.export();
+					if (result.success) {
+						// The resumable session (if any) completed — its dir is
+						// removed by the main process and the pending entry goes too.
+						clearPendingResumableExport();
+						setResumeBanner(null);
+					}
 					const smokeExportElapsedMs =
 						smokeExportStartedAt !== null
 							? Math.round(performance.now() - smokeExportStartedAt)
@@ -5465,6 +5497,8 @@ export default function VideoEditor() {
 			captionSidecarPayload,
 			isPlaying,
 			exportQuality,
+			targetSizeMb,
+			timelineDuration,
 			effectiveZoomRegions,
 			ensureSupportedMp4SourceDimensions,
 			markExportAsSaving,
@@ -5587,6 +5621,76 @@ export default function VideoEditor() {
 		videoSourcePath,
 	]);
 
+	const buildCurrentExportStartSettings = useCallback(() => {
+		const video = videoPlaybackRef.current?.video;
+		const sourceWidth = video?.videoWidth || 1920;
+		const sourceHeight = video?.videoHeight || 1080;
+		return resolveExportStartSettings({
+			sourceWidth,
+			sourceHeight,
+			exportFormat,
+			includeCaptionSidecar: hasCaptionsForSidecar && includeCaptionSidecar,
+			exportEncodingMode,
+			exportQuality,
+			targetSizeMb,
+			mp4FrameRate,
+			exportBackendPreference,
+			exportPipelineModel,
+			gifFrameRate,
+			gifLoop,
+			gifSizePreset,
+		});
+	}, [
+		exportFormat,
+		hasCaptionsForSidecar,
+		includeCaptionSidecar,
+		exportEncodingMode,
+		exportQuality,
+		targetSizeMb,
+		mp4FrameRate,
+		exportBackendPreference,
+		exportPipelineModel,
+		gifFrameRate,
+		gifLoop,
+		gifSizePreset,
+	]);
+
+	const resolveResumeBannerForCurrentSettings = useCallback(async () => {
+		if (!videoPath || exportFormat !== "mp4" || exportPipelineModel !== "modern") {
+			return null;
+		}
+
+		const pending = loadPendingResumableExport();
+		if (!pending) {
+			return null;
+		}
+
+		const status = await window.electronAPI.nativeStaticLayoutExportSessionStatus?.(
+			pending.exportId,
+		);
+		return resolveResumableExportBanner({
+			pending,
+			videoPath,
+			settings: buildCurrentExportStartSettings(),
+			exportPipelineModel,
+			sessionStatus: status?.found ? status : null,
+		});
+	}, [videoPath, exportFormat, exportPipelineModel, buildCurrentExportStartSettings]);
+
+	const handleDiscardResume = useCallback(() => {
+		const pending = loadPendingResumableExport();
+		if (pending) {
+			void window.electronAPI.nativeStaticLayoutExportSessionDiscard?.(pending.exportId);
+			clearPendingResumableExport();
+		}
+		setResumeBanner(null);
+	}, []);
+
+	useEffect(() => {
+		// Sweep resumable export session dirs older than 7 days once per editor.
+		void window.electronAPI.nativeStaticLayoutExportSessionSweep?.();
+	}, []);
+
 	const handleOpenExportDropdown = useCallback(() => {
 		if (!videoPath) {
 			toast.error("No video loaded");
@@ -5601,9 +5705,12 @@ export default function VideoEditor() {
 		setShowExportDropdown(true);
 		setExportProgress(null);
 		setExportError(null);
-	}, [videoPath, hasPendingExportSave]);
+		void resolveResumeBannerForCurrentSettings().then((banner) => {
+			setResumeBanner(banner);
+		});
+	}, [videoPath, hasPendingExportSave, resolveResumeBannerForCurrentSettings]);
 
-	const handleStartExportFromDropdown = useCallback(() => {
+	const handleStartExportFromDropdown = useCallback(async () => {
 		const video = videoPlaybackRef.current?.video;
 		if (!videoPath) {
 			toast.error("No video loaded");
@@ -5614,40 +5721,37 @@ export default function VideoEditor() {
 			return;
 		}
 
-		const sourceWidth = video.videoWidth || 1920;
-		const sourceHeight = video.videoHeight || 1080;
-		const settings = resolveExportStartSettings({
-			sourceWidth,
-			sourceHeight,
-			exportFormat,
-			includeCaptionSidecar: hasCaptionsForSidecar && includeCaptionSidecar,
-			exportEncodingMode,
-			exportQuality,
-			mp4FrameRate,
-			exportBackendPreference,
-			exportPipelineModel,
-			gifFrameRate,
-			gifLoop,
-			gifSizePreset,
-		});
+		const settings = buildCurrentExportStartSettings();
+		if (settings.format === "mp4" && exportPipelineModel === "modern") {
+			// Resume the pending interrupted session when settings still match;
+			// otherwise register a fresh resumable session for this export.
+			const banner = await resolveResumeBannerForCurrentSettings();
+			const settingsHash = computeExportSettingsHash({ videoPath, settings });
+			if (banner) {
+				settings.resume = { exportId: banner.exportId, settingsHash };
+			} else {
+				const exportId = crypto.randomUUID();
+				savePendingResumableExport({
+					exportId,
+					settingsHash,
+					videoPath,
+					savedAt: Date.now(),
+				});
+				settings.resume = { exportId, settingsHash };
+			}
+		}
+		setResumeBanner(null);
 
 		setExportError(null);
 		setExportedFilePath(undefined);
 		setShowExportDropdown(true);
-		handleExport(settings);
+		await handleExport(settings);
 	}, [
 		videoPath,
 		exportFormat,
-		exportEncodingMode,
-		exportQuality,
-		mp4FrameRate,
-		gifFrameRate,
-		gifLoop,
-		gifSizePreset,
-		hasCaptionsForSidecar,
-		includeCaptionSidecar,
-		exportBackendPreference,
 		exportPipelineModel,
+		buildCurrentExportStartSettings,
+		resolveResumeBannerForCurrentSettings,
 		handleExport,
 	]);
 
@@ -6539,6 +6643,9 @@ export default function VideoEditor() {
 									nvidiaCudaExportAvailable={nvidiaCudaExportAvailable}
 									exportQuality={exportQuality}
 									onExportQualityChange={setExportQuality}
+									targetSizeMb={targetSizeMb}
+									onTargetSizeMbChange={setTargetSizeMb}
+									targetSizeDurationSec={timelineDuration}
 									gifFrameRate={gifFrameRate}
 									onGifFrameRateChange={setGifFrameRate}
 									gifLoop={gifLoop}
@@ -6551,6 +6658,8 @@ export default function VideoEditor() {
 									includeCaptionSidecar={includeCaptionSidecar}
 									onIncludeCaptionSidecarChange={setIncludeCaptionSidecar}
 									mp4OutputDimensions={mp4OutputDimensions}
+									resumeBanner={resumeBanner}
+									onDiscardResume={handleDiscardResume}
 									gifOutputDimensions={gifOutputDimensions}
 									onExport={handleStartExportFromDropdown}
 									className="shadow-2xl"

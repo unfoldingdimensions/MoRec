@@ -9,6 +9,19 @@ import { promisify } from "node:util";
 import type { WebContents } from "electron";
 import { app, powerSaveBlocker } from "electron";
 import { isOwnedExportPath, releaseOwnedExportPath } from "../export/exportStream";
+import {
+	buildResumableSegmentConcatLines,
+	createExportSessionManifest,
+	discardExportSession,
+	getExportSessionDirPath,
+	getExportSessionSegmentPath,
+	isSafeExportSessionId,
+	listExportSessionSegmentFiles,
+	planResumableSegmentWork,
+	readExportSessionManifest,
+	writeExportSessionManifest,
+	type ExportSessionManifest,
+} from "./exportSession";
 import { getFfmpegBinaryPath, getFfprobeBinaryPath } from "../ffmpeg/binary";
 import type {
 	NativeExportEncodingMode,
@@ -154,6 +167,14 @@ export interface NativeStaticLayoutExportOptions {
 	timelineSegments?: NativeStaticLayoutTimelineSegment[];
 	timelineMapPath?: string | null;
 	chunkDurationSec?: number;
+	/**
+	 * When present, the FFmpeg static-layout route renders per-segment into
+	 * `<temp>/export-session/<exportId>/` and tracks progress in an atomic
+	 * manifest, so an interrupted run can skip already-rendered segments on
+	 * the next attempt with the same settings hash. The GPU compositor routes
+	 * ignore this (single-process renders are not segment-resumable).
+	 */
+	resumableSession?: { exportId: string; settingsHash: string };
 	experimentalWindowsGpuCompositor?: boolean;
 	experimentalNvidiaCudaExport?: boolean;
 	audioOptions?: NativeVideoExportFinishOptions;
@@ -183,6 +204,10 @@ export interface NativeStaticLayoutExportProgress {
 	currentFrame: number;
 	totalFrames: number;
 	percentage: number;
+	/** 0-based index of the resumable segment currently rendering. */
+	segmentIndex?: number;
+	/** Total resumable segment count; only set alongside segmentIndex. */
+	segmentCount?: number;
 }
 
 type NativeVideoAudioMuxProgress = {
@@ -3256,6 +3281,23 @@ export async function exportNativeStaticLayoutVideo(
 	}
 	const concatListPath = path.join(chunkDirectory, "chunks.txt");
 	const videoOnlyPath = path.join(tempRoot, `${sessionId}.mp4`);
+	const resumableSession =
+		options.resumableSession &&
+		isSafeExportSessionId(options.resumableSession.exportId) &&
+		typeof options.resumableSession.settingsHash === "string" &&
+		options.resumableSession.settingsHash.length > 0
+			? {
+					exportId: options.resumableSession.exportId,
+					settingsHash: options.resumableSession.settingsHash,
+				}
+			: null;
+	const resumableSessionDir = resumableSession
+		? getExportSessionDirPath(tempRoot, resumableSession.exportId)
+		: null;
+	if (resumableSession && !resumableSessionDir) {
+		throw new Error("Invalid native static layout export session id");
+	}
+	let didCompleteResumableExport = false;
 	const ffprobePath = getFfprobeBinaryPath();
 	let outputPathToKeep: string | null = null;
 	let videoOutputValidated = false;
@@ -3356,7 +3398,13 @@ export async function exportNativeStaticLayoutVideo(
 		// sample; `startSec`/`spanSec` locate the current pass inside chunked
 		// renders. Render passes report up to 95%; the audio mux owns 97.25+.
 		const makeRenderProgressHandler =
-			(backend: NativeStaticLayoutBackend, startSec: number, spanSec: number) =>
+			(
+				backend: NativeStaticLayoutBackend,
+				startSec: number,
+				spanSec: number,
+				segmentIndex?: number,
+				segmentCount?: number,
+			) =>
 			(seconds: number) => {
 				if (!onProgress) {
 					return;
@@ -3373,6 +3421,9 @@ export async function exportNativeStaticLayoutVideo(
 					currentFrame: Math.floor(overall * totalRenderFrames),
 					totalFrames: totalRenderFrames,
 					percentage: overall * 100,
+					...(segmentIndex !== undefined && segmentCount !== undefined
+						? { segmentIndex, segmentCount }
+						: {}),
 				});
 			};
 
@@ -3675,7 +3726,223 @@ export async function exportNativeStaticLayoutVideo(
 			throw new Error("Native crop export requires a GPU compositor backend");
 		}
 
-		if (!didRenderVideo && usePrecompositedLayout) {
+		if (!didRenderVideo && resumableSession && resumableSessionDir) {
+			// Resumable mode: every segment lands in the export session dir and
+			// is recorded in an atomic manifest, so an interrupted run skips
+			// completed segments instead of re-rendering them.
+			const existingManifest = await readExportSessionManifest(resumableSessionDir);
+			const resumableManifest: ExportSessionManifest =
+				existingManifest && existingManifest.settingsHash === resumableSession.settingsHash
+					? { ...existingManifest, segmentCount: chunks.length }
+					: createExportSessionManifest({
+							exportId: resumableSession.exportId,
+							settingsHash: resumableSession.settingsHash,
+							segmentCount: chunks.length,
+						});
+			await fs.mkdir(resumableSessionDir, { recursive: true });
+			await writeExportSessionManifest(resumableSessionDir, resumableManifest);
+
+			let precompositedAssets: {
+				maskPath: string;
+				staticBackgroundPath: string;
+			} | null = null;
+			if (usePrecompositedLayout) {
+				const maskPath = path.join(chunkDirectory, "layout-mask.pgm");
+				const staticBackgroundPath = path.join(chunkDirectory, "layout-background.png");
+				await fs.writeFile(
+					maskPath,
+					createNativeSquircleMaskPgmBuffer(
+						options.contentWidth,
+						options.contentHeight,
+						options.borderRadius ?? 0,
+					),
+				);
+
+				const backgroundResult = await runFfmpegWithMetrics(
+					ffmpegPath,
+					buildNativeStaticBackgroundRenderArgs({
+						...fullConfig,
+						inputPath: options.inputPath,
+						outputPath: staticBackgroundPath,
+						maskPath,
+					}),
+					2 * 60 * 1000,
+					session,
+				);
+				metrics.staticAssetExecMs = backgroundResult.elapsedMs;
+				if (!backgroundResult.success) {
+					throw new Error(getFfmpegFailureMessage(backgroundResult));
+				}
+				precompositedAssets = { maskPath, staticBackgroundPath };
+			}
+
+			const existingSegmentFiles = await listExportSessionSegmentFiles(resumableSessionDir);
+			const segmentPlan = planResumableSegmentWork({
+				chunks,
+				manifest: resumableManifest,
+				existingSegmentFiles,
+			});
+			if (segmentPlan.doneIndexes.length > 0) {
+				console.info(
+					"[native-static-layout-export] Resuming export session with completed segments",
+					{
+						exportId: resumableSession.exportId,
+						doneSegments: segmentPlan.doneIndexes.length,
+						totalSegments: chunks.length,
+					},
+				);
+			}
+
+			const makeSegmentProgressHandler = (
+				backend: NativeStaticLayoutBackend,
+				chunk: { index: number; startSec: number; durationSec: number },
+			) =>
+				makeRenderProgressHandler(
+					backend,
+					chunk.startSec,
+					chunk.durationSec,
+					chunk.index,
+					chunks.length,
+				);
+
+			for (const chunk of segmentPlan.toRender) {
+				if (session.terminating) {
+					throw new Error("Native static layout export was cancelled");
+				}
+
+				const outputPath = getExportSessionSegmentPath(resumableSessionDir, chunk.index);
+				const baseConfig: NativeStaticLayoutExportArgsConfig = {
+					inputPath: options.inputPath,
+					outputPath,
+					width: options.width,
+					height: options.height,
+					frameRate: options.frameRate,
+					bitrate: options.bitrate,
+					encodingMode: options.encodingMode,
+					contentWidth: options.contentWidth,
+					contentHeight: options.contentHeight,
+					offsetX: options.offsetX,
+					offsetY: options.offsetY,
+					backgroundColor: options.backgroundColor,
+					startSec: chunk.startSec,
+					durationSec: chunk.durationSec,
+					progress: Boolean(onProgress),
+				};
+				let backend: NativeStaticLayoutBackend;
+				let chunkFallbackReason: string | undefined;
+				let result: Awaited<ReturnType<typeof runFfmpegWithMetrics>>;
+
+				if (precompositedAssets) {
+					backend = hasNativeStaticLayoutCuda
+						? "cuda-static-composite"
+						: "ffmpeg-static-layout";
+					result = await runFfmpegWithMetrics(
+						ffmpegPath,
+						hasNativeStaticLayoutCuda
+							? buildNativePrecompositedStaticLayoutArgs({
+									...baseConfig,
+									staticBackgroundPath: precompositedAssets.staticBackgroundPath,
+									maskPath: precompositedAssets.maskPath,
+									borderRadius: options.borderRadius,
+									shadowIntensity: options.shadowIntensity,
+								})
+							: buildNativeCpuPrecompositedStaticLayoutArgs({
+									...baseConfig,
+									staticBackgroundPath: precompositedAssets.staticBackgroundPath,
+									maskPath: precompositedAssets.maskPath,
+									borderRadius: options.borderRadius,
+									shadowIntensity: options.shadowIntensity,
+								}),
+						// Duration-scaled so a weak CPU encoding a full chunk is not
+						// mistaken for a hang.
+						Math.max(15 * 60 * 1000, chunk.durationSec * 2000),
+						session,
+						makeSegmentProgressHandler(backend, chunk),
+					);
+				} else if (!hasNativeStaticLayoutCuda) {
+					backend = "ffmpeg-static-layout";
+					result = await runFfmpegWithMetrics(
+						ffmpegPath,
+						buildNativeCpuOverlayStaticLayoutArgs(baseConfig),
+						Math.max(15 * 60 * 1000, chunk.durationSec * 2000),
+						session,
+						makeSegmentProgressHandler(backend, chunk),
+					);
+				} else {
+					backend = "cuda-overlay";
+					const primary = await runFfmpegWithMetrics(
+						ffmpegPath,
+						buildNativeCudaOverlayStaticLayoutArgs(baseConfig),
+						15 * 60 * 1000,
+						session,
+						makeSegmentProgressHandler(backend, chunk),
+					);
+					result = primary;
+					if (!primary.success && isNativeCudaOutOfMemory(primary.stderr)) {
+						backend = "cuda-scale-cpu-pad";
+						chunkFallbackReason = "cuda-oom";
+						metrics.fallbackChunkCount++;
+						result = await runFfmpegWithMetrics(
+							ffmpegPath,
+							buildNativeCudaScaleCpuPadStaticLayoutArgs(baseConfig),
+							15 * 60 * 1000,
+							session,
+							makeSegmentProgressHandler(backend, chunk),
+						);
+					}
+				}
+
+				metrics.chunkExecMs += result.elapsedMs;
+				if (!result.success) {
+					throw new Error(getFfmpegFailureMessage(result));
+				}
+
+				const outputStat = await fs.stat(outputPath);
+				resumableManifest.segments[String(chunk.index)] = {
+					status: "done",
+					file: path.basename(outputPath),
+					bytes: outputStat.size,
+					backend,
+					completedAt: new Date().toISOString(),
+				};
+				metrics.chunks.push({
+					index: chunk.index,
+					startSec: chunk.startSec,
+					durationSec: chunk.durationSec,
+					backend,
+					elapsedMs: result.elapsedMs,
+					outputBytes: outputStat.size,
+					fallbackReason: chunkFallbackReason,
+				});
+				await writeExportSessionManifest(resumableSessionDir, resumableManifest);
+			}
+
+			metrics.chunkCount = chunks.length;
+			metrics.chunkDurationSec = chunkDurationSec;
+			const concatLines = buildResumableSegmentConcatLines(
+				resumableSessionDir,
+				chunks.length,
+			);
+			await fs.writeFile(concatListPath, `${concatLines.join("\n")}\n`, "utf8");
+			if (session.terminating) {
+				throw new Error("Native static layout export was cancelled");
+			}
+			const concatStartedAt = getNowMs();
+			const concatResult = await runFfmpegWithMetrics(
+				ffmpegPath,
+				buildNativeConcatArgs({
+					listPath: concatListPath,
+					outputPath: videoOnlyPath,
+				}),
+				// Copy-mode concat is I/O-bound; scale with duration.
+				Math.max(15 * 60 * 1000, options.durationSec * 1000),
+				session,
+			);
+			metrics.concatExecMs = getNowMs() - concatStartedAt;
+			if (!concatResult.success) {
+				throw new Error(getFfmpegFailureMessage(concatResult));
+			}
+		} else if (!didRenderVideo && usePrecompositedLayout) {
 			const maskPath = path.join(chunkDirectory, "layout-mask.pgm");
 			const staticBackgroundPath = path.join(chunkDirectory, "layout-background.png");
 			await fs.writeFile(
@@ -3943,6 +4210,7 @@ export async function exportNativeStaticLayoutVideo(
 		}
 		if (didMuxAudioInline) {
 			outputPathToKeep = videoOnlyPath;
+			didCompleteResumableExport = true;
 			return {
 				outputPath: videoOnlyPath,
 				metrics,
@@ -3975,6 +4243,7 @@ export async function exportNativeStaticLayoutVideo(
 		);
 		Object.assign(metrics, finalized.metrics);
 		outputPathToKeep = finalized.outputPath;
+		didCompleteResumableExport = true;
 		return {
 			outputPath: finalized.outputPath,
 			metrics,
@@ -3986,6 +4255,9 @@ export async function exportNativeStaticLayoutVideo(
 	} finally {
 		nativeStaticLayoutExportSessions.delete(sessionId);
 		await fs.rm(chunkDirectory, { force: true, recursive: true }).catch(() => undefined);
+		if (resumableSessionDir && didCompleteResumableExport) {
+			await discardExportSession(resumableSessionDir).catch(() => undefined);
+		}
 		if (outputPathToKeep !== videoOnlyPath) {
 			await removeTemporaryExportFile(videoOnlyPath);
 		}

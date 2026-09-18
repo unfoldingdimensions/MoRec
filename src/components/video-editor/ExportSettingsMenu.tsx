@@ -1,5 +1,6 @@
 import { DownloadSimple as Download, FilmSlate as Film, Image } from "@phosphor-icons/react";
 import { LayoutGroup, motion } from "motion/react";
+import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useScopedT } from "@/contexts/I18nContext";
@@ -12,7 +13,13 @@ import type {
 	GifFrameRate,
 	GifSizePreset,
 } from "@/lib/exporter";
-import { GIF_FRAME_RATES, GIF_SIZE_PRESETS, MP4_FRAME_RATES } from "@/lib/exporter";
+import {
+	GIF_FRAME_RATES,
+	GIF_SIZE_PRESETS,
+	getTargetSizeExportBitrate,
+	MP4_FRAME_RATES,
+	normalizeTargetSizeMb,
+} from "@/lib/exporter";
 import { cn } from "@/lib/utils";
 
 interface ExportSettingsMenuProps {
@@ -20,6 +27,9 @@ interface ExportSettingsMenuProps {
 	onExportFormatChange?: (format: ExportFormat) => void;
 	exportQuality: ExportQuality;
 	onExportQualityChange?: (quality: ExportQuality) => void;
+	targetSizeMb: number;
+	onTargetSizeMbChange?: (targetSizeMb: number) => void;
+	targetSizeDurationSec?: number;
 	exportEncodingMode: ExportEncodingMode;
 	onExportEncodingModeChange?: (encodingMode: ExportEncodingMode) => void;
 	mp4FrameRate: ExportMp4FrameRate;
@@ -33,6 +43,8 @@ interface ExportSettingsMenuProps {
 	includeCaptionSidecar?: boolean;
 	onIncludeCaptionSidecarChange?: (enabled: boolean) => void;
 	mp4OutputDimensions?: Record<ExportQuality, { width: number; height: number }>;
+	resumeBanner?: { doneCount: number; segmentCount: number } | null;
+	onDiscardResume?: () => void;
 	gifFrameRate: GifFrameRate;
 	onGifFrameRateChange?: (rate: GifFrameRate) => void;
 	gifLoop: boolean;
@@ -49,6 +61,9 @@ export function ExportSettingsMenu({
 	onExportFormatChange,
 	exportQuality,
 	onExportQualityChange,
+	targetSizeMb,
+	onTargetSizeMbChange,
+	targetSizeDurationSec,
 	exportEncodingMode,
 	onExportEncodingModeChange,
 	mp4FrameRate,
@@ -62,6 +77,8 @@ export function ExportSettingsMenu({
 	includeCaptionSidecar = false,
 	onIncludeCaptionSidecarChange,
 	mp4OutputDimensions,
+	resumeBanner,
+	onDiscardResume,
 	gifFrameRate,
 	onGifFrameRateChange,
 	gifLoop,
@@ -74,6 +91,21 @@ export function ExportSettingsMenu({
 }: ExportSettingsMenuProps) {
 	const tSettings = useScopedT("settings");
 	const isLegacyModel = exportPipelineModel === "legacy";
+	const targetSizeEstimate = useMemo(() => {
+		if (
+			exportQuality !== "target-size" ||
+			typeof targetSizeDurationSec !== "number" ||
+			!Number.isFinite(targetSizeDurationSec) ||
+			targetSizeDurationSec <= 0
+		) {
+			return null;
+		}
+
+		return getTargetSizeExportBitrate({
+			targetSizeMb,
+			durationSec: targetSizeDurationSec,
+		});
+	}, [exportQuality, targetSizeMb, targetSizeDurationSec]);
 
 	return (
 		<div
@@ -128,15 +160,45 @@ export function ExportSettingsMenu({
 				</LayoutGroup>
 			</div>
 
+			{exportFormat === "mp4" && resumeBanner ? (
+				<div className="mb-3 flex items-center justify-between gap-3 rounded-lg border border-[#2563EB]/20 bg-[#2563EB]/5 px-3 py-2">
+					<div className="min-w-0">
+						<p className="truncate text-[11px] font-semibold text-foreground">
+							{tSettings("export.resumePreviousExport", "Resume previous export")}
+						</p>
+						<p className="mt-0.5 truncate text-[10px] text-muted-foreground/75">
+							{tSettings(
+								"export.segmentsDone",
+								"{{done}} of {{total}} segments done",
+								{
+									done: resumeBanner.doneCount,
+									total: resumeBanner.segmentCount,
+								},
+							)}
+						</p>
+					</div>
+					<button
+						type="button"
+						onClick={onDiscardResume}
+						className="shrink-0 rounded-md px-2 py-1 text-[10px] font-medium text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB]"
+					>
+						{tSettings("export.discardResume", "Discard")}
+					</button>
+				</div>
+			) : null}
 			{exportFormat === "mp4" ? (
 				<LayoutGroup id="header-export-quality-toggle">
-					<div className="mb-3 grid min-h-12 w-full grid-cols-4 rounded-xl border border-foreground/5 bg-foreground/5 p-0.5">
+					<div className="mb-3 grid min-h-12 w-full grid-cols-5 rounded-xl border border-foreground/5 bg-foreground/5 p-0.5">
 						{(
 							[
 								{ value: "medium", label: tSettings("export.quality.low") },
 								{ value: "good", label: tSettings("export.quality.medium") },
 								{ value: "high", label: tSettings("export.quality.high") },
 								{ value: "source", label: tSettings("export.quality.original") },
+								{
+									value: "target-size",
+									label: tSettings("export.targetFileSize", "Target size"),
+								},
 							] as const
 						).map((option) => {
 							const isActive = exportQuality === option.value;
@@ -169,7 +231,26 @@ export function ExportSettingsMenu({
 										>
 											{option.label}
 										</span>
-										{mp4OutputDimensions ? (
+										{option.value === "target-size" ? (
+											targetSizeEstimate ? (
+												<span
+													className={cn(
+														"mt-0.5 text-[9px]",
+														isActive
+															? "text-white/75 dark:text-black/75"
+															: "text-muted-foreground/70",
+													)}
+												>
+													≈
+													{targetSizeEstimate.clampedToMinBitrate
+														? Math.round(
+																targetSizeEstimate.estimatedSizeMb,
+															)
+														: normalizeTargetSizeMb(targetSizeMb)}
+													MB
+												</span>
+											) : null
+										) : mp4OutputDimensions ? (
 											<span
 												className={cn(
 													"mt-0.5 text-[9px]",
@@ -187,6 +268,62 @@ export function ExportSettingsMenu({
 							);
 						})}
 					</div>
+					{exportQuality === "target-size" ? (
+						<div className="mb-3 rounded-lg border border-foreground/10 bg-foreground/5 px-3 py-2">
+							<div className="flex items-center gap-2">
+								<label
+									htmlFor="export-target-size-mb"
+									className="shrink-0 text-[11px] font-semibold text-foreground"
+								>
+									{tSettings("export.targetFileSize", "Target size")}
+								</label>
+								<input
+									id="export-target-size-mb"
+									type="number"
+									min={1}
+									max={4096}
+									step={1}
+									value={targetSizeMb}
+									onChange={(event) => {
+										const parsed = Number.parseInt(event.target.value, 10);
+										onTargetSizeMbChange?.(
+											Number.isFinite(parsed)
+												? normalizeTargetSizeMb(parsed)
+												: normalizeTargetSizeMb(Number.NaN),
+										);
+									}}
+									className="h-7 w-20 rounded-md border border-foreground/10 bg-editor-surface px-2 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB]"
+								/>
+								<span className="text-[10px] text-muted-foreground">MB</span>
+							</div>
+							<p className="mt-1 text-[10px] text-muted-foreground/75">
+								{targetSizeEstimate
+									? targetSizeEstimate.clampedToMinBitrate
+										? tSettings(
+												"export.smallestAchievable",
+												"Smallest achievable size is ≈ {{size}} MB",
+												{
+													size: targetSizeEstimate.estimatedSizeMb.toFixed(
+														1,
+													),
+												},
+											)
+										: tSettings(
+												"export.estimatedSize",
+												"≈ {{size}} MB estimated",
+												{
+													size: targetSizeEstimate.estimatedSizeMb.toFixed(
+														1,
+													),
+												},
+											)
+									: tSettings(
+											"export.estimatedSizeUnavailable",
+											"Estimated size appears once the video duration is known.",
+										)}
+							</p>
+						</div>
+					) : null}
 					<div className="mb-1 flex items-center justify-between px-1">
 						<span className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/70">
 							{tSettings("export.encodingTitle", "Encoding")}

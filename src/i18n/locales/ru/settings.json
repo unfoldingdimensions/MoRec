@@ -333,7 +333,14 @@
 			"lightningHint": "Lightning (Beta) automatically uses the fastest compatible backend and falls back when needed.",
 			"modern": "Lightning (Beta)"
 		},
-		"pipelineTitle": "Pipeline"
+		"pipelineTitle": "Pipeline",
+		"targetFileSize": "Целевой размер",
+		"estimatedSize": "≈ {{size}} МБ (оценка)",
+		"smallestAchievable": "Минимально достижимый размер ≈ {{size}} МБ",
+		"estimatedSizeUnavailable": "Оценка размера появится, когда станет известна длительность видео.",
+		"resumePreviousExport": "Возобновить предыдущий экспорт",
+		"segmentsDone": "Готово сегментов: {{done}} из {{total}}",
+		"discardResume": "Отменить"
 	},
 	"audio": {
 		"title": "Аудио",

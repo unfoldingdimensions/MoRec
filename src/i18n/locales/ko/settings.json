@@ -333,7 +333,14 @@
 			"lightningHint": "Lightning (Beta) automatically uses the fastest compatible backend and falls back when needed.",
 			"modern": "Lightning (Beta)"
 		},
-		"pipelineTitle": "Pipeline"
+		"pipelineTitle": "Pipeline",
+		"targetFileSize": "목표 크기",
+		"estimatedSize": "약 {{size}} MB 예상",
+		"smallestAchievable": "가능한 최소 크기는 약 {{size}} MB입니다",
+		"estimatedSizeUnavailable": "비디오 길이를 알면 예상 크기가 표시됩니다.",
+		"resumePreviousExport": "이전 내보내기 재개",
+		"segmentsDone": "{{total}}개 세그먼트 중 {{done}}개 완료",
+		"discardResume": "버리기"
 	},
 	"audio": {
 		"title": "오디오",

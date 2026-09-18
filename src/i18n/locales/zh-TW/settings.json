@@ -333,7 +333,14 @@
 			"lightningHint": "Lightning (Beta) automatically uses the fastest compatible backend and falls back when needed.",
 			"modern": "Lightning (Beta)"
 		},
-		"pipelineTitle": "Pipeline"
+		"pipelineTitle": "Pipeline",
+		"targetFileSize": "目標大小",
+		"estimatedSize": "預計 ≈ {{size}} MB",
+		"smallestAchievable": "最小可達大小約為 {{size}} MB",
+		"estimatedSizeUnavailable": "影片時長確定後將顯示預計大小。",
+		"resumePreviousExport": "繼續上次匯出",
+		"segmentsDone": "已完成 {{total}} 個分段中的 {{done}} 個",
+		"discardResume": "捨棄"
 	},
 	"audio": {
 		"title": "音訊",

@@ -6,6 +6,7 @@ import {
 	type ExportMp4FrameRate,
 	type ExportPipelineModel,
 	type ExportQuality,
+	type ExportResumableSessionRef,
 	type ExportSettings,
 	GIF_SIZE_PRESETS,
 	type GifFrameRate,
@@ -19,9 +20,11 @@ export function resolveExportStartSettings({
 	includeCaptionSidecar,
 	exportEncodingMode,
 	exportQuality,
+	targetSizeMb,
 	mp4FrameRate,
 	exportBackendPreference,
 	exportPipelineModel,
+	resume,
 	gifFrameRate,
 	gifLoop,
 	gifSizePreset,
@@ -32,9 +35,11 @@ export function resolveExportStartSettings({
 	includeCaptionSidecar: boolean;
 	exportEncodingMode: ExportEncodingMode;
 	exportQuality: ExportQuality;
+	targetSizeMb: number;
 	mp4FrameRate: ExportMp4FrameRate;
 	exportBackendPreference: ExportBackendPreference;
 	exportPipelineModel: ExportPipelineModel;
+	resume?: ExportResumableSessionRef;
 	gifFrameRate: GifFrameRate;
 	gifLoop: boolean;
 	gifSizePreset: GifSizePreset;
@@ -52,6 +57,8 @@ export function resolveExportStartSettings({
 		backendPreference: exportFormat === "mp4" ? exportBackendPreference : undefined,
 		pipelineModel: exportFormat === "mp4" ? exportPipelineModel : undefined,
 		quality: exportFormat === "mp4" ? exportQuality : undefined,
+		targetSizeMb: exportFormat === "mp4" ? targetSizeMb : undefined,
+		resume: exportFormat === "mp4" && exportPipelineModel === "modern" ? resume : undefined,
 		gifConfig:
 			exportFormat === "gif" && gifDimensions
 				? {
