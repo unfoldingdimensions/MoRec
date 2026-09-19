@@ -35,6 +35,20 @@ Mo Rec features an extension architecture supporting custom frames, wallpapers, 
 
 ---
 
+## New Features
+
+Shipped on `main` — included in the next release build:
+
+- **Motion presets** — dial the automatic motion effects to Off, Subtle, Balanced, or Energetic. Suggestions respect your profile; zooms you add or edit yourself are never changed.
+- **One-click silence removal** — "Remove dead air" detects silent gaps in your recording and trims them in a single click, with guards so it never over-cuts or touches your zoom and speed edits.
+- **Automatic speed-up of typing and dead air** — long pauses and keyboard bursts become 2× speed regions automatically, so viewers skip the waiting without you touching the timeline.
+- **Target file-size export** — set a target in megabytes and MoRec computes the bitrate, with a live size estimate before you commit.
+- **Resumable exports** — Lightning exports survive crashes and cancels: finished segments are kept, progress shows `segment i/N`, and the next export offers to resume where it stopped.
+- **Audio pre-flight check** — clipping and no-input warnings for your microphone before you record, plus an honest state indicator for system audio.
+- **Social canvas presets** — export 9:16, 1:1, or 4:5 versions of your recording (center-cropped, even-normalized) for Shorts, TikTok, and LinkedIn alongside the original.
+
+---
+
 ## All Features
 
 ### Recording
