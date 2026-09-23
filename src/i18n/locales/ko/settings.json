@@ -221,6 +221,13 @@
 	},
 	"captions": {
 		"selectOnTimeline": "타임라인에서 자막을 선택하여 편집하세요.",
+		"cutMode": "자르기 모드",
+		"cutModeHint": "클릭한 단어가 잘릴 항목으로 표시됩니다. 선택은 자막 간에 유지됩니다.",
+		"cutSelectedWords": "단어 {{count}}개 자르기 ({{seconds}}초)",
+		"cutWordsResult": "단어 {{count}}개를 잘렀습니다 ({{seconds}}초)",
+		"selectionOverlapsEdits": "선택 영역이 확대 구간과 겹칩니다 — 조정한 후 다시 시도하세요",
+		"selectionTooMuch": "녹화의 40% 이상이 잘리게 됩니다 — 단어를 더 적게 선택하세요",
+		"selectionTooShort": "자를 단어를 최소 0.2초 이상 선택하세요",
 		"enabled": "표시",
 		"timelineQuickAdd": "타임라인에 마우스를 올려 추가",
 		"language": "언어",

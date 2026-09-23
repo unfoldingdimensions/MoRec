@@ -16,7 +16,7 @@ function sortCaptionCues(cues: CaptionCue[]): CaptionCue[] {
 	);
 }
 
-function createCaptionCueId(): string {
+export function createCaptionCueId(): string {
 	return `caption-${globalThis.crypto.randomUUID()}`;
 }
 

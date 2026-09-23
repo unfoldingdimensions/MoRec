@@ -221,6 +221,13 @@
 	},
 	"captions": {
 		"selectOnTimeline": "Wählen Sie einen Untertitel auf der Zeitleiste aus, um ihn zu bearbeiten.",
+		"cutMode": "Schnittmodus",
+		"cutModeHint": "Klicken Sie auf Wörter, um sie zum Ausschneiden zu markieren. Die Auswahl bleibt über Untertitel hinweg bestehen.",
+		"cutSelectedWords": "{{count}} Wörter ausschneiden ({{seconds}}s)",
+		"cutWordsResult": "{{count}} Wörter ausgeschnitten ({{seconds}}s)",
+		"selectionOverlapsEdits": "Die Auswahl überschneidet sich mit Ihren Zooms — passen Sie sie an und versuchen Sie es erneut",
+		"selectionTooMuch": "Damit würden mehr als 40% der Aufnahme entfernt — wählen Sie weniger Wörter aus",
+		"selectionTooShort": "Wählen Sie mindestens 0,2s an Wörtern zum Ausschneiden aus",
 		"enabled": "Anzeigen",
 		"timelineQuickAdd": "Mit der Maus darüberfahren, um zur Zeitleiste hinzuzufügen",
 		"language": "Sprache",

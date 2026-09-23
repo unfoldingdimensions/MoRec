@@ -221,6 +221,13 @@
 	},
 	"captions": {
 		"selectOnTimeline": "Selecione uma legenda na linha do tempo para editá-la.",
+		"cutMode": "Modo de corte",
+		"cutModeHint": "Clique nas palavras para marcá-las para corte. A seleção vale entre legendas.",
+		"cutSelectedWords": "Cortar {{count}} palavras ({{seconds}}s)",
+		"cutWordsResult": "{{count}} palavras cortadas ({{seconds}}s)",
+		"selectionOverlapsEdits": "A seleção coincide com seus zooms — ajuste e tente novamente",
+		"selectionTooMuch": "Isso removeria mais de 40% da gravação — selecione menos palavras",
+		"selectionTooShort": "Selecione pelo menos 0,2s de palavras para cortar",
 		"enabled": "Mostrar",
 		"timelineQuickAdd": "Passe o cursor para adicionar na linha do tempo",
 		"language": "Idioma",

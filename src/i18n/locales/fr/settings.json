@@ -221,6 +221,13 @@
 	},
 	"captions": {
 		"selectOnTimeline": "Sélectionnez un sous-titre sur la timeline pour le modifier.",
+		"cutMode": "Mode découpage",
+		"cutModeHint": "Cliquez sur les mots à marquer pour le découpage. La sélection est conservée entre les sous-titres.",
+		"cutSelectedWords": "Couper {{count}} mots ({{seconds}}s)",
+		"cutWordsResult": "{{count}} mots coupés ({{seconds}}s)",
+		"selectionOverlapsEdits": "La sélection chevauche vos zooms — ajustez-la et réessayez",
+		"selectionTooMuch": "Cela supprimerait plus de 40% de l'enregistrement — sélectionnez moins de mots",
+		"selectionTooShort": "Sélectionnez au moins 0,2s de mots à couper",
 		"enabled": "Afficher",
 		"timelineQuickAdd": "Survoler pour ajouter sur la timeline",
 		"language": "Langue",

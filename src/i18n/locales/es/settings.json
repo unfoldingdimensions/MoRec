@@ -221,6 +221,13 @@
 	},
 	"captions": {
 		"selectOnTimeline": "Selecciona un subtítulo en la línea de tiempo para editarlo.",
+		"cutMode": "Modo de corte",
+		"cutModeHint": "Haz clic en las palabras para marcarlas para cortar. La selección se mantiene entre subtítulos.",
+		"cutSelectedWords": "Cortar {{count}} palabras ({{seconds}}s)",
+		"cutWordsResult": "Se cortaron {{count}} palabras ({{seconds}}s)",
+		"selectionOverlapsEdits": "La selección se superpone a tus zooms — ajústala e inténtalo de nuevo",
+		"selectionTooMuch": "Esto eliminaría más del 40% de la grabación — selecciona menos palabras",
+		"selectionTooShort": "Selecciona al menos 0,2s de palabras para cortar",
 		"enabled": "Mostrar",
 		"timelineQuickAdd": "Pasar el cursor para añadir en la línea de tiempo",
 		"language": "Idioma",

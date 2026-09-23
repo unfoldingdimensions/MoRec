@@ -221,6 +221,13 @@
 	},
 	"captions": {
 		"selectOnTimeline": "Seleziona un sottotitolo sulla timeline per modificarlo.",
+		"cutMode": "Modalità taglio",
+		"cutModeHint": "Fai clic sulle parole per contrassegnarle da tagliare. La selezione viene mantenuta tra le didascalie.",
+		"cutSelectedWords": "Taglia {{count}} parole ({{seconds}}s)",
+		"cutWordsResult": "Tagliate {{count}} parole ({{seconds}}s)",
+		"selectionOverlapsEdits": "La selezione si sovrappone ai tuoi zoom: modificala e riprova",
+		"selectionTooMuch": "Verrebbe rimosso più del 40% della registrazione: seleziona meno parole",
+		"selectionTooShort": "Seleziona almeno 0,2s di parole da tagliare",
 		"enabled": "Mostra",
 		"timelineQuickAdd": "Passa il mouse per aggiungere sulla timeline",
 		"language": "Lingua",
