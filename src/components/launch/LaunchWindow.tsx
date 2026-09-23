@@ -1,4 +1,5 @@
 import {
+	ArticleIcon,
 	ArrowClockwiseIcon,
 	CaretUpIcon,
 	DotsThreeVerticalIcon,
@@ -12,8 +13,9 @@ import {
 	XIcon,
 } from "@phosphor-icons/react";
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { RxDragHandleDots2 } from "react-icons/rx";
+import { loadAppSetting, saveAppSetting } from "@/lib/appSettings";
 import { Separator } from "@/components/ui/separator";
 import { useScopedT } from "../../contexts/I18nContext";
 import { useMicrophoneDevices } from "../../hooks/useMicrophoneDevices";
@@ -29,6 +31,15 @@ import { useLaunchWindowSystemState } from "./hooks/useLaunchWindowSystemState";
 import { useRecordingTimer } from "./hooks/useRecordingTimer";
 import { useWebcamPreviewOverlay } from "./hooks/useWebcamPreviewOverlay";
 import styles from "./LaunchWindow.module.css";
+import {
+	normalizeTeleprompterFontSize,
+	normalizeTeleprompterNotes,
+	normalizeTeleprompterScrollSpeed,
+	TELEPROMPTER_FONT_SIZE_KEY,
+	TELEPROMPTER_NOTES_KEY,
+	TELEPROMPTER_SCROLL_SPEED_KEY,
+} from "./prompterScroll";
+import { TeleprompterPrompter } from "./TeleprompterPrompter";
 import { CountdownPopover } from "./popovers/CountdownPopover";
 import {
 	LaunchPopoverCoordinatorProvider,
@@ -36,6 +47,7 @@ import {
 } from "./popovers/LaunchPopoverCoordinator";
 import { MicPopover } from "./popovers/MicPopover";
 import { MorePopover } from "./popovers/MorePopover";
+import { NotesPopover } from "./popovers/NotesPopover";
 import { ProjectPopover } from "./popovers/ProjectPopover";
 import { SourcePopover } from "./popovers/SourcePopover";
 import { WebcamPopover } from "./popovers/WebcamPopover";
@@ -84,6 +96,49 @@ function LaunchWindowContent() {
 	const { elapsed, formatTime } = useRecordingTimer(recording, paused);
 	const hudContentRef = useRef<HTMLDivElement>(null);
 	const hudBarRef = useRef<HTMLDivElement>(null);
+
+	// Teleprompter state: edited in the Notes popover, consumed by the
+	// recording prompter panel. Persisted schema-less via app-settings.
+	const [teleprompterNotes, setTeleprompterNotes] = useState("");
+	const [teleprompterFontSize, setTeleprompterFontSize] = useState(20);
+	const [teleprompterScrollSpeed, setTeleprompterScrollSpeed] = useState(40);
+	const [prompterVisible, setPrompterVisible] = useState(false);
+
+	useEffect(() => {
+		setTeleprompterNotes(
+			normalizeTeleprompterNotes(loadAppSetting<string>(TELEPROMPTER_NOTES_KEY)),
+		);
+		setTeleprompterFontSize(
+			normalizeTeleprompterFontSize(loadAppSetting<number>(TELEPROMPTER_FONT_SIZE_KEY)),
+		);
+		setTeleprompterScrollSpeed(
+			normalizeTeleprompterScrollSpeed(
+				loadAppSetting<number>(TELEPROMPTER_SCROLL_SPEED_KEY),
+			),
+		);
+	}, []);
+
+	const updateTeleprompterNotes = useCallback((notes: string) => {
+		setTeleprompterNotes(notes);
+		saveAppSetting(TELEPROMPTER_NOTES_KEY, notes);
+	}, []);
+
+	const updateTeleprompterFontSize = useCallback((fontSize: number) => {
+		setTeleprompterFontSize(fontSize);
+		saveAppSetting(TELEPROMPTER_FONT_SIZE_KEY, fontSize);
+	}, []);
+
+	const updateTeleprompterScrollSpeed = useCallback((scrollSpeed: number) => {
+		setTeleprompterScrollSpeed(scrollSpeed);
+		saveAppSetting(TELEPROMPTER_SCROLL_SPEED_KEY, scrollSpeed);
+	}, []);
+
+	// The prompter is recording chrome: collapse it when the recording ends.
+	useEffect(() => {
+		if (!recording) {
+			setPrompterVisible(false);
+		}
+	}, [recording]);
 
 	const {
 		selectedSource,
@@ -219,6 +274,8 @@ function LaunchWindowContent() {
 			paused={paused}
 			microphoneEnabled={microphoneEnabled}
 			elapsed={elapsed}
+			prompterVisible={prompterVisible}
+			onTogglePrompter={() => setPrompterVisible((visible) => !visible)}
 			onToggleMicrophone={() => setMicrophoneEnabled(!microphoneEnabled)}
 			onPauseResume={paused ? resumeRecording : pauseRecording}
 			onStopRecording={toggleRecording}
@@ -344,6 +401,27 @@ function LaunchWindowContent() {
 							)}
 						</Button>
 					}
+			/>
+
+			<NotesPopover
+				notes={teleprompterNotes}
+				fontSize={teleprompterFontSize}
+				scrollSpeed={teleprompterScrollSpeed}
+				onNotesChange={updateTeleprompterNotes}
+				onFontSizeChange={updateTeleprompterFontSize}
+				onScrollSpeedChange={updateTeleprompterScrollSpeed}
+				trigger={
+					<Button
+						variant="ghost"
+						size="icon"
+						iconSize="lg"
+						title={t("recording.notes")}
+						aria-label={t("recording.notes")}
+						className={teleprompterNotes.trim().length > 0 ? styles.ibActive : ""}
+					>
+						<ArticleIcon size={18} />
+					</Button>
+				}
 			/>
 
 			<CountdownPopover
@@ -484,6 +562,16 @@ function LaunchWindowContent() {
 		<HudInteractionContext.Provider
 			value={{ onMouseEnter: handleHudMouseEnter, onMouseLeave: handleHudMouseLeave }}
 		>
+			{recording && prompterVisible && (
+				<TeleprompterPrompter
+					notes={teleprompterNotes}
+					fontSize={teleprompterFontSize}
+					scrollSpeed={teleprompterScrollSpeed}
+					recording={recording}
+					paused={paused}
+					onClose={() => setPrompterVisible(false)}
+				/>
+			)}
 			<div
 				className="w-full flex justify-center bg-transparent overflow-visible items-end pb-5 pointer-events-none"
 				style={{ height: "100vh" }}

@@ -70,7 +70,14 @@
 		"editorOpenFailedToast": "录制已保存，但无法打开编辑器。请重新打开应用并从您的录制中加载。",
 		"savedMuxFailedToast": "录制已保存，但无法合并伴生音轨。",
 		"recoveredMuxFailedToast": "录制已恢复，但无法合并伴生音轨。",
-		"basedOnRecordly": "基于 Recordly"
+		"basedOnRecordly": "基于 Recordly",
+		"teleprompter": "提词器",
+		"notes": "笔记",
+		"notesPlaceholder": "在此输入你的讲稿要点…",
+		"fontSize": "字体大小",
+		"scrollSpeed": "滚动速度",
+		"prompterPause": "点击暂停",
+		"prompterResume": "点击继续"
 	},
 	"sourceSelector": {
 		"loadingSources": "正在加载源...",

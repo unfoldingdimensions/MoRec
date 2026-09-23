@@ -70,7 +70,14 @@
 		"editorOpenFailedToast": "Запись сохранена, но редактор не удалось открыть. Откройте приложение заново и загрузите её из записей.",
 		"savedMuxFailedToast": "Запись сохранена, но не удалось объединить сопутствующую аудиодорожку.",
 		"recoveredMuxFailedToast": "Запись восстановлена, но не удалось объединить сопутствующую аудиодорожку.",
-		"basedOnRecordly": "На основе Recordly"
+		"basedOnRecordly": "На основе Recordly",
+		"teleprompter": "Телесуфлёр",
+		"notes": "Заметки",
+		"notesPlaceholder": "Введите здесь тезисы выступления…",
+		"fontSize": "Размер шрифта",
+		"scrollSpeed": "Скорость прокрутки",
+		"prompterPause": "Коснитесь для паузы",
+		"prompterResume": "Коснитесь для продолжения"
 	},
 	"sourceSelector": {
 		"loadingSources": "Загрузка источников...",

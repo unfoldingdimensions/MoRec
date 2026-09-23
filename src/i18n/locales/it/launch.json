@@ -70,7 +70,14 @@
 		"editorOpenFailedToast": "Registrazione salvata, ma non è stato possibile aprire l'editor. Riapri l'app e caricala dalle tue registrazioni.",
 		"savedMuxFailedToast": "Registrazione salvata, ma non è stato possibile unire l'audio complementare.",
 		"recoveredMuxFailedToast": "Registrazione recuperata, ma non è stato possibile unire l'audio complementare.",
-		"basedOnRecordly": "Basato su Recordly"
+		"basedOnRecordly": "Basato su Recordly",
+		"teleprompter": "Teleprompter",
+		"notes": "Note",
+		"notesPlaceholder": "Scrivi qui i tuoi appunti…",
+		"fontSize": "Dimensione carattere",
+		"scrollSpeed": "Velocità di scorrimento",
+		"prompterPause": "Tocca per mettere in pausa",
+		"prompterResume": "Tocca per riprendere"
 	},
 	"sourceSelector": {
 		"loadingSources": "Caricamento sorgenti...",

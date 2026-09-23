@@ -70,7 +70,14 @@
 		"editorOpenFailedToast": "Aufnahme gespeichert, aber der Editor konnte nicht geöffnet werden. Öffne die App erneut und lade sie aus deinen Aufnahmen.",
 		"savedMuxFailedToast": "Aufnahme gespeichert, aber die Tonspur konnte nicht zusammengefügt werden.",
 		"recoveredMuxFailedToast": "Aufnahme wiederhergestellt, aber die Tonspur konnte nicht zusammengefügt werden.",
-		"basedOnRecordly": "Basierend auf Recordly"
+		"basedOnRecordly": "Basierend auf Recordly",
+		"teleprompter": "Teleprompter",
+		"notes": "Notizen",
+		"notesPlaceholder": "Tippe hier deine Stichpunkte ein…",
+		"fontSize": "Schriftgröße",
+		"scrollSpeed": "Scrollgeschwindigkeit",
+		"prompterPause": "Zum Pausieren tippen",
+		"prompterResume": "Zum Fortsetzen tippen"
 	},
 	"sourceSelector": {
 		"loadingSources": "Quellen werden geladen...",

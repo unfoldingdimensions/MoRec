@@ -196,6 +196,42 @@ describe("register/settings handlers", () => {
 			});
 		});
 
+		it("round-trips the teleprompter notes, font size, and scroll speed", async () => {
+			await registry.invoke("app-settings:set", "teleprompterNotes", "Line one\nLine two");
+			await registry.invoke("app-settings:set", "teleprompterFontSize", 28);
+			await registry.invoke("app-settings:set", "teleprompterScrollSpeed", 80);
+
+			expect(await registry.invoke("app-settings:get", "teleprompterNotes")).toEqual({
+				success: true,
+				value: "Line one\nLine two",
+			});
+			expect(await registry.invoke("app-settings:get", "teleprompterFontSize")).toEqual({
+				success: true,
+				value: 28,
+			});
+			expect(await registry.invoke("app-settings:get", "teleprompterScrollSpeed")).toEqual({
+				success: true,
+				value: 80,
+			});
+
+			// The debounced store write includes the teleprompter keys; retry-read
+			// so a slow disk completion cannot race the assertion (established
+			// pattern from the app-settings persistence test above).
+			await vi.advanceTimersByTimeAsync(400);
+			let stored: Record<string, unknown> = {};
+			for (let attempt = 0; attempt < 20 && !("teleprompterNotes" in stored); attempt += 1) {
+				await vi.advanceTimersByTimeAsync(50);
+				try {
+					stored = JSON.parse(await fs.readFile(files.appSettings, "utf-8"));
+				} catch {
+					// File not written yet.
+				}
+			}
+			expect(stored.teleprompterNotes).toBe("Line one\nLine two");
+			expect(stored.teleprompterFontSize).toBe(28);
+			expect(stored.teleprompterScrollSpeed).toBe(80);
+		});
+
 		it("flushes pending debounced settings on before-quit", async () => {
 			await registry.invoke("app-settings:set", "key", "value");
 			registry.emitAppEvent("before-quit");
