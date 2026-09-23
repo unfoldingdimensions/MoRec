@@ -221,6 +221,13 @@
 	},
 	"captions": {
 		"selectOnTimeline": "在時間軸上選擇字幕進行編輯。",
+		"cutMode": "裁切模式",
+		"cutModeHint": "點擊單字以標記要裁切的內容。所選內容可跨字幕保留。",
+		"cutSelectedWords": "裁切 {{count}} 個詞（{{seconds}} 秒）",
+		"cutWordsResult": "已裁切 {{count}} 個詞（{{seconds}} 秒）",
+		"selectionOverlapsEdits": "所選內容與縮放區域重疊 — 請調整後再試一次",
+		"selectionTooMuch": "這會裁切超過 40% 的錄影 — 請減少選取的字詞",
+		"selectionTooShort": "請至少選擇 0.2 秒的字詞進行裁切",
 		"enabled": "顯示",
 		"timelineQuickAdd": "懸停以在時間軸上新增",
 		"language": "語言",

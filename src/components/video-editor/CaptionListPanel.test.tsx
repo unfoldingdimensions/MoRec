@@ -23,6 +23,20 @@ const CUES = [
 	cue({ id: "cue-2", text: "Second caption", startMs: 3000, endMs: 4500 }),
 ];
 
+const TIMED_CUES = [
+	cue({
+		id: "cue-1",
+		text: "Hello world",
+		startMs: 1000,
+		endMs: 2000,
+		words: [
+			{ text: "Hello", startMs: 1000, endMs: 1500 },
+			{ text: "world", startMs: 1600, endMs: 2000, leadingSpace: true },
+		],
+	}),
+	cue({ id: "cue-2", text: "Second caption", startMs: 3000, endMs: 4500 }),
+];
+
 function renderPanel(overrides: Partial<Parameters<typeof CaptionListPanel>[0]> = {}) {
 	const props = {
 		cues: CUES,
@@ -203,5 +217,183 @@ describe("CaptionListPanel", () => {
 
 		await user.click(screen.getByRole("button", { name: /Delete/i }));
 		expect(props.onCaptionDelete).toHaveBeenCalledWith("cue-1");
+	});
+});
+
+describe("CaptionListPanel cut mode", () => {
+	beforeEach(() => {
+		toast.info.mockClear();
+		toast.error.mockClear();
+		toast.success.mockClear();
+	});
+
+	async function enterCutMode(user: ReturnType<typeof userEvent.setup>) {
+		await user.click(screen.getByRole("button", { name: /Cut mode/i }));
+	}
+
+	it("swaps the caption editor for word chips when cut mode is toggled", async () => {
+		const user = userEvent.setup();
+		renderPanel({ cues: TIMED_CUES });
+
+		await enterCutMode(user);
+
+		expect(screen.queryByDisplayValue("Hello world")).not.toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Hello" })).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "world" })).toBeInTheDocument();
+
+		await user.click(screen.getByRole("button", { name: /Cut mode/i }));
+		expect(screen.getByDisplayValue("Hello world")).toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: "Hello" })).not.toBeInTheDocument();
+	});
+
+	it("starts with a disabled cut action and enables it with the selection summary", async () => {
+		const user = userEvent.setup();
+		renderPanel({ cues: TIMED_CUES, onCutTranscriptWords: vi.fn(() => true) });
+
+		await enterCutMode(user);
+		expect(screen.getByRole("button", { name: /Cut 0 words/i })).toBeDisabled();
+
+		await user.click(screen.getByRole("button", { name: "Hello" }));
+		expect(screen.getByRole("button", { name: /Cut 1 words \(0\.5s\)/i })).toBeEnabled();
+
+		await user.click(screen.getByRole("button", { name: "world" }));
+		expect(screen.getByRole("button", { name: /Cut 2 words \(0\.9s\)/i })).toBeEnabled();
+
+		// Toggling the same word off removes it again.
+		await user.click(screen.getByRole("button", { name: "world" }));
+		expect(screen.getByRole("button", { name: /Cut 1 words \(0\.5s\)/i })).toBeEnabled();
+	});
+
+	it("marks selected words as pressed", async () => {
+		const user = userEvent.setup();
+		renderPanel({ cues: TIMED_CUES, onCutTranscriptWords: vi.fn(() => true) });
+
+		await enterCutMode(user);
+		const hello = screen.getByRole("button", { name: "Hello" });
+		expect(hello).toHaveAttribute("aria-pressed", "false");
+
+		await user.click(hello);
+		expect(hello).toHaveAttribute("aria-pressed", "true");
+	});
+
+	it("passes the selected word spans to the cut handler and clears on success", async () => {
+		const user = userEvent.setup();
+		const onCutTranscriptWords = vi.fn(() => true);
+		renderPanel({ cues: TIMED_CUES, onCutTranscriptWords });
+
+		await enterCutMode(user);
+		await user.click(screen.getByRole("button", { name: "Hello" }));
+		await user.click(screen.getByRole("button", { name: "world" }));
+		await user.click(screen.getByRole("button", { name: /Cut 2 words/i }));
+
+		expect(onCutTranscriptWords).toHaveBeenCalledTimes(1);
+		expect(onCutTranscriptWords).toHaveBeenCalledWith([
+			{ startMs: 1000, endMs: 1500 },
+			{ startMs: 1600, endMs: 2000 },
+		]);
+		// A successful cut clears the selection.
+		expect(screen.getByRole("button", { name: /Cut 0 words/i })).toBeDisabled();
+		expect(screen.getByRole("button", { name: "Hello" })).toHaveAttribute(
+			"aria-pressed",
+			"false",
+		);
+	});
+
+	it("keeps the selection when the cut handler rejects it", async () => {
+		const user = userEvent.setup();
+		const onCutTranscriptWords = vi.fn(() => false);
+		renderPanel({ cues: TIMED_CUES, onCutTranscriptWords });
+
+		await enterCutMode(user);
+		await user.click(screen.getByRole("button", { name: "Hello" }));
+		await user.click(screen.getByRole("button", { name: /Cut 1 words/i }));
+
+		expect(screen.getByRole("button", { name: /Cut 1 words/i })).toBeEnabled();
+		expect(screen.getByRole("button", { name: "Hello" })).toHaveAttribute(
+			"aria-pressed",
+			"true",
+		);
+	});
+
+	it("merges the word selection across cues", async () => {
+		const user = userEvent.setup();
+		const onCutTranscriptWords = vi.fn(() => true);
+		const props = {
+			cues: TIMED_CUES,
+			selectedCaptionId: "cue-1",
+			currentTimeMs: 1500,
+			onBeginCaptionEdit: vi.fn(),
+			onCaptionTextEdit: vi.fn(),
+			onCaptionRetime: vi.fn(),
+			onCaptionSplit: vi.fn(),
+			onCaptionMerge: vi.fn(),
+			onCaptionDelete: vi.fn(),
+			onCutTranscriptWords,
+		};
+		const view = render(
+			<I18nProvider>
+				<CaptionListPanel {...props} />
+			</I18nProvider>,
+		);
+
+		await enterCutMode(user);
+		await user.click(screen.getByRole("button", { name: "Hello" }));
+
+		// Switch to the second cue; the earlier selection still counts.
+		view.rerender(
+			<I18nProvider>
+				<CaptionListPanel {...props} selectedCaptionId="cue-2" />
+			</I18nProvider>,
+		);
+		await user.click(screen.getByRole("button", { name: "Second" }));
+		expect(screen.getByRole("button", { name: /Cut 2 words/i })).toBeEnabled();
+
+		await user.click(screen.getByRole("button", { name: /Cut 2 words/i }));
+		expect(onCutTranscriptWords).toHaveBeenCalledWith([
+			{ startMs: 1000, endMs: 1500 },
+			{ startMs: 3000, endMs: 3750 },
+		]);
+	});
+
+	it("ignores stale selections whose words no longer exist", async () => {
+		const user = userEvent.setup();
+		const onCutTranscriptWords = vi.fn(() => true);
+		const props = {
+			cues: TIMED_CUES,
+			selectedCaptionId: "cue-1",
+			currentTimeMs: 1500,
+			onBeginCaptionEdit: vi.fn(),
+			onCaptionTextEdit: vi.fn(),
+			onCaptionRetime: vi.fn(),
+			onCaptionSplit: vi.fn(),
+			onCaptionMerge: vi.fn(),
+			onCaptionDelete: vi.fn(),
+			onCutTranscriptWords,
+		};
+		const view = render(
+			<I18nProvider>
+				<CaptionListPanel {...props} />
+			</I18nProvider>,
+		);
+
+		await enterCutMode(user);
+		await user.click(screen.getByRole("button", { name: "Hello" }));
+
+		// Replace the cues entirely: the previously selected word is gone.
+		view.rerender(
+			<I18nProvider>
+				<CaptionListPanel
+					{...props}
+					cues={[
+						cue({ id: "cue-9", text: "Different take", startMs: 5000, endMs: 6000 }),
+					]}
+					selectedCaptionId="cue-9"
+				/>
+			</I18nProvider>,
+		);
+
+		expect(screen.getByRole("button", { name: /Cut 0 words/i })).toBeDisabled();
+		await user.click(screen.getByRole("button", { name: /Cut 0 words/i }));
+		expect(onCutTranscriptWords).not.toHaveBeenCalled();
 	});
 });

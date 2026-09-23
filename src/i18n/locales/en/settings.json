@@ -221,6 +221,13 @@
 	},
 	"captions": {
 		"selectOnTimeline": "Select a caption on the timeline to edit it.",
+		"cutMode": "Cut mode",
+		"cutModeHint": "Click words to mark them for cutting. The selection carries across cues.",
+		"cutSelectedWords": "Cut {{count}} words ({{seconds}}s)",
+		"cutWordsResult": "Cut {{count}} words ({{seconds}}s)",
+		"selectionOverlapsEdits": "Selection overlaps your zooms — adjust and retry",
+		"selectionTooMuch": "That would cut more than 40% of the recording — select fewer words",
+		"selectionTooShort": "Select at least 0.2s of words to cut",
 		"enabled": "Show",
 		"timelineQuickAdd": "Hover to add on timeline",
 		"language": "Language",

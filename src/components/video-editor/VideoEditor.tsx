@@ -212,6 +212,10 @@ import {
 	buildTypingSpeedSuggestions,
 } from "./timeline/typingSuggestions";
 import {
+	type TranscriptCutWordSpan,
+	planTranscriptCut,
+} from "./timeline/transcriptCutting";
+import {
 	normalizeCursorTelemetry,
 	shouldAutoApplyFreshRecordingZoomsForSource,
 } from "./timeline/zoomSuggestionUtils";
@@ -3957,6 +3961,84 @@ export default function VideoEditor() {
 		addAutoSpeedRegions(outcome.suggestions);
 	}, [addAutoSpeedRegions, duration, normalizedCursorTelemetry, reservedSpansForSuggestions, t]);
 
+	const handleCutTranscriptWords = useCallback(
+		(wordSpans: TranscriptCutWordSpan[]): boolean => {
+			const totalMs = Math.max(0, Math.round(duration * 1000));
+			const plan = planTranscriptCut({
+				words: wordSpans,
+				cues: autoCaptions,
+				clips: clipRegions,
+				totalMs,
+				reservedSpans: reservedSpansForSuggestions,
+			});
+
+			if (plan.status !== "ok" || plan.cutSpans.length === 0) {
+				if (plan.status === "overlaps-edits") {
+					toast.info(
+						t(
+							"settings.captions.selectionOverlapsEdits",
+							"Selection overlaps your zooms — adjust and retry",
+						),
+					);
+				} else if (plan.status === "too-much-selection") {
+					toast.info(
+						t(
+							"settings.captions.selectionTooMuch",
+							"That would cut more than 40% of the recording — select fewer words",
+						),
+					);
+				} else if (plan.status === "selection-too-short") {
+					toast.info(
+						t(
+							"settings.captions.selectionTooShort",
+							"Select at least 0.2s of words to cut",
+						),
+					);
+				}
+				return false;
+			}
+
+			let clipId = nextClipIdRef.current;
+			const nextClips: ClipRegion[] = plan.clipSegments.map((segment) => ({
+				...segment,
+				id: `clip-${clipId++}`,
+			}));
+			nextClipIdRef.current = clipId;
+
+			// Same region semantics as a manual clip resize: regions overlapping
+			// an actual cut are dropped. Captions use the derived cue list
+			// instead (straddling cues are split, not blanket-deleted).
+			const removedSpans = plan.removedSpans;
+			const overlapsRemoved = (span: { startMs: number; endMs: number }) =>
+				removedSpans.some(
+					(removed) => removed.startMs < span.endMs && removed.endMs > span.startMs,
+				);
+
+			setClipRegions(nextClips);
+			setZoomRegions((prev) => prev.filter((region) => !overlapsRemoved(region)));
+			setAnnotationRegions((prev) => prev.filter((region) => !overlapsRemoved(region)));
+			setSpeedRegions((prev) => prev.filter((region) => !overlapsRemoved(region)));
+			setAudioRegions((prev) => prev.filter((region) => !overlapsRemoved(region)));
+			setAutoCaptions(plan.cues);
+			setSelectedCaptionId((prev) =>
+				prev && plan.cues.some((cue) => cue.id === prev) ? prev : null,
+			);
+
+			const cutSeconds =
+				Math.round(
+					removedSpans.reduce((sum, span) => sum + (span.endMs - span.startMs), 0) / 100,
+				) / 10;
+			toast.success(
+				t("settings.captions.cutWordsResult", "Cut {{count}} words ({{seconds}}s)", {
+					count: plan.removedWordCount,
+					seconds: cutSeconds,
+				}),
+			);
+			return true;
+		},
+		[autoCaptions, clipRegions, duration, reservedSpansForSuggestions, t],
+	);
+
 	const audio = useVideoEditorAudio({
 		currentSourcePath,
 		selectedClipId,
@@ -7103,6 +7185,7 @@ export default function VideoEditor() {
 									onCaptionSplit={handleCaptionSplit}
 									onCaptionMerge={handleCaptionMerge}
 									onCaptionDelete={handleCaptionDelete}
+									onCutTranscriptWords={handleCutTranscriptWords}
 									onDownloadWhisperSmallModel={handleDownloadWhisperSmallModel}
 									onDeleteWhisperSmallModel={handleDeleteWhisperSmallModel}
 									nativeCaptureUnavailableSession={

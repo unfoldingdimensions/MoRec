@@ -221,6 +221,13 @@
 	},
 	"captions": {
 		"selectOnTimeline": "Selecteer een ondertitel op de tijdlijn om deze te bewerken.",
+		"cutMode": "Knipmodus",
+		"cutModeHint": "Klik op woorden om ze voor knippen te markeren. De selectie blijft tussen bijschriften staan.",
+		"cutSelectedWords": "{{count}} woorden knippen ({{seconds}}s)",
+		"cutWordsResult": "{{count}} woorden geknipt ({{seconds}}s)",
+		"selectionOverlapsEdits": "De selectie overlapt je zooms — pas aan en probeer opnieuw",
+		"selectionTooMuch": "Hiermee verwijder je meer dan 40% van de opname — selecteer minder woorden",
+		"selectionTooShort": "Selecteer minstens 0,2s aan woorden om te knippen",
 		"enabled": "Tonen",
 		"timelineQuickAdd": "Aanwijzen om toe te voegen op tijdlijn",
 		"language": "Taal",

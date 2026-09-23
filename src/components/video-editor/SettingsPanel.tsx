@@ -60,6 +60,7 @@ import { loadEditorPreferences, saveEditorPreferences } from "./editorPreference
 import { MOTION_PROFILES, type MotionProfile } from "./motionProfile";
 import { SliderControl } from "./SliderControl";
 import { KeyboardShortcutsDialog } from "./TutorialHelp";
+import type { TranscriptCutWordSpan } from "./timeline/transcriptCutting";
 import type {
 	AnnotationMaskStyle,
 	AnnotationRegion,
@@ -911,6 +912,8 @@ interface SettingsPanelProps {
 	onCaptionSplit?: (id: string, atMs: number) => void;
 	onCaptionMerge?: (idA: string, idB: string) => void;
 	onCaptionDelete?: (id: string) => void;
+	/** Cut the selected transcript word spans out of the video (cut mode). */
+	onCutTranscriptWords?: (wordSpans: TranscriptCutWordSpan[]) => boolean;
 	nativeCaptureUnavailableSession?: boolean;
 	onOpenNativeCaptureUnavailableModal?: () => void;
 }
@@ -1364,6 +1367,7 @@ export function SettingsPanel({
 	onCaptionSplit,
 	onCaptionMerge,
 	onCaptionDelete,
+	onCutTranscriptWords,
 	nativeCaptureUnavailableSession = false,
 	onOpenNativeCaptureUnavailableModal,
 }: SettingsPanelProps) {
@@ -3814,6 +3818,11 @@ export function SettingsPanel({
 						onCaptionSplit={(id, atMs) => onCaptionSplit?.(id, atMs)}
 						onCaptionMerge={(idA, idB) => onCaptionMerge?.(idA, idB)}
 						onCaptionDelete={(id) => onCaptionDelete?.(id)}
+						onCutTranscriptWords={
+							onCutTranscriptWords
+								? (wordSpans) => onCutTranscriptWords(wordSpans)
+								: undefined
+						}
 					/>
 				) : (
 					<div className="rounded-lg bg-foreground/[0.03] px-2.5 py-6 text-center">
