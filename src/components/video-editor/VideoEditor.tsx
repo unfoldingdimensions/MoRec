@@ -185,6 +185,7 @@ import {
 	type EditorProjectData,
 	fromFileUrl,
 	normalizeProjectEditor,
+	type ProjectMetadata,
 	resolveVideoUrl,
 	stripPersistedDevMotionBlurSettings,
 	toFileUrl,
@@ -612,6 +613,9 @@ export default function VideoEditor() {
 		DEFAULT_AUTO_CAPTION_SETTINGS,
 	);
 	const [includeCaptionSidecar, setIncludeCaptionSidecar] = useState(false);
+	const [projectMetadata, setProjectMetadata] = useState<ProjectMetadata | undefined>(
+		undefined,
+	);
 	const [whisperExecutablePath, setWhisperExecutablePath] = useState<string | null>(
 		initialEditorPreferences.whisperExecutablePath,
 	);
@@ -1850,6 +1854,7 @@ export default function VideoEditor() {
 				gifSizePreset: GifSizePreset;
 				sourceAudioTrackSettingsByClip: Record<string, SourceAudioTrackSettings>;
 				defaultSourceAudioTrackSettings: SourceAudioTrackSettings;
+				metadata?: ProjectMetadata;
 			}>,
 		) => {
 			return stripPersistedDevMotionBlurSettings(editor);
@@ -1976,6 +1981,7 @@ export default function VideoEditor() {
 				gifSizePreset,
 				sourceAudioTrackSettingsByClip,
 				defaultSourceAudioTrackSettings,
+				metadata: projectMetadata,
 			}),
 		[
 			buildPersistedEditorState,
@@ -2044,6 +2050,7 @@ export default function VideoEditor() {
 			frame,
 			sourceAudioTrackSettingsByClip,
 			defaultSourceAudioTrackSettings,
+			projectMetadata,
 		],
 	);
 
@@ -2244,6 +2251,7 @@ export default function VideoEditor() {
 			setGifFrameRate(normalizedEditor.gifFrameRate);
 			setGifLoop(normalizedEditor.gifLoop);
 			setGifSizePreset(normalizedEditor.gifSizePreset);
+			setProjectMetadata(normalizedEditor.metadata);
 
 			setSelectedZoomId(null);
 			setSelectedClipId(null);
@@ -2411,6 +2419,7 @@ export default function VideoEditor() {
 		setHasClipSourceAudio(false);
 		setAutoCaptions([]);
 		setAutoCaptionSettings((prev) => ({ ...prev, enabled: false }));
+		setProjectMetadata(undefined);
 		setSelectedZoomId(null);
 		setSelectedClipId(null);
 		setSelectedAnnotationId(null);
@@ -6060,6 +6069,78 @@ export default function VideoEditor() {
 		}
 	}, [exportedFilePath]);
 
+	const [isShareUploading, setIsShareUploading] = useState(false);
+
+	// Feature 5: stream the finished export to the user's own S3-compatible
+	// bucket. Progress arrives as throttled IPC events (250 ms) and updates a
+	// single toast; success copies the public link to the clipboard in main.
+	// Typed error codes map to localized messages; the main-process message is
+	// the fallback and never contains credential material.
+	const shareUploadErrorMessage = useCallback(
+		(result: { success: false; errorCode: string; message: string }) => {
+			const byCode: Record<string, string> = {
+				"not-configured": t(
+					"settings.sharing.uploadNotConfigured",
+					"Sharing is not configured. Add your S3-compatible endpoint, bucket, and keys in Settings.",
+				),
+				"invalid-endpoint": t(
+					"settings.sharing.invalidEndpoint",
+					"The endpoint must be an https:// URL.",
+				),
+				"credentials-rejected": t(
+					"settings.sharing.uploadFailed403",
+					"The bucket rejected the upload credentials (403). Check the access key and secret key.",
+				),
+				"bucket-not-found": t(
+					"settings.sharing.uploadFailed404",
+					"The bucket or endpoint was not found (404). Check the bucket name and endpoint URL.",
+				),
+				network: t(
+					"settings.sharing.uploadFailedNetwork",
+					"The upload could not reach the endpoint.",
+				),
+			};
+			return byCode[result.errorCode] ?? result.message;
+		},
+		[t],
+	);
+
+	const handleShareExportedFile = useCallback(async () => {
+		if (!exportedFilePath || isShareUploading) return;
+		setIsShareUploading(true);
+		const uploadToastId = toast.loading(
+			t("settings.sharing.uploadProgress", "Uploading… {percent}%", { percent: 0 }),
+		);
+		const unsubscribeProgress = window.electronAPI.onShareUploadProgress?.((progress) => {
+			toast.loading(
+				t("settings.sharing.uploadProgress", "Uploading… {percent}%", {
+					percent: Math.round(progress.percent),
+				}),
+				{ id: uploadToastId },
+			);
+		});
+		try {
+			const result = await window.electronAPI.shareUploadRecording({
+				filePath: exportedFilePath,
+			});
+			if (result.success) {
+				toast.success(
+					t("settings.sharing.uploadComplete", "Upload complete — link copied."),
+					{ id: uploadToastId },
+				);
+			} else {
+				toast.error(shareUploadErrorMessage(result), { id: uploadToastId });
+			}
+		} catch {
+			toast.error(t("settings.sharing.uploadFailedNetwork", "The upload failed."), {
+				id: uploadToastId,
+			});
+		} finally {
+			unsubscribeProgress?.();
+			setIsShareUploading(false);
+		}
+	}, [exportedFilePath, isShareUploading, shareUploadErrorMessage, t]);
+
 	const openLightningIssues = useCallback(async () => {
 		await openExternalLink(
 			MOREC_ISSUES_URL,
@@ -6810,6 +6891,15 @@ export default function VideoEditor() {
 										<Button
 											type="button"
 											variant="outline"
+											onClick={() => void handleShareExportedFile()}
+											disabled={isShareUploading}
+											className="h-8 flex-1 border-foreground/10 bg-foreground/5 text-xs text-muted-foreground hover:bg-foreground/10 disabled:opacity-50"
+										>
+											{t("settings.sharing.shareAction", "Share…")}
+										</Button>
+										<Button
+											type="button"
+											variant="outline"
 											onClick={handleExportDropdownClose}
 											className="h-8 flex-1 border-foreground/10 bg-foreground/5 text-xs text-muted-foreground hover:bg-foreground/10"
 										>
@@ -7188,6 +7278,11 @@ export default function VideoEditor() {
 									onCutTranscriptWords={handleCutTranscriptWords}
 									onDownloadWhisperSmallModel={handleDownloadWhisperSmallModel}
 									onDeleteWhisperSmallModel={handleDeleteWhisperSmallModel}
+									zoomRegions={zoomRegions}
+									sourceVideoPath={currentSourcePath}
+									videoDurationMs={Math.round(duration * 1000)}
+									metadata={projectMetadata}
+									onSaveMetadata={setProjectMetadata}
 									nativeCaptureUnavailableSession={
 										sessionNativeCaptureUnavailable
 									}

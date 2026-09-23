@@ -90,6 +90,61 @@ export const PROJECT_VERSION = 1;
 
 const DEFAULT_MOTION_PRESET = CURSOR_MOTION_PRESETS.focused;
 
+/** One AI/heuristic chapter marker stored with the project. */
+export interface ProjectMetadataChapter {
+	startMs: number;
+	title: string;
+}
+
+/**
+ * Optional recording metadata (AI titles/summaries/chapters). Optional field:
+ * projects without it load unchanged, so no project-version bump.
+ */
+export interface ProjectMetadata {
+	title?: string;
+	summary?: string;
+	chapters?: ProjectMetadataChapter[];
+}
+
+export function normalizeProjectMetadata(value: unknown): ProjectMetadata | undefined {
+	if (!value || typeof value !== "object" || Array.isArray(value)) {
+		return undefined;
+	}
+	const record = value as Partial<ProjectMetadata>;
+	const title =
+		typeof record.title === "string" && record.title.trim() ? record.title.trim() : undefined;
+	const summary =
+		typeof record.summary === "string" && record.summary.trim()
+			? record.summary.trim()
+			: undefined;
+	const chapters = Array.isArray(record.chapters)
+		? record.chapters
+				.filter(
+					(chapter): chapter is ProjectMetadataChapter =>
+						Boolean(
+							chapter &&
+								typeof chapter === "object" &&
+								typeof chapter.title === "string" &&
+								Number.isFinite(chapter.startMs),
+						),
+				)
+				.map((chapter) => ({
+					startMs: Math.max(0, Math.round(chapter.startMs)),
+					title: chapter.title.trim(),
+				}))
+				.filter((chapter) => chapter.title.length > 0)
+		: undefined;
+	const normalizedChapters = chapters && chapters.length > 0 ? chapters : undefined;
+	if (!title && !summary && !normalizedChapters) {
+		return undefined;
+	}
+	return {
+		...(title ? { title } : {}),
+		...(summary ? { summary } : {}),
+		...(normalizedChapters ? { chapters: normalizedChapters } : {}),
+	};
+}
+
 export interface ProjectEditorState {
 	wallpaper: string;
 	shadowIntensity: number;
@@ -161,6 +216,8 @@ export interface ProjectEditorState {
 	gifFrameRate: GifFrameRate;
 	gifLoop: boolean;
 	gifSizePreset: GifSizePreset;
+	/** AI titles/summaries/chapters saved with the project (optional). */
+	metadata?: ProjectMetadata;
 }
 
 export interface EditorProjectData {
@@ -1086,6 +1143,7 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 			editor.gifSizePreset === "original"
 				? editor.gifSizePreset
 				: "medium",
+		metadata: normalizeProjectMetadata(editor.metadata),
 	};
 }
 

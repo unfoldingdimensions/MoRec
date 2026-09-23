@@ -760,6 +760,74 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	}) => {
 		return ipcRenderer.invoke("generate-auto-captions", options);
 	},
+	hasAiApiKey: () => {
+		return ipcRenderer.invoke("ai:has-api-key") as Promise<{
+			success: boolean;
+			hasKey: boolean;
+		}>;
+	},
+	setAiApiKey: (apiKey: string) => {
+		// The key passes through IPC once, is encrypted with safeStorage in the
+		// main process, and is never returned to the renderer.
+		return ipcRenderer.invoke("ai:set-api-key", apiKey) as Promise<{
+			success: boolean;
+			error?: string;
+		}>;
+	},
+	clearAiApiKey: () => {
+		return ipcRenderer.invoke("ai:clear-api-key") as Promise<{ success: boolean }>;
+	},
+	summarizeTranscript: (options: {
+		videoPath?: string | null;
+		cues: Array<{ startMs: number; endMs: number; text: string }>;
+		zoomRegions: Array<{ startMs: number; endMs: number; depth?: number }>;
+		durationMs: number;
+	}) => {
+		return ipcRenderer.invoke("summarize-transcript", options) as Promise<{
+			success: boolean;
+			engine?: "ai" | "heuristic";
+			title?: string;
+			summary?: string;
+			chapters?: Array<{ startMs: number; title: string }>;
+			error?: string;
+		}>;
+	},
+	hasShareSecretKey: () => {
+		return ipcRenderer.invoke("share:has-secret-key") as Promise<{
+			success: boolean;
+			hasSecretKey: boolean;
+		}>;
+	},
+	setShareSecretKey: (secretKey: string) => {
+		// Same contract as the AI key: one-way IPC, encrypted at rest in main.
+		return ipcRenderer.invoke("share:set-secret-key", secretKey) as Promise<{
+			success: boolean;
+			error?: string;
+		}>;
+	},
+	clearShareSecretKey: () => {
+		return ipcRenderer.invoke("share:clear-secret-key") as Promise<{ success: boolean }>;
+	},
+	shareUploadRecording: (options: { filePath: string }) => {
+		return ipcRenderer.invoke("share-upload-recording", options) as Promise<
+			| { success: true; url: string; bytesSent: number }
+			| { success: false; errorCode: string; message: string }
+		>;
+	},
+	onShareUploadProgress: (
+		callback: (progress: {
+			bytesSent: number;
+			totalBytes: number;
+			percent: number;
+		}) => void,
+	) => {
+		const listener = (
+			_event: Electron.IpcRendererEvent,
+			payload: { bytesSent: number; totalBytes: number; percent: number },
+		) => callback(payload);
+		ipcRenderer.on("share-upload-progress", listener);
+		return () => ipcRenderer.removeListener("share-upload-progress", listener);
+	},
 	analyzeCompanionAudioSilence: (options: {
 		videoPath: string;
 		totalDurationMs?: number;

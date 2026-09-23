@@ -82,6 +82,22 @@ export class IpcRegistry {
 				...(this.electronOverrides.screen as object | undefined),
 			},
 			Notification: vi.fn(),
+			safeStorage: {
+				isEncryptionAvailable: vi.fn(() => true),
+				// Reversible marker-based stand-in for the OS keyring so
+				// credential round-trip tests can assert on stored bytes.
+				encryptString: vi.fn((plainText: string) =>
+					Buffer.from(`mock-enc:${plainText}`, "utf-8"),
+				),
+				decryptString: vi.fn((buffer: Buffer) => {
+					const text = buffer.toString("utf-8");
+					if (!text.startsWith("mock-enc:")) {
+						throw new Error("not a mock-encrypted buffer");
+					}
+					return text.slice("mock-enc:".length);
+				}),
+				...(this.electronOverrides.safeStorage as object | undefined),
+			},
 			ipcMain: {
 				handle: (channel: string, handler: IpcHandler) => {
 					this.handlers.set(channel, handler);
@@ -130,7 +146,9 @@ export class IpcRegistry {
 		if (!handler) {
 			throw new Error(`No handler registered for channel "${channel}"`);
 		}
-		return handler(null, ...args);
+		// Real ipcMain.handle always delivers an event object with a sender;
+		// hand handlers the same shape instead of null.
+		return handler({ sender: createMockWebContents() }, ...args);
 	}
 
 	emit(channel: string, ...args: unknown[]) {

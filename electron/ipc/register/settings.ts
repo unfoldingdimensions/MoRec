@@ -72,6 +72,22 @@ function getAppSettingsStore(): Record<string, unknown> {
 	return appSettingsCache;
 }
 
+// Main-process store accessors for feature modules (credential encryption,
+// etc.) that must share the cache and debounced persistence instead of
+// writing the file behind the cache's back. Not renderer-reachable on their
+// own: they are only called with fixed keys from main-process code.
+export function readAppSettingValue(key: string): unknown {
+	return getAppSettingsStore()[key];
+}
+
+export function writeAppSettingValue(key: string, value: unknown): void {
+	if (key === "__proto__" || key === "constructor" || key === "prototype") {
+		return;
+	}
+	getAppSettingsStore()[key] = value;
+	scheduleSaveAppSettings();
+}
+
 function flushAppSettingsSync(): void {
 	if (saveDebounceTimer) {
 		clearTimeout(saveDebounceTimer);

@@ -725,6 +725,32 @@ interface Window {
 			message?: string;
 			error?: string;
 		}>;
+		hasAiApiKey: () => Promise<{ success: boolean; hasKey: boolean }>;
+		setAiApiKey: (apiKey: string) => Promise<{ success: boolean; error?: string }>;
+		clearAiApiKey: () => Promise<{ success: boolean }>;
+		summarizeTranscript: (options: {
+			videoPath?: string | null;
+			cues: Array<{ startMs: number; endMs: number; text: string }>;
+			zoomRegions: Array<{ startMs: number; endMs: number; depth?: number }>;
+			durationMs: number;
+		}) => Promise<{
+			success: boolean;
+			engine?: "ai" | "heuristic";
+			title?: string;
+			summary?: string;
+			chapters?: Array<{ startMs: number; title: string }>;
+			error?: string;
+		}>;
+		hasShareSecretKey: () => Promise<{ success: boolean; hasSecretKey: boolean }>;
+		setShareSecretKey: (secretKey: string) => Promise<{ success: boolean; error?: string }>;
+		clearShareSecretKey: () => Promise<{ success: boolean }>;
+		shareUploadRecording: (options: { filePath: string }) => Promise<
+			| { success: true; url: string; bytesSent: number }
+			| { success: false; errorCode: string; message: string }
+		>;
+		onShareUploadProgress: (
+			callback: (progress: { bytesSent: number; totalBytes: number; percent: number }) => void,
+		) => () => void;
 		analyzeCompanionAudioSilence: (options: {
 			videoPath: string;
 			totalDurationMs?: number;
