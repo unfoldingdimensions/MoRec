@@ -32,7 +32,14 @@ import { cn } from "@/lib/utils";
 import { useScopedT } from "../../contexts/I18nContext";
 import { AddCustomFontDialog } from "./AddCustomFontDialog";
 import { getArrowComponent } from "./ArrowSvgs";
-import type { AnnotationRegion, AnnotationType, ArrowDirection, FigureData } from "./types";
+import type {
+	AnnotationMaskStyle,
+	AnnotationRegion,
+	AnnotationType,
+	ArrowDirection,
+	FigureData,
+} from "./types";
+import { normalizeAnnotationMaskStyle } from "./types";
 
 interface AnnotationSettingsPanelProps {
 	annotation: AnnotationRegion;
@@ -42,6 +49,7 @@ interface AnnotationSettingsPanelProps {
 	onFigureDataChange?: (figureData: FigureData) => void;
 	onBlurIntensityChange?: (intensity: number) => void;
 	onBlurColorChange?: (color: string) => void;
+	onMaskStyleChange?: (style: AnnotationMaskStyle) => void;
 }
 
 export const FONT_FAMILY_VALUES = [
@@ -65,6 +73,7 @@ export function AnnotationSettingsPanel({
 	onFigureDataChange,
 	onBlurIntensityChange,
 	onBlurColorChange,
+	onMaskStyleChange,
 }: AnnotationSettingsPanelProps) {
 	const t = useScopedT("editor");
 	const fileInputRef = useRef<HTMLInputElement>(null);
@@ -646,6 +655,38 @@ export function AnnotationSettingsPanel({
 						<TabsContent value="blur" className="mt-0 space-y-4">
 							<div className="p-4 bg-foreground/5 rounded-xl border border-foreground/10 flex flex-col items-center">
 								<div className="w-full space-y-3">
+									<div className="flex items-center justify-between">
+										<span className="text-xs font-medium text-foreground">
+											{t("annotations.maskStyle", "Mask Style")}
+										</span>
+									</div>
+									<ToggleGroup
+										type="single"
+										value={normalizeAnnotationMaskStyle(annotation.maskStyle)}
+										onValueChange={(value) => {
+											if (value) {
+												onMaskStyleChange?.(value as AnnotationMaskStyle);
+											}
+										}}
+										className="w-full grid grid-cols-2 bg-foreground/5 p-1 rounded-lg border border-foreground/5"
+									>
+										<ToggleGroupItem
+											value="blur"
+											aria-label={t("annotations.maskStyleBlur", "Blur")}
+											className="h-8 text-xs rounded-md data-[state=on]:bg-[#2563EB] data-[state=on]:text-white text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
+										>
+											{t("annotations.maskStyleBlur", "Blur")}
+										</ToggleGroupItem>
+										<ToggleGroupItem
+											value="pixelate"
+											aria-label={t("annotations.maskStylePixelate", "Pixelate")}
+											className="h-8 text-xs rounded-md data-[state=on]:bg-[#2563EB] data-[state=on]:text-white text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
+										>
+											{t("annotations.maskStylePixelate", "Pixelate")}
+										</ToggleGroupItem>
+									</ToggleGroup>
+								</div>
+								<div className="w-full space-y-3 mt-4">
 									<div className="flex items-center justify-between">
 										<span className="text-xs font-medium text-foreground">
 											{t("annotations.blurStrength", undefined, {

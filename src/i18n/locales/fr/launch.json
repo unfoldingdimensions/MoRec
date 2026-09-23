@@ -70,7 +70,14 @@
 		"editorOpenFailedToast": "Enregistrement sauvegardé, mais l'éditeur n'a pas pu être ouvert. Rouvrez l'application et chargez-la depuis vos enregistrements.",
 		"savedMuxFailedToast": "Enregistrement sauvegardé, mais la piste audio n'a pas pu être assemblée.",
 		"recoveredMuxFailedToast": "Enregistrement récupéré, mais la piste audio n'a pas pu être assemblée.",
-		"basedOnRecordly": "Basé sur Recordly"
+		"basedOnRecordly": "Basé sur Recordly",
+		"teleprompter": "Téléprompteur",
+		"notes": "Notes",
+		"notesPlaceholder": "Saisissez vos points clés ici…",
+		"fontSize": "Taille de police",
+		"scrollSpeed": "Vitesse de défilement",
+		"prompterPause": "Touchez pour mettre en pause",
+		"prompterResume": "Touchez pour reprendre"
 	},
 	"sourceSelector": {
 		"loadingSources": "Chargement des sources...",

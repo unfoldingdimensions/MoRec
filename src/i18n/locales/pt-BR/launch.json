@@ -70,7 +70,14 @@
 		"editorOpenFailedToast": "Gravação salva, mas não foi possível abrir o editor. Reabra o aplicativo e carregue-a a partir das suas gravações.",
 		"savedMuxFailedToast": "Gravação salva, mas não foi possível combinar o áudio complementar.",
 		"recoveredMuxFailedToast": "Gravação recuperada, mas não foi possível combinar o áudio complementar.",
-		"basedOnRecordly": "Baseado no Recordly"
+		"basedOnRecordly": "Baseado no Recordly",
+		"teleprompter": "Teleprompter",
+		"notes": "Notas",
+		"notesPlaceholder": "Digite seus pontos aqui…",
+		"fontSize": "Tamanho da fonte",
+		"scrollSpeed": "Velocidade de rolagem",
+		"prompterPause": "Toque para pausar",
+		"prompterResume": "Toque para retomar"
 	},
 	"sourceSelector": {
 		"loadingSources": "Carregando fontes...",

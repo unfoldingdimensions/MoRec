@@ -70,7 +70,14 @@
 		"editorOpenFailedToast": "Recording saved, but the editor could not be opened. Reopen the app and load it from your recordings.",
 		"savedMuxFailedToast": "Recording saved, but the audio companion could not be muxed.",
 		"recoveredMuxFailedToast": "Recording recovered, but the audio companion could not be muxed.",
-		"basedOnRecordly": "Based on Recordly"
+		"basedOnRecordly": "Based on Recordly",
+		"teleprompter": "Teleprompter",
+		"notes": "Notes",
+		"notesPlaceholder": "Type your talking points here…",
+		"fontSize": "Font Size",
+		"scrollSpeed": "Scroll Speed",
+		"prompterPause": "Tap to pause",
+		"prompterResume": "Tap to resume"
 	},
 	"sourceSelector": {
 		"loadingSources": "Loading sources...",

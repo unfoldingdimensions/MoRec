@@ -46,7 +46,10 @@
 		"arrowDirectionOption": "Arrow direction: {{direction}}",
 		"imageUploadErrorDescription": "Only JPG, PNG, GIF, WebP, AVIF, and SVG images are supported.",
 		"imageUploadFailed": "Could not read the image file.",
-		"imageUploadFailedDescription": "The file could not be read. It may be corrupted or unsupported."
+		"imageUploadFailedDescription": "The file could not be read. It may be corrupted or unsupported.",
+		"maskStyle": "마스크 스타일",
+		"maskStyleBlur": "흐리게",
+		"maskStylePixelate": "픽셀화"
 	},
 	"fontStyles": {
 		"classic": "클래식",

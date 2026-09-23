@@ -12,6 +12,8 @@ function renderControls(
 		paused: false,
 		microphoneEnabled: true,
 		elapsed: 65,
+		prompterVisible: false,
+		onTogglePrompter: vi.fn(),
 		onToggleMicrophone: vi.fn(),
 		onPauseResume: vi.fn(),
 		onStopRecording: vi.fn(),
@@ -85,5 +87,16 @@ describe("RecordingControls", () => {
 
 		const micButton = screen.getByRole("button", { name: /microphone/i });
 		expect(micButton).toBeDisabled();
+	});
+
+	it("toggles the teleprompter panel", async () => {
+		const user = userEvent.setup();
+		const props = renderControls({ prompterVisible: false });
+
+		const prompterButton = screen.getByRole("button", { name: /teleprompter/i });
+		expect(prompterButton).toHaveAttribute("aria-pressed", "false");
+
+		await user.click(prompterButton);
+		expect(props.onTogglePrompter).toHaveBeenCalledTimes(1);
 	});
 });

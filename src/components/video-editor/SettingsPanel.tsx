@@ -61,6 +61,7 @@ import { MOTION_PROFILES, type MotionProfile } from "./motionProfile";
 import { SliderControl } from "./SliderControl";
 import { KeyboardShortcutsDialog } from "./TutorialHelp";
 import type {
+	AnnotationMaskStyle,
 	AnnotationRegion,
 	AnnotationType,
 	AutoCaptionAnimation,
@@ -886,6 +887,7 @@ interface SettingsPanelProps {
 	onAnnotationFigureDataChange?: (id: string, figureData: FigureData) => void;
 	onAnnotationBlurIntensityChange?: (id: string, intensity: number) => void;
 	onAnnotationBlurColorChange?: (id: string, color: string) => void;
+	onAnnotationMaskStyleChange?: (id: string, style: AnnotationMaskStyle) => void;
 	onAnnotationDelete?: (id: string) => void;
 	autoCaptions?: CaptionCue[];
 	autoCaptionSettings?: AutoCaptionSettings;
@@ -1340,6 +1342,7 @@ export function SettingsPanel({
 	onAnnotationFigureDataChange,
 	onAnnotationBlurIntensityChange,
 	onAnnotationBlurColorChange,
+	onAnnotationMaskStyleChange,
 	onAnnotationDelete,
 	autoCaptions = [],
 	autoCaptionSettings = DEFAULT_AUTO_CAPTION_SETTINGS,
@@ -2462,6 +2465,11 @@ export function SettingsPanel({
 				onBlurColorChange={
 					onAnnotationBlurColorChange
 						? (color) => onAnnotationBlurColorChange(selectedAnnotation.id, color)
+						: undefined
+				}
+				onMaskStyleChange={
+					onAnnotationMaskStyleChange
+						? (style) => onAnnotationMaskStyleChange(selectedAnnotation.id, style)
 						: undefined
 				}
 			/>

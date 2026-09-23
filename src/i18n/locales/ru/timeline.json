@@ -43,7 +43,8 @@
 	"annotation": {
 		"label": "Аннотация",
 		"image": "Изображение",
-		"addAnnotation": "Добавить аннотацию (A)"
+		"addAnnotation": "Добавить аннотацию (A)",
+		"addPrivacyMask": "Добавить маску конфиденциальности"
 	},
 	"audio": {
 		"label": "Аудио"

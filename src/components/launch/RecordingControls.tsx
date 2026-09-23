@@ -1,4 +1,5 @@
 import {
+	ArticleIcon,
 	MicrophoneIcon,
 	MicrophoneSlashIcon,
 	MinusIcon,
@@ -17,6 +18,8 @@ interface RecordingControlsProps {
 	paused: boolean;
 	microphoneEnabled: boolean;
 	elapsed: number;
+	prompterVisible: boolean;
+	onTogglePrompter: () => void;
 	onToggleMicrophone: () => void;
 	onPauseResume: () => void;
 	onStopRecording: () => void;
@@ -29,6 +32,8 @@ export const RecordingControls = ({
 	paused,
 	microphoneEnabled,
 	elapsed,
+	prompterVisible,
+	onTogglePrompter,
 	onToggleMicrophone,
 	onPauseResume,
 	onStopRecording,
@@ -91,6 +96,19 @@ export const RecordingControls = ({
 				<Separator orientation="vertical" className="mx-[5px] h-6" />
 
 				<Button
+					variant="ghost"
+					size="icon"
+					iconSize="lg"
+					onClick={onTogglePrompter}
+					title={t("recording.teleprompter")}
+					aria-label={t("recording.teleprompter")}
+					aria-pressed={prompterVisible}
+					className={prompterVisible ? styles.ibActive : ""}
+				>
+					<ArticleIcon size={18} />
+				</Button>
+
+				<Button
 					variant={paused ? "default" : "ghost"}
 					size="icon"
 					iconSize="lg"
@@ -145,6 +163,8 @@ export const RecordingControls = ({
 		paused,
 		microphoneEnabled,
 		elapsed,
+		prompterVisible,
+		onTogglePrompter,
 		onToggleMicrophone,
 		onPauseResume,
 		onStopRecording,

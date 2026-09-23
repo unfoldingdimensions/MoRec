@@ -304,3 +304,174 @@
 		opacity: 0.2;
 	}
 }
+
+/* ------------------------------------------------------------------ */
+/* Teleprompter: Notes popover + recording prompter panel              */
+/* ------------------------------------------------------------------ */
+
+.notesTextarea {
+	width: 100%;
+	resize: vertical;
+	min-height: 96px;
+	padding: 8px 10px;
+	border-radius: 8px;
+	border: 1px solid var(--launch-border);
+	background: var(--launch-panel);
+	color: var(--launch-text);
+	font-size: 12px;
+	line-height: 1.5;
+	font-family: inherit;
+	transition: border-color 0.12s ease;
+}
+
+.notesTextarea::placeholder {
+	color: var(--launch-label);
+}
+
+.notesTextarea:focus {
+	outline: none;
+	border-color: var(--launch-accent);
+}
+
+.notesPillRow {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	padding: 0 10px 8px;
+}
+
+.notesPill {
+	padding: 4px 8px;
+	border-radius: 7px;
+	border: 1px solid var(--launch-border);
+	background: transparent;
+	color: var(--launch-text-muted);
+	font-size: 11px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.12s ease;
+}
+
+.notesPill:hover {
+	background: var(--launch-hover);
+	color: var(--launch-text);
+}
+
+.notesPillSelected {
+	background: var(--launch-selected);
+	border-color: var(--launch-accent);
+	color: var(--launch-accent);
+}
+
+.prompterPanel {
+	position: fixed;
+	right: 24px;
+	top: 50%;
+	transform: translateY(-50%);
+	width: min(33vw, 480px);
+	max-height: 72vh;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 10px;
+	border-radius: 16px;
+	background: var(--launch-panel);
+	border: 1px solid var(--launch-border-strong);
+	backdrop-filter: blur(var(--launch-popover-blur, 24px))
+		saturate(var(--launch-popover-saturate, 145%));
+	-webkit-backdrop-filter: blur(var(--launch-popover-blur, 24px))
+		saturate(var(--launch-popover-saturate, 145%));
+	box-shadow: var(--launch-bar-shadow);
+	pointer-events: auto;
+	z-index: 130;
+}
+
+.prompterHeader {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.prompterTitle {
+	flex: 1;
+	font-size: 9px;
+	font-weight: 600;
+	color: var(--launch-label);
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	padding-left: 4px;
+}
+
+.prompterStateBadge {
+	font-size: 9px;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	padding: 2px 7px;
+	border-radius: 999px;
+	background: var(--launch-hover);
+	color: var(--launch-text-muted);
+}
+
+.prompterStatePlaying {
+	background: var(--launch-selected);
+	color: var(--launch-accent);
+}
+
+.prompterIconButton {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 22px;
+	height: 22px;
+	border: none;
+	border-radius: 6px;
+	background: transparent;
+	color: var(--launch-text-muted);
+	cursor: pointer;
+	transition: all 0.12s ease;
+	padding: 0;
+}
+
+.prompterIconButton:hover {
+	background: var(--launch-hover);
+	color: var(--launch-text);
+}
+
+.prompterScrollArea {
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	white-space: pre-wrap;
+	word-break: break-word;
+	line-height: 1.6;
+	font-weight: 600;
+	color: var(--launch-text);
+	cursor: grab;
+	user-select: none;
+	touch-action: none;
+	padding-right: 6px;
+}
+
+.prompterScrollArea:active {
+	cursor: grabbing;
+}
+
+.prompterScrollArea::-webkit-scrollbar {
+	width: 4px;
+}
+
+.prompterScrollArea::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+.prompterScrollArea::-webkit-scrollbar-thumb {
+	background: var(--launch-border-strong);
+	border-radius: 10px;
+}
+
+.prompterEmpty {
+	color: var(--launch-label);
+	font-weight: 400;
+}

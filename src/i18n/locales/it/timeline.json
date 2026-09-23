@@ -43,7 +43,8 @@
 	"annotation": {
 		"label": "Annotazione",
 		"image": "Immagine",
-		"addAnnotation": "Aggiungi annotazione (A)"
+		"addAnnotation": "Aggiungi annotazione (A)",
+		"addPrivacyMask": "Aggiungi maschera privacy"
 	},
 	"audio": {
 		"label": "Audio"
