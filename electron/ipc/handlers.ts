@@ -1,4 +1,5 @@
 import { BrowserWindow } from "electron";
+import { registerAiHandlers } from "./register/ai";
 import { registerAssetHandlers } from "./register/assets";
 import { registerCaptionHandlers } from "./register/captions";
 import { registerExportHandlers } from "./register/export";
@@ -6,6 +7,7 @@ import { registerPermissionHandlers } from "./register/permissions";
 import { registerProjectHandlers } from "./register/project";
 import { registerRecordingHandlers } from "./register/recording";
 import { registerSettingsHandlers } from "./register/settings";
+import { registerShareHandlers } from "./register/share";
 import { registerSourceHandlers } from "./register/sources";
 import {
 	selectedSource,
@@ -71,4 +73,6 @@ export function registerIpcHandlers(
 	registerCaptionHandlers();
 	registerProjectHandlers();
 	registerSettingsHandlers();
+	registerAiHandlers();
+	registerShareHandlers();
 }

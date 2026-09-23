@@ -60,6 +60,10 @@ import { loadEditorPreferences, saveEditorPreferences } from "./editorPreference
 import { MOTION_PROFILES, type MotionProfile } from "./motionProfile";
 import { SliderControl } from "./SliderControl";
 import { KeyboardShortcutsDialog } from "./TutorialHelp";
+import { AiMetadataDialog } from "./AiMetadataDialog";
+import { AiSettingsSection } from "./settings/AiSettingsSection";
+import { SharingSettingsSection } from "./settings/SharingSettingsSection";
+import type { ProjectMetadata } from "./projectPersistence";
 import type { TranscriptCutWordSpan } from "./timeline/transcriptCutting";
 import type {
 	AnnotationMaskStyle,
@@ -79,6 +83,7 @@ import type {
 	ZoomDepth,
 	ZoomMode,
 	ZoomMotionBlurTuning,
+	ZoomRegion,
 	ZoomTransitionEasing,
 } from "./types";
 import {
@@ -914,6 +919,12 @@ interface SettingsPanelProps {
 	onCaptionDelete?: (id: string) => void;
 	/** Cut the selected transcript word spans out of the video (cut mode). */
 	onCutTranscriptWords?: (wordSpans: TranscriptCutWordSpan[]) => boolean;
+	/** AI titles/summaries/chapters (Feature 4): data for the summarize dialog. */
+	zoomRegions?: ZoomRegion[];
+	sourceVideoPath?: string | null;
+	videoDurationMs?: number;
+	metadata?: ProjectMetadata;
+	onSaveMetadata?: (metadata: ProjectMetadata) => void;
 	nativeCaptureUnavailableSession?: boolean;
 	onOpenNativeCaptureUnavailableModal?: () => void;
 }
@@ -1368,6 +1379,11 @@ export function SettingsPanel({
 	onCaptionMerge,
 	onCaptionDelete,
 	onCutTranscriptWords,
+	zoomRegions = [],
+	sourceVideoPath = null,
+	videoDurationMs = 0,
+	metadata,
+	onSaveMetadata,
 	nativeCaptureUnavailableSession = false,
 	onOpenNativeCaptureUnavailableModal,
 }: SettingsPanelProps) {
@@ -1375,6 +1391,7 @@ export function SettingsPanel({
 	const { locale, setLocale, t } = useI18n();
 	const { preference: themePreference, setPreference: setThemePreference } = useTheme();
 	const isBackgroundPanel = panelMode === "background";
+	const [aiMetadataDialogOpen, setAiMetadataDialogOpen] = useState(false);
 	const initialEditorPreferences = useMemo(() => loadEditorPreferences(), []);
 	const [builtInWallpapers, setBuiltInWallpapers] =
 		useState<BuiltInWallpaper[]>(BUILT_IN_WALLPAPERS);
@@ -2861,6 +2878,15 @@ export function SettingsPanel({
 							<div className="indeterminate-progress h-2 rounded-full bg-foreground/5" />
 						</div>
 					) : null}
+					<Button
+						type="button"
+						variant="outline"
+						onClick={() => setAiMetadataDialogOpen(true)}
+						disabled={captionCueCount === 0}
+						className="h-10 w-full rounded-xl border-foreground/10 bg-foreground/5 px-4 text-sm text-foreground hover:bg-foreground/10 hover:text-foreground disabled:opacity-50"
+					>
+						{tSettings("ai.generateTitleChapters", "Generate title & chapters")}
+					</Button>
 				</div>
 				{whisperModelDownloadStatus === "downloading" ? (
 					<div className="h-2 overflow-hidden rounded-full bg-foreground/5">
@@ -3106,6 +3132,9 @@ export function SettingsPanel({
 						triggerClassName="h-10 w-full justify-start rounded-xl border border-foreground/10 bg-foreground/5 px-3 text-sm text-foreground hover:bg-foreground/10 hover:text-foreground"
 					/>
 				</section>
+
+				<AiSettingsSection />
+				<SharingSettingsSection />
 
 				{showDevMotionControls ? (
 					<section className="flex flex-col gap-2 rounded-xl border border-[#2563EB]/15 bg-[#2563EB]/5 p-3">
@@ -4412,6 +4441,16 @@ export function SettingsPanel({
 
 	return (
 		<div className="flex-[2] w-full min-w-0 bg-editor-panel rounded-2xl flex flex-col shadow-xl h-full overflow-hidden">
+			<AiMetadataDialog
+				open={aiMetadataDialogOpen}
+				onOpenChange={setAiMetadataDialogOpen}
+				cues={autoCaptions}
+				zoomRegions={zoomRegions}
+				durationMs={videoDurationMs}
+				videoPath={sourceVideoPath}
+				existingMetadata={metadata}
+				onSaveMetadata={(next) => onSaveMetadata?.(next)}
+			/>
 			<div
 				className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-4 pb-0"
 				style={{ scrollbarGutter: "stable" }}
