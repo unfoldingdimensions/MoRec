@@ -1,8 +1,14 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { Rnd } from "react-rnd";
 import { cn } from "@/lib/utils";
+import { drawPixelatedRegion, getPixelateBlockSize } from "@/lib/pixelateMask";
 import { getArrowComponent } from "./ArrowSvgs";
-import { type AnnotationRegion, BASE_PREVIEW_WIDTH, BLUR_ANNOTATION_STRENGTH } from "./types";
+import {
+	type AnnotationRegion,
+	BASE_PREVIEW_WIDTH,
+	BLUR_ANNOTATION_STRENGTH,
+	normalizeAnnotationMaskStyle,
+} from "./types";
 
 type Rect = {
 	x: number;
@@ -17,6 +23,84 @@ type SceneTransform = {
 	y: number;
 };
 
+type PixelRect = {
+	x: number;
+	y: number;
+	width: number;
+	height: number;
+};
+
+/**
+ * Live pixelate preview: keeps re-sampling the composited preview frame on
+ * every animation frame so the mask tracks playback without waiting for a
+ * React re-render.
+ */
+function PixelateMaskCanvas({
+	frameSource,
+	sourceRect,
+	width,
+	height,
+	blockSize,
+	backgroundColor,
+}: {
+	frameSource: HTMLCanvasElement;
+	sourceRect: PixelRect;
+	width: number;
+	height: number;
+	blockSize: number;
+	backgroundColor: string;
+}) {
+	const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+	useEffect(() => {
+		let raf = 0;
+
+		const draw = () => {
+			const canvas = canvasRef.current;
+			if (canvas) {
+				const dpr = Math.min(2, window.devicePixelRatio || 1);
+				const backingWidth = Math.max(1, Math.round(width * dpr));
+				const backingHeight = Math.max(1, Math.round(height * dpr));
+				if (canvas.width !== backingWidth || canvas.height !== backingHeight) {
+					canvas.width = backingWidth;
+					canvas.height = backingHeight;
+				}
+
+				const ctx = canvas.getContext("2d");
+				if (ctx) {
+					ctx.clearRect(0, 0, canvas.width, canvas.height);
+					drawPixelatedRegion({
+						source: frameSource,
+						sourceRect,
+						dest: ctx,
+						destRect: { x: 0, y: 0, width: canvas.width, height: canvas.height },
+						blockSize: Math.max(1, blockSize * dpr),
+					});
+
+					if (backgroundColor && backgroundColor !== "transparent") {
+						ctx.fillStyle = backgroundColor;
+						ctx.fillRect(0, 0, canvas.width, canvas.height);
+					}
+				}
+			}
+
+			raf = requestAnimationFrame(draw);
+		};
+
+		raf = requestAnimationFrame(draw);
+		return () => cancelAnimationFrame(raf);
+	}, [backgroundColor, blockSize, frameSource, height, sourceRect, width]);
+
+	return (
+		<canvas
+			ref={canvasRef}
+			className="h-full w-full"
+			style={{ display: "block" }}
+			aria-hidden="true"
+		/>
+	);
+}
+
 interface AnnotationOverlayProps {
 	annotation: AnnotationRegion;
 	isSelected: boolean;
@@ -25,6 +109,8 @@ interface AnnotationOverlayProps {
 	recordingRect: Rect;
 	sceneTransform: SceneTransform;
 	interactionScale?: number;
+	/** Composited preview frame; required to render pixelate masks (blur is the fallback). */
+	frameSource?: HTMLCanvasElement | null;
 	onPositionChange: (id: string, position: { x: number; y: number }) => void;
 	onSizeChange: (id: string, size: { width: number; height: number }) => void;
 	onClick: (id: string) => void;
@@ -48,6 +134,7 @@ export function AnnotationOverlay({
 	recordingRect,
 	sceneTransform,
 	interactionScale = 1,
+	frameSource = null,
 	onPositionChange,
 	onSizeChange,
 	onClick,
@@ -183,6 +270,48 @@ export function AnnotationOverlay({
 				const currentBlurStrength = annotation.blurIntensity ?? BLUR_ANNOTATION_STRENGTH;
 				const blurPx = currentBlurStrength * blurScaleFactor;
 				const blurStyle = `blur(${blurPx}px)`;
+				const borderRadiusPx = `${(annotation.style.borderRadius ?? 0) * blurScaleFactor}px`;
+				const maskBackgroundColor = annotation.blurColor || "transparent";
+
+				// Pixelate samples the composited preview frame; without a frame
+				// source (e.g. renderer fallback) degrade to the blur backdrop.
+				if (
+					normalizeAnnotationMaskStyle(annotation.maskStyle) === "pixelate" &&
+					frameSource
+				) {
+					const frameScaleX =
+						safeRecordingRect.width > 0
+							? frameSource.width / safeRecordingRect.width
+							: 1;
+					const frameScaleY =
+						safeRecordingRect.height > 0
+							? frameSource.height / safeRecordingRect.height
+							: 1;
+
+					return (
+						<div
+							className="h-full w-full"
+							style={{ borderRadius: borderRadiusPx, overflow: "hidden" }}
+						>
+							<PixelateMaskCanvas
+								frameSource={frameSource}
+								sourceRect={{
+									x: x * frameScaleX,
+									y: y * frameScaleY,
+									width: width * frameScaleX,
+									height: height * frameScaleY,
+								}}
+								width={width}
+								height={height}
+								blockSize={getPixelateBlockSize(
+									currentBlurStrength,
+									blurScaleFactor,
+								)}
+								backgroundColor={maskBackgroundColor}
+							/>
+						</div>
+					);
+				}
 
 				return (
 					<div
@@ -190,8 +319,8 @@ export function AnnotationOverlay({
 						style={{
 							backdropFilter: blurStyle,
 							WebkitBackdropFilter: blurStyle,
-							backgroundColor: annotation.blurColor || "transparent",
-							borderRadius: `${(annotation.style.borderRadius ?? 0) * blurScaleFactor}px`,
+							backgroundColor: maskBackgroundColor,
+							borderRadius: borderRadiusPx,
 						}}
 					/>
 				);

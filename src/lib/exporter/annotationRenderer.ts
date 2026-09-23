@@ -2,7 +2,9 @@ import {
 	type AnnotationRegion,
 	type ArrowDirection,
 	BLUR_ANNOTATION_STRENGTH,
+	normalizeAnnotationMaskStyle,
 } from "@/components/video-editor/types";
+import { drawPixelatedRegion, getPixelateBlockSize } from "@/lib/pixelateMask";
 
 export interface AnnotationRenderAssets {
 	imageCache: Map<string, HTMLImageElement>;
@@ -428,30 +430,49 @@ export async function renderAnnotations(
 				ctx.roundRect(x, y, width, height, borderRadius);
 				ctx.clip();
 
-				const sx = Math.max(0, x - padding);
-				const sy = Math.max(0, y - padding);
-				const sw = Math.min(canvasWidth - sx, width + padding * 2);
-				const sh = Math.min(canvasHeight - sy, height + padding * 2);
+				if (normalizeAnnotationMaskStyle(annotation.maskStyle) === "pixelate") {
+					const blockSize = getPixelateBlockSize(
+						annotation.blurIntensity ?? BLUR_ANNOTATION_STRENGTH,
+						effectiveScaleFactor,
+					);
+					drawPixelatedRegion({
+						source: ctx.canvas,
+						sourceRect: {
+							x: Math.max(0, x),
+							y: Math.max(0, y),
+							width: Math.min(canvasWidth - Math.max(0, x), width),
+							height: Math.min(canvasHeight - Math.max(0, y), height),
+						},
+						dest: ctx,
+						destRect: { x, y, width, height },
+						blockSize,
+					});
+				} else {
+					const sx = Math.max(0, x - padding);
+					const sy = Math.max(0, y - padding);
+					const sw = Math.min(canvasWidth - sx, width + padding * 2);
+					const sh = Math.min(canvasHeight - sy, height + padding * 2);
 
-				if (sw > 0 && sh > 0) {
-					const buffer = getBlurBufferCanvas();
-					if (buffer) {
-						buffer.width = sw;
-						buffer.height = sh;
-						const bCtx = buffer.getContext("2d");
-						if (bCtx) {
-							bCtx.drawImage(ctx.canvas, sx, sy, sw, sh, 0, 0, sw, sh);
+					if (sw > 0 && sh > 0) {
+						const buffer = getBlurBufferCanvas();
+						if (buffer) {
+							buffer.width = sw;
+							buffer.height = sh;
+							const bCtx = buffer.getContext("2d");
+							if (bCtx) {
+								bCtx.drawImage(ctx.canvas, sx, sy, sw, sh, 0, 0, sw, sh);
 
-							ctx.filter = `blur(${blurStrength}px)`;
-							ctx.drawImage(buffer, sx, sy);
-
-							if (annotation.blurColor && annotation.blurColor !== "transparent") {
-								ctx.filter = "none";
-								ctx.fillStyle = annotation.blurColor;
-								ctx.fillRect(x, y, width, height);
+								ctx.filter = `blur(${blurStrength}px)`;
+								ctx.drawImage(buffer, sx, sy);
 							}
 						}
 					}
+				}
+
+				if (annotation.blurColor && annotation.blurColor !== "transparent") {
+					ctx.filter = "none";
+					ctx.fillStyle = annotation.blurColor;
+					ctx.fillRect(x, y, width, height);
 				}
 
 				ctx.restore();

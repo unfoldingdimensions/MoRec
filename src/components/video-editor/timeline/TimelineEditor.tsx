@@ -60,6 +60,7 @@ export interface TimelineEditorProps {
 	onSelectClip?: (id: string | null) => void;
 	annotationRegions?: AnnotationRegion[];
 	onAnnotationAdded?: (span: Span, trackIndex?: number) => void;
+	onPrivacyMaskAdded?: (span: Span, trackIndex?: number) => void;
 	onAnnotationSpanChange?: (id: string, span: Span, trackIndex?: number) => void;
 	onAnnotationDelete?: (id: string) => void;
 	selectedAnnotationId?: string | null;
@@ -112,6 +113,7 @@ export interface TimelineEditorHandle {
 	suggestZooms: () => void;
 	splitClip: () => void;
 	addAnnotation: (trackIndex?: number) => void;
+	addPrivacyMask: (trackIndex?: number) => void;
 	addAudio: (trackIndex?: number) => Promise<void>;
 	keyframes: { id: string; time: number }[];
 }
@@ -145,6 +147,7 @@ const TimelineEditor = forwardRef<TimelineEditorHandle, TimelineEditorProps>(
 			onSelectClip,
 			annotationRegions = [],
 			onAnnotationAdded,
+			onPrivacyMaskAdded,
 			onAnnotationSpanChange,
 			onAnnotationDelete,
 			selectedAnnotationId,
@@ -391,6 +394,7 @@ const TimelineEditor = forwardRef<TimelineEditorHandle, TimelineEditorProps>(
 			onSelectClip,
 			annotationRegions,
 			onAnnotationAdded,
+			onPrivacyMaskAdded,
 			onAnnotationSpanChange,
 			onAnnotationDelete,
 			selectedAnnotationId,

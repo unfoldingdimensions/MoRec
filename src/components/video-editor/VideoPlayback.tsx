@@ -3470,6 +3470,9 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 											interactionScale={
 												annotationSceneTransformRef.current.scale
 											}
+											frameSource={
+												pixiReady ? (appRef.current?.canvas ?? null) : null
+											}
 											onPositionChange={(id, position) =>
 												onAnnotationPositionChange?.(id, position)
 											}

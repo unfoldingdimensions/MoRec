@@ -73,6 +73,7 @@ import {
 	DEFAULT_ZOOM_MOTION_BLUR_TUNING,
 	DEFAULT_ZOOM_OUT_EASING,
 	getDefaultCaptionFontFamily,
+	normalizeAnnotationMaskStyle,
 	normalizeCursorClickEffectColor,
 	normalizeCursorClickEffectStyle,
 	type Padding,
@@ -637,6 +638,7 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 							: 20,
 						blurColor:
 							typeof region.blurColor === "string" ? region.blurColor : undefined,
+						maskStyle: normalizeAnnotationMaskStyle(region.maskStyle),
 						trackIndex: isFiniteNumber(region.trackIndex)
 							? Math.max(0, Math.floor(region.trackIndex))
 							: 0,

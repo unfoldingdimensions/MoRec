@@ -123,3 +123,35 @@ describe("exportCanvas persistence", () => {
 		expect(normalizeProjectEditor({}).exportCanvas).toBe("original");
 	});
 });
+
+describe("annotation maskStyle persistence", () => {
+	const baseAnnotation = {
+		id: "mask-1",
+		startMs: 1000,
+		endMs: 6000,
+		type: "blur" as const,
+		content: "",
+		position: { x: 0, y: 0 },
+		size: { width: 100, height: 100 },
+		zIndex: 1,
+		blurIntensity: 60,
+	};
+
+	function normalizedAnnotation(maskStyle: unknown) {
+		const editor = normalizeProjectEditor({
+			annotationRegions: [{ ...baseAnnotation, maskStyle }],
+		});
+		return editor.annotationRegions[0];
+	}
+
+	it("round-trips the pixelate mask style", () => {
+		expect(normalizedAnnotation("pixelate").maskStyle).toBe("pixelate");
+		expect(normalizedAnnotation("blur").maskStyle).toBe("blur");
+	});
+
+	it("normalizes missing and unknown mask styles to blur", () => {
+		expect(normalizedAnnotation(undefined).maskStyle).toBe("blur");
+		expect(normalizedAnnotation("mosaic").maskStyle).toBe("blur");
+		expect(normalizedAnnotation(42).maskStyle).toBe("blur");
+	});
+});

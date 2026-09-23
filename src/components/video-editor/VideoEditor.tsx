@@ -251,7 +251,9 @@ import {
 	type FigureData,
 	getClipSourceEndMs,
 	getTimelineDurationMs,
+	type AnnotationMaskStyle,
 	type Padding,
+	PRIVACY_MASK_INTENSITY,
 	mapSourceTimeToTimelineTime as resolveSourceTimeToTimelineTime,
 	mapTimelineTimeToSourceTime as resolveTimelineTimeToSourceTime,
 	type PlaybackSpeed,
@@ -4722,6 +4724,29 @@ export default function VideoEditor() {
 		setSelectedZoomId(null);
 	}, []);
 
+	/** One-click privacy mask: full-frame high-intensity mask spanning 5s. */
+	const handlePrivacyMaskAdded = useCallback((span: Span, trackIndex = 0) => {
+		const id = `annotation-${nextAnnotationIdRef.current++}`;
+		const zIndex = nextAnnotationZIndexRef.current++;
+		const newRegion: AnnotationRegion = {
+			id,
+			startMs: Math.round(span.start),
+			endMs: Math.round(span.end),
+			type: "blur",
+			content: "",
+			position: { x: 0, y: 0 },
+			size: { width: 100, height: 100 },
+			style: { ...DEFAULT_ANNOTATION_STYLE },
+			zIndex,
+			trackIndex,
+			blurIntensity: PRIVACY_MASK_INTENSITY,
+			maskStyle: "blur",
+		};
+		setAnnotationRegions((prev) => [...prev, newRegion]);
+		setSelectedAnnotationId(id);
+		setSelectedZoomId(null);
+	}, []);
+
 	const handleAnnotationSpanChange = useCallback(
 		(id: string, span: Span, trackIndex?: number) => {
 			const normalizedTrackIndex =
@@ -4833,6 +4858,15 @@ export default function VideoEditor() {
 			prev.map((region) => (region.id === id ? { ...region, blurColor } : region)),
 		);
 	}, []);
+
+	const handleAnnotationMaskStyleChange = useCallback(
+		(id: string, maskStyle: AnnotationMaskStyle) => {
+			setAnnotationRegions((prev) =>
+				prev.map((region) => (region.id === id ? { ...region, maskStyle } : region)),
+			);
+		},
+		[],
+	);
 
 	const handleAnnotationPositionChange = useCallback(
 		(id: string, position: { x: number; y: number }) => {
@@ -7085,6 +7119,7 @@ export default function VideoEditor() {
 										handleAnnotationBlurIntensityChange
 									}
 									onAnnotationBlurColorChange={handleAnnotationBlurColorChange}
+									onAnnotationMaskStyleChange={handleAnnotationMaskStyleChange}
 									onAnnotationDelete={handleAnnotationDelete}
 								/>
 							)}
@@ -7218,6 +7253,24 @@ export default function VideoEditor() {
 												className="text-muted-foreground hover:text-foreground hover:bg-foreground/10 cursor-pointer"
 											>
 												{t("timeline.annotation.label")}
+											</DropdownMenuItem>
+											<DropdownMenuItem
+												onClick={() => {
+													const nextTrackIndex =
+														annotationRegions.length > 0
+															? Math.max(
+																	...annotationRegions.map(
+																		(r) => r.trackIndex ?? 0,
+																	),
+																) + 1
+															: 0;
+													timelineRef.current?.addPrivacyMask(
+														nextTrackIndex,
+													);
+												}}
+												className="text-muted-foreground hover:text-foreground hover:bg-foreground/10 cursor-pointer"
+											>
+												{t("timeline.annotation.addPrivacyMask")}
 											</DropdownMenuItem>
 											<DropdownMenuItem
 												onClick={() => {
@@ -7458,6 +7511,7 @@ export default function VideoEditor() {
 						captionQuickAddEnabled={autoCaptionSettings.timelineQuickAdd}
 						annotationRegions={annotationRegions}
 						onAnnotationAdded={handleAnnotationAdded}
+						onPrivacyMaskAdded={handlePrivacyMaskAdded}
 						onAnnotationSpanChange={handleAnnotationSpanChange}
 						onAnnotationDelete={handleAnnotationDelete}
 						selectedAnnotationId={selectedAnnotationId}

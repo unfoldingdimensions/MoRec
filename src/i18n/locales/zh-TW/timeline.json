@@ -43,7 +43,8 @@
 	"annotation": {
 		"label": "註解",
 		"image": "圖片",
-		"addAnnotation": "新增註解（A）"
+		"addAnnotation": "新增註解（A）",
+		"addPrivacyMask": "新增隱私遮罩"
 	},
 	"audio": {
 		"label": "音訊"

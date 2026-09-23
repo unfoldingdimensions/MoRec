@@ -43,7 +43,8 @@
 	"annotation": {
 		"label": "Annotatie",
 		"image": "Afbeelding",
-		"addAnnotation": "Annotatie toevoegen (A)"
+		"addAnnotation": "Annotatie toevoegen (A)",
+		"addPrivacyMask": "Privacymasker toevoegen"
 	},
 	"audio": {
 		"label": "Audio"

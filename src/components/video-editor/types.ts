@@ -396,6 +396,13 @@ export function trimsToClips(trims: TrimRegion[], totalDurationMs: number): Clip
 
 export type AnnotationType = "text" | "image" | "figure" | "blur";
 export const BLUR_ANNOTATION_STRENGTH = 20;
+/** Render style for blur-type privacy masks. Missing values normalize to "blur". */
+export type AnnotationMaskStyle = "blur" | "pixelate";
+export const PRIVACY_MASK_INTENSITY = 60;
+
+export function normalizeAnnotationMaskStyle(value: unknown): AnnotationMaskStyle {
+	return value === "pixelate" ? "pixelate" : "blur";
+}
 export const BASE_PREVIEW_WIDTH = 1920;
 export const BASE_PREVIEW_HEIGHT = 1080;
 
@@ -461,6 +468,7 @@ export interface AnnotationRegion {
 	figureData?: FigureData;
 	blurIntensity?: number;
 	blurColor?: string;
+	maskStyle?: AnnotationMaskStyle;
 }
 
 export const DEFAULT_ANNOTATION_POSITION: AnnotationPosition = {

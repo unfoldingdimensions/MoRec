@@ -43,7 +43,8 @@
 	"annotation": {
 		"label": "주석",
 		"image": "이미지",
-		"addAnnotation": "주석 추가 (A)"
+		"addAnnotation": "주석 추가 (A)",
+		"addPrivacyMask": "개인정보 가리개 추가"
 	},
 	"audio": {
 		"label": "오디오"

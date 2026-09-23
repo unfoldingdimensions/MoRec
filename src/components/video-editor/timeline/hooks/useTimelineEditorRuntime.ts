@@ -16,6 +16,7 @@ import type {
 import type { MotionProfile } from "../../motionProfile";
 import type { TimelineShortcutBindings } from "../core/timelineTypes";
 import type { TimelineEditorHandle } from "../TimelineEditor";
+import { PRIVACY_MASK_DURATION_MS } from "./privacyMaskDuration";
 import { useTimelineAudioActions } from "./actions/useTimelineAudioActions";
 import { useTimelineCaptionActions } from "./actions/useTimelineCaptionActions";
 import { useTimelineZoomActions } from "./actions/useTimelineZoomActions";
@@ -52,6 +53,7 @@ interface UseTimelineEditorRuntimeParams {
 	onSelectClip?: (id: string | null) => void;
 	annotationRegions: AnnotationRegion[];
 	onAnnotationAdded?: (span: Span, trackIndex?: number) => void;
+	onPrivacyMaskAdded?: (span: Span, trackIndex?: number) => void;
 	onAnnotationSpanChange?: (id: string, span: Span, trackIndex?: number) => void;
 	onAnnotationDelete?: (id: string) => void;
 	selectedAnnotationId?: string | null;
@@ -102,6 +104,7 @@ export function useTimelineEditorRuntime({
 	onSelectClip,
 	annotationRegions,
 	onAnnotationAdded,
+	onPrivacyMaskAdded,
 	onAnnotationSpanChange,
 	onAnnotationDelete,
 	selectedAnnotationId,
@@ -262,6 +265,26 @@ export function useTimelineEditorRuntime({
 		[videoDuration, totalMs, currentTimeMs, defaultRegionDurationMs, onAnnotationAdded],
 	);
 
+	// One-click privacy mask: full frame, 5 seconds (or the remaining duration).
+	const handleAddPrivacyMask = useCallback(
+		(trackIndex = 0) => {
+			if (!videoDuration || videoDuration === 0 || totalMs === 0 || !onPrivacyMaskAdded) {
+				return;
+			}
+
+			const defaultDuration = Math.min(PRIVACY_MASK_DURATION_MS, totalMs);
+			if (defaultDuration <= 0) {
+				return;
+			}
+
+			const latestStartPos = Math.max(0, totalMs - defaultDuration);
+			const startPos = Math.max(0, Math.min(currentTimeMs, latestStartPos));
+			const endPos = Math.min(startPos + defaultDuration, totalMs);
+			onPrivacyMaskAdded({ start: startPos, end: endPos }, trackIndex);
+		},
+		[videoDuration, totalMs, currentTimeMs, onPrivacyMaskAdded],
+	);
+
 	useTimelineKeyboardShortcuts({
 		keyShortcuts,
 		isTimelineFocusedRef,
@@ -295,11 +318,13 @@ export function useTimelineEditorRuntime({
 			suggestZooms: handleSuggestZooms,
 			splitClip: handleSplitClip,
 			addAnnotation: handleAddAnnotation,
+			addPrivacyMask: handleAddPrivacyMask,
 			addAudio: handleAddAudio,
 			keyframes,
 		}),
 		[
 			handleAddAnnotation,
+			handleAddPrivacyMask,
 			handleAddAudio,
 			handleAddZoom,
 			handleSuggestZooms,
