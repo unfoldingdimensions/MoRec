@@ -78,7 +78,8 @@
 		"scrollSpeed": "Scroll Speed",
 		"prompterPause": "Tap to pause",
 		"prompterResume": "Tap to resume",
-		"markSegment": "Mark segment"
+		"markSegment": "Mark segment",
+		"prompterMove": "Drag to move"
 	},
 	"sourceSelector": {
 		"loadingSources": "Loading sources...",

@@ -78,7 +78,8 @@
 		"scrollSpeed": "滚动速度",
 		"prompterPause": "点击暂停",
 		"prompterResume": "点击继续",
-		"markSegment": "标记片段"
+		"markSegment": "标记片段",
+		"prompterMove": "拖动以移动"
 	},
 	"sourceSelector": {
 		"loadingSources": "正在加载源...",

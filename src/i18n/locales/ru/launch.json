@@ -78,7 +78,8 @@
 		"scrollSpeed": "Скорость прокрутки",
 		"prompterPause": "Коснитесь для паузы",
 		"prompterResume": "Коснитесь для продолжения",
-		"markSegment": "Отметить сегмент"
+		"markSegment": "Отметить сегмент",
+		"prompterMove": "Перетащите, чтобы переместить"
 	},
 	"sourceSelector": {
 		"loadingSources": "Загрузка источников...",

@@ -1,6 +1,7 @@
 import { CaretDownIcon, CaretUpIcon, XIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useScopedT } from "@/contexts/I18nContext";
+import { loadAppSetting, saveAppSetting } from "@/lib/appSettings";
 import {
 	advancePrompterOffset,
 	clampPrompterOffset,
@@ -9,6 +10,37 @@ import {
 import styles from "./LaunchWindow.module.css";
 
 const DRAG_THRESHOLD_PX = 5;
+const POSITION_SETTING_KEY = "teleprompterPosition";
+
+/** Persisted panel position: top-left corner in viewport px. */
+type PrompterPosition = { x: number; y: number };
+
+function readPersistedPosition(): PrompterPosition | null {
+	const stored = loadAppSetting<Partial<PrompterPosition>>(POSITION_SETTING_KEY);
+	if (
+		!stored ||
+		typeof stored.x !== "number" ||
+		!Number.isFinite(stored.x) ||
+		typeof stored.y !== "number" ||
+		!Number.isFinite(stored.y)
+	) {
+		return null;
+	}
+	return { x: stored.x, y: stored.y };
+}
+
+function clampPositionToViewport(position: PrompterPosition): PrompterPosition {
+	if (typeof window === "undefined") {
+		return position;
+	}
+	const margin = 8;
+	const maxX = Math.max(margin, window.innerWidth - margin);
+	const maxY = Math.max(margin, window.innerHeight - margin);
+	return {
+		x: Math.min(Math.max(position.x, -window.innerWidth + 120), maxX - 120),
+		y: Math.min(Math.max(position.y, 0), maxY - 48),
+	};
+}
 
 /**
  * Collapsible auto-scrolling teleprompter shown in the HUD overlay while
@@ -38,6 +70,20 @@ export function TeleprompterPrompter({
 	const lastFrameMsRef = useRef<number | null>(null);
 	const [userPaused, setUserPaused] = useState(false);
 	const [atEnd, setAtEnd] = useState(false);
+	// V2: free panel positioning. null keeps the fixed right-third default.
+	const [position, setPosition] = useState<PrompterPosition | null>(null);
+	const positionLoadedRef = useRef(false);
+
+	useEffect(() => {
+		if (positionLoadedRef.current) {
+			return;
+		}
+		positionLoadedRef.current = true;
+		const persisted = readPersistedPosition();
+		if (persisted) {
+			setPosition(clampPositionToViewport(persisted));
+		}
+	}, []);
 
 	const autoScrollActive = recording && !paused && !userPaused && !atEnd;
 
@@ -167,13 +213,86 @@ export function TeleprompterPrompter({
 			? t("recording.prompterResume")
 			: t("recording.prompterPause");
 
+	// Header drag moves the whole panel (buttons in the header still click —
+	// drags only start past the movement threshold and never on a button).
+	const moveStateRef = useRef<{
+		pointerId: number;
+		startX: number;
+		startY: number;
+		baseX: number;
+		baseY: number;
+		moved: boolean;
+	} | null>(null);
+	const latestPositionRef = useRef<PrompterPosition | null>(position);
+	latestPositionRef.current = position;
+
+	const handleMovePointerDown = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+		if (event.target instanceof Element && event.target.closest("button")) {
+			return;
+		}
+		moveStateRef.current = {
+			pointerId: event.pointerId,
+			startX: event.clientX,
+			startY: event.clientY,
+			baseX: position?.x ?? 0,
+			baseY: position?.y ?? 0,
+			moved: false,
+		};
+		// Pointer capture keeps the drag alive outside the header; jsdom and
+		// older runtimes lack the API, where per-event hit testing still works.
+		event.currentTarget.setPointerCapture?.(event.pointerId);
+	}, [position]);
+
+	const handleMovePointerMove = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+		const move = moveStateRef.current;
+		if (!move || move.pointerId !== event.pointerId) return;
+
+		const deltaX = event.clientX - move.startX;
+		const deltaY = event.clientY - move.startY;
+		if (!move.moved && Math.hypot(deltaX, deltaY) < DRAG_THRESHOLD_PX) return;
+
+		if (!move.moved) {
+			move.moved = true;
+			// First move past the threshold re-bases on the default position so
+			// the panel does not jump when it was still at the right-third spot.
+			const panel = event.currentTarget.parentElement;
+			const rect = panel?.getBoundingClientRect();
+			move.baseX = position?.x ?? (rect ? Math.max(0, rect.left) : 0);
+			move.baseY = position?.y ?? (rect ? Math.max(0, rect.top) : 0);
+		}
+		setPosition(clampPositionToViewport({ x: move.baseX + deltaX, y: move.baseY + deltaY }));
+	}, [position]);
+
+	const handleMovePointerUp = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+		const move = moveStateRef.current;
+		moveStateRef.current = null;
+		if (!move || move.pointerId !== event.pointerId || !move.moved) return;
+		const finalPosition = latestPositionRef.current;
+		if (finalPosition) {
+			saveAppSetting(POSITION_SETTING_KEY, finalPosition);
+		}
+	}, []);
+
 	return (
 		<div
 			className={`${styles.prompterPanel} launch-theme ${styles.electronNoDrag}`}
 			data-hud-interactive
 			data-testid="teleprompter-prompter"
+			style={
+				position
+					? { left: `${position.x}px`, top: `${position.y}px`, right: "auto", transform: "none" }
+					: undefined
+			}
 		>
-			<div className={styles.prompterHeader}>
+			<div
+				className={styles.prompterHeader}
+				style={{ cursor: "grab", touchAction: "none" }}
+				onPointerDown={handleMovePointerDown}
+				onPointerMove={handleMovePointerMove}
+				onPointerUp={handleMovePointerUp}
+				onPointerCancel={handleMovePointerUp}
+				title={t("recording.prompterMove")}
+			>
 				<span className={styles.prompterTitle}>{t("recording.teleprompter")}</span>
 				<span
 					className={`${styles.prompterStateBadge} ${autoScrollActive ? styles.prompterStatePlaying : ""}`}

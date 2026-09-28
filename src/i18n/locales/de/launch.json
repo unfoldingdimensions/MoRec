@@ -78,7 +78,8 @@
 		"scrollSpeed": "Scrollgeschwindigkeit",
 		"prompterPause": "Zum Pausieren tippen",
 		"prompterResume": "Zum Fortsetzen tippen",
-		"markSegment": "Abschnitt markieren"
+		"markSegment": "Abschnitt markieren",
+		"prompterMove": "Zum Verschieben ziehen"
 	},
 	"sourceSelector": {
 		"loadingSources": "Quellen werden geladen...",
