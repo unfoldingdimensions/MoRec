@@ -12,6 +12,7 @@ import {
 	nativeCaptureStopRequested,
 	nativeCaptureSystemAudioPath,
 	nativeCaptureTargetPath,
+	nativeCaptureProcess,
 	nativeScreenRecordingActive,
 	selectedSource,
 	setCurrentProjectPath,
@@ -178,6 +179,11 @@ export async function muxNativeMacRecordingWithAudio(
 
 export function attachNativeCaptureLifecycle(process: ChildProcessWithoutNullStreams) {
 	process.once("close", () => {
+		// A segment rollover may already have spawned the next helper: only
+		// the helper that is still current may clear the shared capture state.
+		if (nativeCaptureProcess && nativeCaptureProcess !== process) {
+			return;
+		}
 		const wasActive = nativeScreenRecordingActive;
 		setNativeCaptureProcess(null);
 

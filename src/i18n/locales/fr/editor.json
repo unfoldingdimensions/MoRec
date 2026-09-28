@@ -203,6 +203,10 @@
 		"keepRange": "Conserver",
 		"applyMultiClip": "Couper {{count}} plage(s) ({{seconds}}s)",
 		"applied": "{{count}} plage(s) ratée(s) coupée(s) ({{seconds}}s)",
-		"dismiss": "Plus tard"
+		"dismiss": "Plus tard",
+		"segmentLabel": "Prise {{index}}",
+		"mergeSegments": "Fusionner {{count}} prise(s)",
+		"merged": "{{count}} prise(s) fusionnée(s) en une vidéo.",
+		"mergeFailed": "Les prises n'ont pas pu être fusionnées : {{error}}"
 	}
 }

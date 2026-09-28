@@ -716,11 +716,26 @@ interface Window {
 		) => () => void;
 		markRecordingSegment: () => Promise<{
 			success: boolean;
+			segmentMode?: boolean;
+			segments?: string[];
 			marksMs?: number[];
 			elapsedMs?: number;
 			error?: string;
 		}>;
 		clearRecordingMarks: () => Promise<{ success: boolean }>;
+		concatRecordingSegments: (options: {
+			outputPath: string;
+			keep: string[];
+			discard: string[];
+		}) => Promise<
+			| {
+					success: true;
+					outputPath: string;
+					keptCount: number;
+					droppedCount: number;
+			  }
+			| { success: false; error: string }
+		>;
 		generateAutoCaptions: (options: {
 			videoPath: string;
 			whisperExecutablePath?: string;

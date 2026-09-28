@@ -203,6 +203,10 @@
 		"keepRange": "保留",
 		"applyMultiClip": "剪切 {{count}} 个区间（{{seconds}} 秒）",
 		"applied": "已剪切 {{count}} 个失误区间（{{seconds}} 秒）",
-		"dismiss": "暂不处理"
+		"dismiss": "暂不处理",
+		"segmentLabel": "第 {{index}} 段",
+		"mergeSegments": "合并 {{count}} 个片段",
+		"merged": "已将 {{count}} 个片段合并为一个视频。",
+		"mergeFailed": "无法合并片段：{{error}}"
 	}
 }

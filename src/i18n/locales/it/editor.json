@@ -203,6 +203,10 @@
 		"keepRange": "Mantieni",
 		"applyMultiClip": "Taglia {{count}} intervallo/i ({{seconds}}s)",
 		"applied": "Tagliati {{count}} intervallo/i con errori ({{seconds}}s)",
-		"dismiss": "Non ora"
+		"dismiss": "Non ora",
+		"segmentLabel": "Take {{index}}",
+		"mergeSegments": "Unisci {{count}} take",
+		"merged": "Uniti {{count}} take in un unico video.",
+		"mergeFailed": "Impossibile unire i take: {{error}}"
 	}
 }

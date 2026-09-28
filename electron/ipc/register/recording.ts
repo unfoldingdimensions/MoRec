@@ -49,11 +49,17 @@ import {
 	rememberApprovedLocalReadPath,
 } from "../project/manager";
 import { writeProjectFileAtomically } from "../project/atomicSave";
-import { persistRecordingMarksManifest } from "../project/session";
+import {
+	persistRecordingMarksManifest,
+	persistRecordingSegmentsManifest,
+} from "../project/session";
 import {
 	addRecordingMark,
+	addRecordingSegmentFile,
 	beginRecordingCapture,
+	getPrimarySegmentPath,
 	getRecordingTargetPath,
+	isRecordingSegmented,
 	resetRecordingMarks,
 } from "../recording/marks";
 import { probeCompanionAudioLevels } from "../recording/companionAudioLevel";
@@ -513,12 +519,105 @@ async function recoverNativeWindowsRecordingOutput() {
 let windowsCaptureStartInFlight = false;
 let nativeCaptureStartInFlight = false;
 
+/**
+ * Finalizes the current Windows segment in flight: stops the helper, moves
+ * temp outputs (video + audio companions) to their final names, and tears
+ * the capture state down. The rollover handler immediately respawns via the
+ * start path, so a brief inactive window is expected. Validation is left to
+ * concat time to keep the recording pause between segments minimal — this
+ * mirrors the stop handler's finalize core without its diagnostics/telemetry
+ * (which remain whole-recording concerns anchored at the final stop).
+ */
+async function finalizeWindowsCaptureSegment(): Promise<string | null> {
+	const proc = windowsCaptureProcess;
+	if (!proc) {
+		return null;
+	}
+	const finishedTarget = windowsCaptureTargetPath;
+	const systemAudioPath = windowsSystemAudioPath;
+	const micAudioPath = windowsMicAudioPath;
+	setWindowsCaptureStopRequested(true);
+	proc.stdin.write("stop\n");
+	const tempVideoPath = await waitForWindowsCaptureStop(proc);
+	const finalVideoPath = finishedTarget ?? tempVideoPath;
+	if (tempVideoPath && finalVideoPath && tempVideoPath !== finalVideoPath) {
+		await moveFileWithOverwrite(tempVideoPath, finalVideoPath);
+	}
+	if (finalVideoPath?.endsWith(".mp4")) {
+		const companions = [
+			{ finalPath: systemAudioPath, suffix: ".system.wav" },
+			{ finalPath: micAudioPath, suffix: ".mic.wav" },
+		] as const;
+		for (const companion of companions) {
+			if (!companion.finalPath) continue;
+			const tempCompanion = tempVideoPath.replace(/\.mp4$/, companion.suffix);
+			if (await pathExists(tempCompanion)) {
+				await moveFileWithOverwrite(tempCompanion, companion.finalPath);
+				const tempJson = `${tempCompanion}.json`;
+				if (await pathExists(tempJson)) {
+					await moveFileWithOverwrite(tempJson, `${companion.finalPath}.json`);
+				}
+			}
+		}
+	}
+	setWindowsCaptureProcess(null);
+	setWindowsNativeCaptureActive(false);
+	setNativeScreenRecordingActive(false);
+	setWindowsCaptureTargetPath(null);
+	setWindowsCaptureTempPath(null);
+	setWindowsCaptureStopRequested(false);
+	setWindowsCapturePaused(false);
+	setWindowsOrphanedMicAudioPath(null);
+	return finalVideoPath;
+}
+
+/** macOS counterpart of finalizeWindowsCaptureSegment (best-effort audio mux). */
+async function finalizeMacCaptureSegment(): Promise<string | null> {
+	const proc = nativeCaptureProcess;
+	if (!proc) {
+		return null;
+	}
+	const finishedTarget = nativeCaptureTargetPath;
+	const systemAudioPath = nativeCaptureSystemAudioPath;
+	const microphonePath = nativeCaptureMicrophonePath;
+	setNativeCaptureStopRequested(true);
+	proc.stdin.write("stop\n");
+	const tempVideoPath = await waitForNativeCaptureStop(proc);
+	const finalVideoPath = finishedTarget ?? tempVideoPath;
+	if (tempVideoPath && finalVideoPath && tempVideoPath !== finalVideoPath) {
+		await moveFileWithOverwrite(tempVideoPath, finalVideoPath);
+	}
+	if (systemAudioPath || microphonePath) {
+		try {
+			await muxNativeMacRecordingWithAudio(finalVideoPath, systemAudioPath, microphonePath);
+		} catch (error) {
+			console.warn("[recording-segments] Segment audio mux failed:", error);
+		}
+	}
+	setNativeCaptureProcess(null);
+	setNativeScreenRecordingActive(false);
+	setNativeCaptureTargetPath(null);
+	setNativeCaptureSystemAudioPath(null);
+	setNativeCaptureMicrophonePath(null);
+	setNativeCaptureStopRequested(false);
+	setNativeCapturePaused(false);
+	return finalVideoPath;
+}
+
+// Last native start arguments, kept so a segment rollover can respawn the
+// capture helper with the exact source/options the recording began with.
+let lastNativeStartArgs: {
+	source: SelectedSource;
+	options?: NativeMacRecordingOptions;
+} | null = null;
+
 export function registerRecordingHandlers(
 	onRecordingStateChange?: (recording: boolean, sourceName: string) => void,
 ) {
-	ipcMain.handle(
-		"start-native-screen-recording",
-		async (_, source: SelectedSource, options?: NativeMacRecordingOptions) => {
+	const startNativeScreenRecordingInternal = async (
+		source: SelectedSource,
+		options?: NativeMacRecordingOptions,
+	) => {
 			// Windows native capture path
 			if (process.platform === "win32") {
 				const windowsCaptureAvailable = await isNativeWindowsCaptureAvailable();
@@ -1097,8 +1196,79 @@ export function registerRecordingHandlers(
 				} finally {
 					nativeCaptureStartInFlight = false;
 				}
-			},
-		);
+	};
+
+	ipcMain.handle(
+		"start-native-screen-recording",
+		async (_, source: SelectedSource, options?: NativeMacRecordingOptions) => {
+			lastNativeStartArgs = { source, options };
+			return startNativeScreenRecordingInternal(source, options);
+		},
+	);
+
+	// Multi-clip segments (v2): finalize the current take to disk and spawn a
+	// fresh capture helper so "Mark segment" never drops a frame of what
+	// follows. The segment list is committed to the primary (first segment)
+	// manifest immediately, so completed segments survive a later crash.
+	const rolloverNativeSegment = async (): Promise<
+		| { ok: true; segments: string[]; currentPath: string | null }
+		| { ok: false; errorCode: string; message?: string; error?: string }
+	> => {
+		try {
+			let segments: string[];
+		if (process.platform === "win32") {
+				if (!windowsNativeCaptureActive || !windowsCaptureProcess) {
+					return { ok: false, errorCode: "not-active" };
+				}
+				const finished = await finalizeWindowsCaptureSegment();
+				if (!finished) {
+					return { ok: false, errorCode: "not-active" };
+				}
+				segments = addRecordingSegmentFile(finished);
+				if (!lastNativeStartArgs) {
+					return { ok: false, errorCode: "no-start-args" };
+				}
+				const resumed = await startNativeScreenRecordingInternal(
+					lastNativeStartArgs.source,
+					lastNativeStartArgs.options,
+				);
+				if (!resumed.success) {
+					return { ok: false, errorCode: "restart-failed", message: resumed.message };
+				}
+			} else if (process.platform === "darwin") {
+				if (!nativeScreenRecordingActive || !nativeCaptureProcess) {
+					return { ok: false, errorCode: "not-active" };
+				}
+				const finished = await finalizeMacCaptureSegment();
+				if (!finished) {
+					return { ok: false, errorCode: "not-active" };
+				}
+				segments = addRecordingSegmentFile(finished);
+				if (!lastNativeStartArgs) {
+					return { ok: false, errorCode: "no-start-args" };
+				}
+				const resumed = await startNativeScreenRecordingInternal(
+					lastNativeStartArgs.source,
+					lastNativeStartArgs.options,
+				);
+				if (!resumed.success) {
+					return { ok: false, errorCode: "restart-failed", message: resumed.message };
+				}
+			} else {
+				return { ok: false, errorCode: "unsupported" };
+			}
+
+			try {
+				await persistRecordingSegmentsManifest(segments[0], segments);
+			} catch (error) {
+				console.warn("[recording-segments] Per-rollover manifest write failed:", error);
+			}
+			return { ok: true, segments, currentPath: getRecordingTargetPath() };
+		} catch (error) {
+			console.error("Failed to roll over recording segment:", error);
+			return { ok: false, errorCode: "rollover-failed", error: String(error) };
+		}
+	};
 
 	ipcMain.handle("stop-native-screen-recording", async () => {
 		const start = Date.now();
@@ -1167,7 +1337,20 @@ export function registerRecordingHandlers(
 					setWindowsCapturePaused(false);
 					setWindowsOrphanedMicAudioPath(null);
 					await cleanupWindowsOrphanedMicAudioPath(preferredOrphanedMicAudioPath);
-					setWindowsPendingVideoPath(finalVideoPath);
+					// Multi-clip segments: the final take completes the segment
+					// list; the primary (first segment) path is what the editor
+					// opens and what a later concat overwrites.
+					let reportedVideoPath = finalVideoPath;
+					if (isRecordingSegmented()) {
+						const segments = addRecordingSegmentFile(finalVideoPath);
+						reportedVideoPath = getPrimarySegmentPath(finalVideoPath);
+						try {
+							await persistRecordingSegmentsManifest(reportedVideoPath, segments);
+						} catch (error) {
+							console.warn("[recording-segments] Final manifest write failed:", error);
+						}
+					}
+					setWindowsPendingVideoPath(reportedVideoPath);
 					recordNativeCaptureDiagnostics({
 						backend: "windows-wgc",
 						phase: "stop",
@@ -1192,7 +1375,7 @@ export function registerRecordingHandlers(
 					// Persist cursor telemetry before returning so the editor can find it immediately
 					snapshotCursorTelemetryForPersistence();
 					try {
-						await persistPendingCursorTelemetry(finalVideoPath);
+						await persistPendingCursorTelemetry(reportedVideoPath);
 					} catch (error) {
 						console.warn(
 							"Failed to persist cursor telemetry during native stop:",
@@ -1200,7 +1383,7 @@ export function registerRecordingHandlers(
 						);
 					}
 
-					return { success: true, path: finalVideoPath };
+					return { success: true, path: reportedVideoPath };
 				} catch (error) {
 					console.error("Failed to stop native Windows capture:", error);
 					const fallbackPath = await resolveExistingPath(
@@ -1378,6 +1561,22 @@ export function registerRecordingHandlers(
 					}
 				} else {
 					console.log("[stop-native] No separate audio tracks to mux");
+				}
+
+				if (isRecordingSegmented()) {
+					// finalizeStoredVideo anchors the session to the passed path;
+					// in segment mode that must be the primary (first segment).
+					const segments = addRecordingSegmentFile(finalVideoPath);
+					const reportedVideoPath = getPrimarySegmentPath(finalVideoPath);
+					await validateRecordedVideo(finalVideoPath);
+					try {
+						await persistRecordingSegmentsManifest(reportedVideoPath, segments);
+					} catch (error) {
+						console.warn("[recording-segments] Final manifest write failed:", error);
+					}
+					snapshotCursorTelemetryForPersistence();
+					await persistPendingCursorTelemetry(reportedVideoPath);
+					return { success: true, path: reportedVideoPath };
 				}
 
 				return await finalizeStoredVideo(finalVideoPath);
@@ -2114,6 +2313,20 @@ export function registerRecordingHandlers(
 		if (!isCursorCaptureActive) {
 			return { success: false, error: "Recording is not active." };
 		}
+
+		// Native capture: "Mark segment" rolls over to a new file (true
+		// multi-clip). Browser capture keeps the timestamp-mark fallback below.
+		const rollover = await rolloverNativeSegment();
+		if (rollover.ok) {
+			return { success: true, segmentMode: true, segments: rollover.segments };
+		}
+		if (rollover.errorCode !== "unsupported" && rollover.errorCode !== "not-active") {
+			return {
+				success: false,
+				error: rollover.message ?? `Segment rollover failed (${rollover.errorCode}).`,
+			};
+		}
+
 		const elapsedMs = Math.round(getCursorCaptureElapsedMs());
 		const marks = addRecordingMark(elapsedMs);
 		const targetPath = getRecordingTargetPath();

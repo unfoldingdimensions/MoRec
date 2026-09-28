@@ -11,6 +11,7 @@ import {
 	RECORDING_SESSION_MANIFEST_SUFFIX,
 } from "../constants";
 import { getProjectBackupPath, writeProjectFileAtomically } from "../project/atomicSave";
+import { concatRecordingSegments } from "../project/segmentConcat";
 import {
 	enqueueRecentProjectsUpdate,
 	getProjectsDir,
@@ -699,15 +700,21 @@ export function registerProjectHandlers() {
 				timeOffsetMs: 0,
 			};
 
-			// Multi-clip marks (v4 manifest): the resolved session may already
-			// carry marks (per-mark crash writes); otherwise attach the marks
-			// pending from the recording that just stopped.
-			const pendingMarks = resolvedSession.marksMs?.length
+			// Multi-clip marks/segments (v4/v5 manifest): the resolved session
+			// may already carry them (per-mark/per-rollover crash writes);
+			// otherwise attach what is pending from the recording that just
+			// stopped.
+			const pendingCaptureState = resolvedSession.marksMs?.length
 				? null
 				: consumeRecordingMarksForPath(currentVideoPath);
 			const attachedMarks = resolvedSession.marksMs?.length
 				? resolvedSession.marksMs
-				: (pendingMarks ?? undefined);
+				: pendingCaptureState?.marksMs;
+			const attachedSegments = (
+				resolvedSession.segmentFiles?.length
+					? resolvedSession.segmentFiles
+					: pendingCaptureState?.segmentFiles
+			)?.map((filePath) => filePath.split(/[\/]/).pop() ?? filePath);
 
 			const nextSession = {
 				...resolvedSession,
@@ -715,6 +722,7 @@ export function registerProjectHandlers() {
 					normalizeBoolean(options?.hideOverlayCursorByDefault) ||
 					normalizeBoolean(resolvedSession.hideOverlayCursorByDefault),
 				...(attachedMarks?.length ? { marksMs: attachedMarks } : {}),
+				...(attachedSegments?.length ? { segmentFiles: attachedSegments } : {}),
 			};
 
 			setCurrentRecordingSession(nextSession);
@@ -759,17 +767,20 @@ export function registerProjectHandlers() {
 				normalizeVideoSourcePath(session.videoPath) ?? session.videoPath;
 			setCurrentVideoPath(normalizedVideoPath);
 			// The renderer never sends marks with session updates; preserve the
-			// marks already attached to the in-memory session so webcam-link
-			// changes do not silently drop them.
+			// marks/segments already attached to the in-memory session so
+			// webcam-link changes do not silently drop them. The renderer never
+			// sends them with session updates.
 			const preservedMarks = Array.isArray(session.marksMs)
 				? normalizeRecordingMarks(session.marksMs)
 				: (currentRecordingSession?.marksMs ?? []);
+			const preservedSegments = currentRecordingSession?.segmentFiles ?? [];
 			setCurrentRecordingSession({
 				videoPath: normalizedVideoPath,
 				webcamPath: normalizeVideoSourcePath(session.webcamPath ?? null),
 				timeOffsetMs: normalizeRecordingTimeOffsetMs(session.timeOffsetMs),
 				hideOverlayCursorByDefault: normalizeBoolean(session.hideOverlayCursorByDefault),
 				...(preservedMarks.length > 0 ? { marksMs: preservedMarks } : {}),
+				...(preservedSegments.length > 0 ? { segmentFiles: preservedSegments } : {}),
 			});
 			await rememberApprovedLocalReadPath(currentRecordingSession!.videoPath);
 			await rememberApprovedLocalReadPath(currentRecordingSession!.webcamPath);
@@ -801,13 +812,73 @@ export function registerProjectHandlers() {
 
 	// Multi-clip marks have been handled (applied as trims): drop them from
 	// the session and the manifest so the editor panel stays one-time.
+	// Multi-clip segments (v2): concatenate kept takes into the primary
+	// recording and delete every source segment (including the discarded
+	// ones) so flubbed footage is truly gone. Every path must be an
+	// auto-generated recording inside the recordings directory, mirroring
+	// delete-recording-file.
+	ipcMain.handle(
+		"concat-recording-segments",
+		async (_, options: { outputPath?: string; keep?: string[]; discard?: string[] }) => {
+			try {
+				const recordingsDirRaw = await getRecordingsDir();
+				const recordingsDir = await fs
+					.realpath(recordingsDirRaw)
+					.catch(() => path.resolve(recordingsDirRaw));
+
+				const guard = async (filePath: string): Promise<string | null> => {
+					if (typeof filePath !== "string" || !filePath) {
+						return null;
+					}
+					const resolved = await fs.realpath(filePath).catch(() => path.resolve(filePath));
+					if (
+						isPathInsideDirectory(resolved, recordingsDir) &&
+						isAutoRecordingPath(resolved)
+					) {
+						return resolved;
+					}
+					return null;
+				};
+
+				const outputPath = options?.outputPath ? await guard(options.outputPath) : null;
+				if (!outputPath) {
+					return { success: false, error: "Invalid merge target." };
+				}
+				const keep: string[] = [];
+				for (const entry of options?.keep ?? []) {
+					const resolved = await guard(entry);
+					if (!resolved) {
+						return { success: false, error: "Invalid segment path in keep list." };
+					}
+					keep.push(resolved);
+				}
+				const discard: string[] = [];
+				for (const entry of options?.discard ?? []) {
+					const resolved = await guard(entry);
+					if (resolved) {
+						discard.push(resolved);
+					}
+				}
+
+				return await concatRecordingSegments({ outputPath, keep, discard });
+			} catch (error) {
+				console.error("Failed to concatenate recording segments:", error);
+				return { success: false, error: String(error) };
+			}
+		},
+	);
+
 	ipcMain.handle("clear-recording-marks", async () => {
 		if (!currentRecordingSession) {
 			return { success: false };
 		}
+		// Multi-clip state handled (applied or dismissed): drop marks and the
+		// segment list so the editor panel stays one-time. Called after a
+		// successful segment concat, the video itself is already merged.
 		const clearedSession: RecordingSessionData = {
 			...currentRecordingSession,
 			marksMs: [],
+			segmentFiles: [],
 		};
 		setCurrentRecordingSession(clearedSession);
 		await persistRecordingSessionManifest(clearedSession);

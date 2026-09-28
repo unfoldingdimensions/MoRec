@@ -203,6 +203,10 @@
 		"keepRange": "Behouden",
 		"applyMultiClip": "{{count}} bereik(en) ({{seconds}}s) knippen",
 		"applied": "{{count}} mislukte bereik(en) ({{seconds}}s) geknipt",
-		"dismiss": "Niet nu"
+		"dismiss": "Niet nu",
+		"segmentLabel": "Take {{index}}",
+		"mergeSegments": "{{count}} take(s) samenvoegen",
+		"merged": "{{count}} take(s) samengevoegd tot één video.",
+		"mergeFailed": "De takes konden niet worden samengevoegd: {{error}}"
 	}
 }

@@ -160,7 +160,7 @@ describe("recording session manifest persistence", () => {
 		expect(entries.filter((entry) => entry.endsWith(".tmp"))).toEqual([]);
 	});
 
-	it("persists a v4 manifest with marks and resolves them back", async () => {
+	it("persists a manifest with marks as v5 and resolves them back", async () => {
 		const { persistRecordingSessionManifest, resolveRecordingSessionManifest } =
 			await importSession();
 
@@ -172,7 +172,7 @@ describe("recording session manifest persistence", () => {
 		});
 
 		const raw = await fs.readFile(manifestPath(), "utf-8");
-		expect(JSON.parse(raw).version).toBe(4);
+		expect(JSON.parse(raw).version).toBe(5);
 
 		const session = await resolveRecordingSessionManifest(videoPath);
 		expect(session).toMatchObject({
@@ -242,6 +242,56 @@ describe("recording session manifest persistence", () => {
 
 		const session = await resolveRecordingSessionManifest(videoPath);
 		expect(session?.marksMs).toEqual([5000]);
+	});
+
+	it("persists a v5 manifest with segment files and resolves them back", async () => {
+		const { persistRecordingSessionManifest, resolveRecordingSessionManifest } =
+			await importSession();
+
+		await persistRecordingSessionManifest({
+			videoPath,
+			webcamPath: null,
+			timeOffsetMs: 0,
+			segmentFiles: ["recording-100.mp4", "recording-200.mp4"],
+		});
+
+		const raw = await fs.readFile(manifestPath(), "utf-8");
+		expect(JSON.parse(raw).version).toBe(5);
+
+		const session = await resolveRecordingSessionManifest(videoPath);
+		expect(session?.segmentFiles).toEqual(["recording-100.mp4", "recording-200.mp4"]);
+	});
+
+	it("drops segment entries that are not plain file names", async () => {
+		const { resolveRecordingSessionManifest } = await importSession();
+
+		await fs.writeFile(
+			manifestPath(),
+			JSON.stringify({
+				version: 5,
+				videoFileName: "recording-100.mp4",
+				segmentFiles: ["recording-100.mp4", "../../evil.mp4", "sub/dir.mp4", 42],
+			}),
+			"utf-8",
+		);
+
+		const session = await resolveRecordingSessionManifest(videoPath);
+		expect(session?.segmentFiles).toEqual(["recording-100.mp4"]);
+	});
+
+	it("keeps the -webcam sibling auto-discovery for segments-only manifests", async () => {
+		const { persistRecordingSegmentsManifest, resolveRecordingSession } = await importSession();
+
+		await persistRecordingSegmentsManifest(videoPath, [
+			"recording-100.mp4",
+			"recording-200.mp4",
+		]);
+
+		const session = await resolveRecordingSession(videoPath);
+		expect(session).toMatchObject({
+			webcamPath,
+			segmentFiles: ["recording-100.mp4", "recording-200.mp4"],
+		});
 	});
 
 	it("keeps the -webcam sibling auto-discovery for marks-only crash writes", async () => {
