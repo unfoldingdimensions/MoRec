@@ -50,10 +50,15 @@ export type RecordingSessionData = {
 	hideOverlayCursorByDefault?: boolean;
 	/** v4: HUD "mark segment" timestamps (pause-aware elapsed ms), ascending. */
 	marksMs?: number[];
+	/**
+	 * v5: finalized segment file names (plain names in the video's directory)
+	 * from true segment rollovers, in concatenation order.
+	 */
+	segmentFiles?: string[];
 };
 
 export type RecordingSessionManifest = {
-	version: 1 | 2 | 3 | 4;
+	version: 1 | 2 | 3 | 4 | 5;
 	videoFileName: string;
 	webcamFileName?: string | null;
 	timeOffsetMs?: number;
@@ -61,6 +66,8 @@ export type RecordingSessionManifest = {
 	hideOverlayCursorByDefault?: boolean;
 	/** v4: multi-clip recording marks, written per-mark during recording. */
 	marksMs?: number[];
+	/** v5: multi-clip segment rollovers, written per-rollover during recording. */
+	segmentFiles?: string[];
 };
 
 export type ProjectLibraryEntry = {

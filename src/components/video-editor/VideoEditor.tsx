@@ -618,9 +618,11 @@ export default function VideoEditor() {
 	const [projectMetadata, setProjectMetadata] = useState<ProjectMetadata | undefined>(
 		undefined,
 	);
-	// Multi-clip marks (P1 Feature 6) from the recording session manifest; a
-	// non-empty list opens the one-time multi-clip panel.
+	// Multi-clip marks/segments from the recording session manifest; a
+	// non-empty list opens the one-time multi-clip panel (segments take
+	// precedence when the recording used native rollovers).
 	const [multiClipMarksMs, setMultiClipMarksMs] = useState<number[]>([]);
+	const [multiClipSegmentFiles, setMultiClipSegmentFiles] = useState<string[]>([]);
 	const [whisperExecutablePath, setWhisperExecutablePath] = useState<string | null>(
 		initialEditorPreferences.whisperExecutablePath,
 	);
@@ -651,6 +653,7 @@ export default function VideoEditor() {
 						hideOverlayCursorByDefault?: boolean;
 						nativeCaptureUnavailable?: boolean;
 						marksMs?: number[];
+						segmentFiles?: string[];
 				  }
 				| null
 				| undefined,
@@ -659,6 +662,9 @@ export default function VideoEditor() {
 			setSessionNativeCaptureUnavailable(Boolean(session?.nativeCaptureUnavailable));
 			setNativeCaptureUnavailableModalOpen(Boolean(session?.nativeCaptureUnavailable));
 			setMultiClipMarksMs(Array.isArray(session?.marksMs) ? session.marksMs : []);
+			setMultiClipSegmentFiles(
+				Array.isArray(session?.segmentFiles) ? session.segmentFiles : [],
+			);
 		},
 		[],
 	);
@@ -2428,6 +2434,7 @@ export default function VideoEditor() {
 		setAutoCaptionSettings((prev) => ({ ...prev, enabled: false }));
 		setProjectMetadata(undefined);
 		setMultiClipMarksMs([]);
+		setMultiClipSegmentFiles([]);
 		setSelectedZoomId(null);
 		setSelectedClipId(null);
 		setSelectedAnnotationId(null);
@@ -4054,6 +4061,48 @@ export default function VideoEditor() {
 			return true;
 		},
 		[autoCaptions, clipRegions, duration, reservedSpansForSuggestions, t],
+	);
+
+	// Multi-clip segments (native rollover): merge kept takes into the
+	// primary recording (ffmpeg concat, stream copy) and drop every source
+	// segment, then reload the (overwritten) video with a cache-busting URL.
+	const handleApplyMultiClipSegments = useCallback(
+		async (keep: string[], discard: string[]) => {
+			const sourcePath = currentSourcePath;
+			if (!sourcePath || keep.length === 0) {
+				return;
+			}
+			const result = await window.electronAPI.concatRecordingSegments({
+				outputPath: sourcePath,
+				keep,
+				discard,
+			});
+			setMultiClipSegmentFiles([]);
+			void window.electronAPI.clearRecordingMarks?.();
+			if (!result.success) {
+				toast.error(
+					t("editor.multiClip.mergeFailed", "The segments could not be merged: {{error}}", {
+						error: result.error,
+					}),
+					{ duration: 10000 },
+				);
+				return;
+			}
+			toast.success(
+				t("editor.multiClip.merged", "Merged {{count}} segment(s) into one video.", {
+					count: result.keptCount,
+				}),
+			);
+			// The primary file was overwritten in place: re-resolve its URL and
+			// bust the media-server cache so playback shows the merged take.
+			const resolvedUrl = await resolveVideoUrl(sourcePath);
+			setVideoPath(
+				resolvedUrl.startsWith("http")
+					? `${resolvedUrl}${resolvedUrl.includes("?") ? "&" : "?"}v=${Date.now()}`
+					: resolvedUrl,
+			);
+		},
+		[currentSourcePath, t],
 	);
 
 	// Multi-clip marks (P1 Feature 6): cut the discarded takes with the same
@@ -7847,10 +7896,17 @@ export default function VideoEditor() {
 			{unsavedChangesDialog}
 			{nativeCaptureUnavailableDialog}
 			<MultiClipPanel
-				open={multiClipRanges.length > 0}
+				open={multiClipRanges.length > 0 || multiClipSegmentFiles.length > 1}
 				ranges={multiClipRanges}
-				onApply={handleApplyMultiClip}
-				onDismiss={() => setMultiClipMarksMs([])}
+				segments={multiClipSegmentFiles}
+				onApplyRanges={handleApplyMultiClip}
+				onApplySegments={(keep, discard) =>
+					void handleApplyMultiClipSegments(keep, discard)
+				}
+				onDismiss={() => {
+					setMultiClipMarksMs([]);
+					setMultiClipSegmentFiles([]);
+				}}
 			/>
 
 			<Toaster className="pointer-events-auto" />

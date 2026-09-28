@@ -203,6 +203,10 @@
 		"keepRange": "Conservar",
 		"applyMultiClip": "Cortar {{count}} rango(s) ({{seconds}}s)",
 		"applied": "Se cortaron {{count}} rango(s) con errores ({{seconds}}s)",
-		"dismiss": "Ahora no"
+		"dismiss": "Ahora no",
+		"segmentLabel": "Toma {{index}}",
+		"mergeSegments": "Combinar {{count}} toma(s)",
+		"merged": "Se combinaron {{count}} toma(s) en un vídeo.",
+		"mergeFailed": "No se pudieron combinar las tomas: {{error}}"
 	}
 }

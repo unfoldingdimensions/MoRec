@@ -14,6 +14,7 @@ import {
 	setWindowsCaptureTargetPath,
 	setWindowsCaptureTempPath,
 	windowsCaptureOutputBuffer,
+	windowsCaptureProcess,
 	windowsCaptureStopRequested,
 	windowsCaptureTargetPath,
 	windowsCaptureTempPath,
@@ -210,6 +211,11 @@ async function salvageCrashedCompanionFile(
 
 export function attachWindowsCaptureLifecycle(proc: ChildProcessWithoutNullStreams) {
 	proc.once("close", () => {
+		// A segment rollover may already have spawned the next helper: only
+		// the helper that is still current may clear the shared capture state.
+		if (windowsCaptureProcess && windowsCaptureProcess !== proc) {
+			return;
+		}
 		const wasActive = windowsNativeCaptureActive;
 		setWindowsCaptureProcess(null);
 

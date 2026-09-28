@@ -203,6 +203,10 @@
 		"keepRange": "Manter",
 		"applyMultiClip": "Cortar {{count}} faixa(s) ({{seconds}}s)",
 		"applied": "Cortadas {{count}} faixa(s) com falhas ({{seconds}}s)",
-		"dismiss": "Agora não"
+		"dismiss": "Agora não",
+		"segmentLabel": "Tomada {{index}}",
+		"mergeSegments": "Mesclar {{count}} tomada(s)",
+		"merged": "{{count}} tomada(s) mesclada(s) em um vídeo.",
+		"mergeFailed": "Não foi possível mesclar as tomadas: {{error}}"
 	}
 }

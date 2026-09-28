@@ -203,6 +203,10 @@
 		"keepRange": "유지",
 		"applyMultiClip": "{{count}}개 구간 잘라내기 ({{seconds}}초)",
 		"applied": "실수한 {{count}}개 구간을 잘랐습니다 ({{seconds}}초)",
-		"dismiss": "나중에"
+		"dismiss": "나중에",
+		"segmentLabel": "테이크 {{index}}",
+		"mergeSegments": "{{count}}개 테이크 병합",
+		"merged": "{{count}}개 테이크를 하나의 동영상으로 병합했습니다.",
+		"mergeFailed": "테이크를 병합할 수 없습니다: {{error}}"
 	}
 }

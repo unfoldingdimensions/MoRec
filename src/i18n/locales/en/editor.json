@@ -203,6 +203,10 @@
 		"keepRange": "Keep",
 		"applyMultiClip": "Cut {{count}} range(s) ({{seconds}}s)",
 		"applied": "Cut {{count}} flubbed range(s) ({{seconds}}s)",
-		"dismiss": "Not now"
+		"dismiss": "Not now",
+		"segmentLabel": "Take {{index}}",
+		"mergeSegments": "Merge {{count}} segment(s)",
+		"merged": "Merged {{count}} segment(s) into one video.",
+		"mergeFailed": "The segments could not be merged: {{error}}"
 	}
 }

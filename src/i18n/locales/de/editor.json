@@ -203,6 +203,10 @@
 		"keepRange": "Behalten",
 		"applyMultiClip": "{{count}} Bereich/Bereiche ({{seconds}}s) schneiden",
 		"applied": "{{count}} verunglückte(n) Bereich(e) ({{seconds}}s) geschnitten",
-		"dismiss": "Nicht jetzt"
+		"dismiss": "Nicht jetzt",
+		"segmentLabel": "Aufnahme {{index}}",
+		"mergeSegments": "{{count}} Aufnahme(n) zusammenfügen",
+		"merged": "{{count}} Aufnahme(n) zu einem Video zusammengefügt.",
+		"mergeFailed": "Die Aufnahmen konnten nicht zusammengefügt werden: {{error}}"
 	}
 }

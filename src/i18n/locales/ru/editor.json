@@ -203,6 +203,10 @@
 		"keepRange": "Оставить",
 		"applyMultiClip": "Вырезать диапазонов: {{count}} ({{seconds}} с)",
 		"applied": "Вырезано неудачных диапазонов: {{count}} ({{seconds}} с)",
-		"dismiss": "Не сейчас"
+		"dismiss": "Не сейчас",
+		"segmentLabel": "Дубль {{index}}",
+		"mergeSegments": "Объединить дублей: {{count}}",
+		"merged": "Дубли объединены в одно видео: {{count}}.",
+		"mergeFailed": "Не удалось объединить дубли: {{error}}"
 	}
 }

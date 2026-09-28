@@ -61,6 +61,20 @@ export function getRecordingSessionManifestPath(videoPath: string) {
 	return path.join(path.dirname(videoPath), `${baseName}${RECORDING_SESSION_MANIFEST_SUFFIX}`);
 }
 
+/** Segment file names from the manifest: only plain in-directory names survive. */
+export function normalizeSegmentFileNames(value: unknown): string[] {
+	if (!Array.isArray(value)) {
+		return [];
+	}
+	const normalized: string[] = [];
+	for (const entry of value) {
+		if (typeof entry === "string" && isPlainFileName(entry.trim())) {
+			normalized.push(entry.trim());
+		}
+	}
+	return normalized;
+}
+
 export async function persistRecordingSessionManifest(
 	session: RecordingSessionData,
 ): Promise<void> {
@@ -72,27 +86,83 @@ export async function persistRecordingSessionManifest(
 	const normalizedWebcamPath = normalizeVideoSourcePath(session.webcamPath ?? null);
 	const manifestPath = getRecordingSessionManifestPath(normalizedVideoPath);
 	const marksMs = normalizeRecordingMarks(session.marksMs, undefined);
+	const segmentFiles = normalizeSegmentFileNames(session.segmentFiles);
 
-	if (!normalizedWebcamPath && marksMs.length === 0) {
+	if (!normalizedWebcamPath && marksMs.length === 0 && segmentFiles.length === 0) {
 		await fs.rm(manifestPath, { force: true });
 		return;
 	}
 
-	// v4: a webcam-less recording now keeps a manifest when it carries marks —
-	// the marks are the session's only durable extra state.
+	// v5: a webcam-less recording keeps a manifest when it carries marks or
+	// segment rollovers — those are the session's only durable extra state.
 	const manifest: RecordingSessionManifest = {
-		version: 4,
+		version: 5,
 		videoFileName: path.basename(normalizedVideoPath),
 		...(normalizedWebcamPath ? { webcamFileName: path.basename(normalizedWebcamPath) } : {}),
 		timeOffsetMs: normalizeRecordingTimeOffsetMs(session.timeOffsetMs),
 		hideOverlayCursorByDefault: session.hideOverlayCursorByDefault === true,
 		...(marksMs.length > 0 ? { marksMs } : {}),
+		...(segmentFiles.length > 0 ? { segmentFiles } : {}),
 	};
 
 	// The manifest is the only durable record of the webcam link, its sync
-	// offset, and the multi-clip marks, and it is most likely to be mid-write
-	// during the exact crash it exists to survive — commit it through the
-	// temp+rename writer.
+	// offset, and the multi-clip marks/segments, and it is most likely to be
+	// mid-write during the exact crash it exists to survive — commit it
+	// through the temp+rename writer.
+	await writeProjectFileAtomically(manifestPath, JSON.stringify(manifest, null, 2));
+}
+
+/**
+ * Shared merge for mid-recording manifest writes: preserve whatever session
+ * state an existing manifest already carries (webcam link, sync offset,
+ * cursor flag) and write the given marks/segments into a v5 manifest.
+ */
+async function persistInFlightSessionManifest(
+	videoPath: string,
+	extras: { marksMs?: number[]; segmentFiles?: string[] },
+): Promise<void> {
+	const normalizedVideoPath = normalizeVideoSourcePath(videoPath);
+	const marksMs = normalizeRecordingMarks(extras.marksMs, undefined);
+	const segmentFiles = normalizeSegmentFileNames(extras.segmentFiles);
+	if (!normalizedVideoPath || (marksMs.length === 0 && segmentFiles.length === 0)) {
+		return;
+	}
+
+	const manifestPath = getRecordingSessionManifestPath(normalizedVideoPath);
+	let webcamFileName: string | undefined;
+	let timeOffsetMs = 0;
+	let hideOverlayCursorByDefault = false;
+
+	try {
+		const content = await fs.readFile(manifestPath, "utf-8");
+		const parsed = parseJsonWithByteOrderMark<Partial<RecordingSessionManifest>>(content);
+		if (
+			parsed.version === 1 ||
+			parsed.version === 2 ||
+			parsed.version === 3 ||
+			parsed.version === 4 ||
+			parsed.version === 5
+		) {
+			if (typeof parsed.webcamFileName === "string" && isPlainFileName(parsed.webcamFileName)) {
+				webcamFileName = parsed.webcamFileName;
+			}
+			timeOffsetMs = normalizeRecordingTimeOffsetMs(parsed.timeOffsetMs);
+			hideOverlayCursorByDefault = parsed.hideOverlayCursorByDefault === true;
+		}
+	} catch {
+		// No existing manifest — start from the minimal shape.
+	}
+
+	const manifest: RecordingSessionManifest = {
+		version: 5,
+		videoFileName: path.basename(normalizedVideoPath),
+		...(webcamFileName ? { webcamFileName } : {}),
+		timeOffsetMs,
+		hideOverlayCursorByDefault,
+		...(marksMs.length > 0 ? { marksMs } : {}),
+		...(segmentFiles.length > 0 ? { segmentFiles } : {}),
+	};
+
 	await writeProjectFileAtomically(manifestPath, JSON.stringify(manifest, null, 2));
 }
 
@@ -106,40 +176,19 @@ export async function persistRecordingMarksManifest(
 	videoPath: string,
 	marksMs: number[],
 ): Promise<void> {
-	const normalizedVideoPath = normalizeVideoSourcePath(videoPath);
-	if (!normalizedVideoPath || marksMs.length === 0) {
-		return;
-	}
+	await persistInFlightSessionManifest(videoPath, { marksMs });
+}
 
-	const manifestPath = getRecordingSessionManifestPath(normalizedVideoPath);
-	let webcamFileName: string | undefined;
-	let timeOffsetMs = 0;
-	let hideOverlayCursorByDefault = false;
-
-	try {
-		const content = await fs.readFile(manifestPath, "utf-8");
-		const parsed = parseJsonWithByteOrderMark<Partial<RecordingSessionManifest>>(content);
-		if (parsed.version === 1 || parsed.version === 2 || parsed.version === 3 || parsed.version === 4) {
-			if (typeof parsed.webcamFileName === "string" && isPlainFileName(parsed.webcamFileName)) {
-				webcamFileName = parsed.webcamFileName;
-			}
-			timeOffsetMs = normalizeRecordingTimeOffsetMs(parsed.timeOffsetMs);
-			hideOverlayCursorByDefault = parsed.hideOverlayCursorByDefault === true;
-		}
-	} catch {
-		// No existing manifest — start from the minimal shape.
-	}
-
-	const manifest: RecordingSessionManifest = {
-		version: 4,
-		videoFileName: path.basename(normalizedVideoPath),
-		...(webcamFileName ? { webcamFileName } : {}),
-		timeOffsetMs,
-		hideOverlayCursorByDefault,
-		marksMs: normalizeRecordingMarks(marksMs, undefined),
-	};
-
-	await writeProjectFileAtomically(manifestPath, JSON.stringify(manifest, null, 2));
+/**
+ * Per-rollover segment persistence: records the finalized segment file
+ * names so a crash between rollovers still leaves every completed segment
+ * discoverable. Anchored to the primary (first segment) path.
+ */
+export async function persistRecordingSegmentsManifest(
+	videoPath: string,
+	segmentFiles: string[],
+): Promise<void> {
+	await persistInFlightSessionManifest(videoPath, { segmentFiles });
 }
 
 export async function resolveRecordingSessionManifest(
@@ -159,12 +208,14 @@ export async function resolveRecordingSessionManifest(
 			parsed.version !== 1 &&
 			parsed.version !== 2 &&
 			parsed.version !== 3 &&
-			parsed.version !== 4
+			parsed.version !== 4 &&
+			parsed.version !== 5
 		) {
 			return null;
 		}
 
 		const marksMs = normalizeRecordingMarks(parsed.marksMs, undefined);
+		const segmentFiles = normalizeSegmentFileNames(parsed.segmentFiles);
 		const webcamFileName =
 			typeof parsed.webcamFileName === "string" && parsed.webcamFileName.trim()
 				? parsed.webcamFileName.trim()
@@ -179,6 +230,7 @@ export async function resolveRecordingSessionManifest(
 				timeOffsetMs: normalizeRecordingTimeOffsetMs(parsed.timeOffsetMs),
 				hideOverlayCursorByDefault: parsed.hideOverlayCursorByDefault === true,
 				...(marksMs.length > 0 ? { marksMs } : {}),
+				...(segmentFiles.length > 0 ? { segmentFiles } : {}),
 			};
 		}
 
@@ -189,6 +241,7 @@ export async function resolveRecordingSessionManifest(
 				timeOffsetMs: normalizeRecordingTimeOffsetMs(parsed.timeOffsetMs),
 				hideOverlayCursorByDefault: parsed.hideOverlayCursorByDefault === true,
 				...(marksMs.length > 0 ? { marksMs } : {}),
+				...(segmentFiles.length > 0 ? { segmentFiles } : {}),
 			};
 		}
 
@@ -204,6 +257,7 @@ export async function resolveRecordingSessionManifest(
 			timeOffsetMs: normalizeRecordingTimeOffsetMs(parsed.timeOffsetMs),
 			hideOverlayCursorByDefault: parsed.hideOverlayCursorByDefault === true,
 			...(marksMs.length > 0 ? { marksMs } : {}),
+			...(segmentFiles.length > 0 ? { segmentFiles } : {}),
 		};
 	} catch {
 		return null;
@@ -248,9 +302,13 @@ export async function resolveRecordingSession(
 ): Promise<RecordingSessionData | null> {
 	const manifestSession = await resolveRecordingSessionManifest(videoPath);
 	if (manifestSession) {
-		// A marks-only crash write can predate the webcam sidecar; keep the
-		// established sibling auto-discovery for the webcam link.
-		if (!manifestSession.webcamPath && manifestSession.marksMs?.length) {
+		// A marks/segments-only crash write can predate the webcam sidecar;
+		// keep the established sibling auto-discovery for the webcam link.
+		if (
+			!manifestSession.webcamPath &&
+			((manifestSession.marksMs?.length ?? 0) > 0 ||
+				(manifestSession.segmentFiles?.length ?? 0) > 0)
+		) {
 			const linkedWebcamPath = await resolveLinkedWebcamPath(manifestSession.videoPath);
 			if (linkedWebcamPath) {
 				return { ...manifestSession, webcamPath: linkedWebcamPath };

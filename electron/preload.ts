@@ -757,6 +757,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
 		// time; the renderer never supplies a timestamp.
 		return ipcRenderer.invoke("mark-recording-segment") as Promise<{
 			success: boolean;
+			segmentMode?: boolean;
+			segments?: string[];
 			marksMs?: number[];
 			elapsedMs?: number;
 			error?: string;
@@ -764,6 +766,23 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	},
 	clearRecordingMarks: () => {
 		return ipcRenderer.invoke("clear-recording-marks") as Promise<{ success: boolean }>;
+	},
+	concatRecordingSegments: (options: {
+		outputPath: string;
+		keep: string[];
+		discard: string[];
+	}) => {
+		// Multi-clip v2: merge kept segment takes into the primary recording
+		// (ffmpeg concat, stream copy) and delete the sources.
+		return ipcRenderer.invoke("concat-recording-segments", options) as Promise<
+			| {
+					success: true;
+					outputPath: string;
+					keptCount: number;
+					droppedCount: number;
+			  }
+			| { success: false; error: string }
+		>;
 	},
 	generateAutoCaptions: (options: {
 		videoPath: string;
