@@ -1,5 +1,6 @@
 import {
 	ArticleIcon,
+	FlagIcon,
 	MicrophoneIcon,
 	MicrophoneSlashIcon,
 	MinusIcon,
@@ -21,6 +22,7 @@ interface RecordingControlsProps {
 	prompterVisible: boolean;
 	onTogglePrompter: () => void;
 	onToggleMicrophone: () => void;
+	onMarkSegment: () => void;
 	onPauseResume: () => void;
 	onStopRecording: () => void;
 	onHideHud: () => void;
@@ -35,6 +37,7 @@ export const RecordingControls = ({
 	prompterVisible,
 	onTogglePrompter,
 	onToggleMicrophone,
+	onMarkSegment,
 	onPauseResume,
 	onStopRecording,
 	onHideHud,
@@ -109,6 +112,17 @@ export const RecordingControls = ({
 				</Button>
 
 				<Button
+					variant="ghost"
+					size="icon"
+					iconSize="lg"
+					onClick={onMarkSegment}
+					title={t("recording.markSegment")}
+					aria-label={t("recording.markSegment")}
+				>
+					<FlagIcon size={18} />
+				</Button>
+
+				<Button
 					variant={paused ? "default" : "ghost"}
 					size="icon"
 					iconSize="lg"
@@ -166,6 +180,7 @@ export const RecordingControls = ({
 		prompterVisible,
 		onTogglePrompter,
 		onToggleMicrophone,
+		onMarkSegment,
 		onPauseResume,
 		onStopRecording,
 		onHideHud,

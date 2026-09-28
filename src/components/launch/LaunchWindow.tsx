@@ -277,6 +277,9 @@ function LaunchWindowContent() {
 			prompterVisible={prompterVisible}
 			onTogglePrompter={() => setPrompterVisible((visible) => !visible)}
 			onToggleMicrophone={() => setMicrophoneEnabled(!microphoneEnabled)}
+			onMarkSegment={() => {
+				void window.electronAPI.markRecordingSegment?.();
+			}}
 			onPauseResume={paused ? resumeRecording : pauseRecording}
 			onStopRecording={toggleRecording}
 			onHideHud={() => window.electronAPI?.hudOverlayHide?.()}

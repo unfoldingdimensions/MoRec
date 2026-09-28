@@ -190,5 +190,15 @@
 		"dark": "Dark",
 		"light": "Light",
 		"system": "System"
+	},
+	"multiClip": {
+		"multiClipRecording": "Gravação multi-clipes",
+		"hint": "As marcações dividem a gravação; alterne as faixas para descartar.",
+		"takeRange": "{{start}} → {{end}}",
+		"discardRange": "Descartar",
+		"keepRange": "Manter",
+		"applyMultiClip": "Cortar {{count}} faixa(s) ({{seconds}}s)",
+		"applied": "Cortadas {{count}} faixa(s) com falhas ({{seconds}}s)",
+		"dismiss": "Agora não"
 	}
 }

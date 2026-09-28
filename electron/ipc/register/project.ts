@@ -29,7 +29,13 @@ import {
 	saveProjectThumbnail,
 	saveRecentProjectPaths,
 } from "../project/manager";
-import { persistRecordingSessionManifest, resolveRecordingSession } from "../project/session";
+import {
+	normalizeRecordingMarks,
+	persistRecordingSessionManifest,
+	resolveRecordingSession,
+} from "../project/session";
+import { consumeRecordingMarksForPath } from "../recording/marks";
+import type { RecordingSessionData } from "../types";
 import {
 	currentProjectPath,
 	currentRecordingSession,
@@ -693,11 +699,22 @@ export function registerProjectHandlers() {
 				timeOffsetMs: 0,
 			};
 
+			// Multi-clip marks (v4 manifest): the resolved session may already
+			// carry marks (per-mark crash writes); otherwise attach the marks
+			// pending from the recording that just stopped.
+			const pendingMarks = resolvedSession.marksMs?.length
+				? null
+				: consumeRecordingMarksForPath(currentVideoPath);
+			const attachedMarks = resolvedSession.marksMs?.length
+				? resolvedSession.marksMs
+				: (pendingMarks ?? undefined);
+
 			const nextSession = {
 				...resolvedSession,
 				hideOverlayCursorByDefault:
 					normalizeBoolean(options?.hideOverlayCursorByDefault) ||
 					normalizeBoolean(resolvedSession.hideOverlayCursorByDefault),
+				...(attachedMarks?.length ? { marksMs: attachedMarks } : {}),
 			};
 
 			setCurrentRecordingSession(nextSession);
@@ -734,17 +751,25 @@ export function registerProjectHandlers() {
 				webcamPath?: string | null;
 				timeOffsetMs?: number;
 				hideOverlayCursorByDefault?: boolean;
+				marksMs?: number[];
 			},
 			options?: { preserveProjectPath?: boolean },
 		) => {
 			const normalizedVideoPath =
 				normalizeVideoSourcePath(session.videoPath) ?? session.videoPath;
 			setCurrentVideoPath(normalizedVideoPath);
+			// The renderer never sends marks with session updates; preserve the
+			// marks already attached to the in-memory session so webcam-link
+			// changes do not silently drop them.
+			const preservedMarks = Array.isArray(session.marksMs)
+				? normalizeRecordingMarks(session.marksMs)
+				: (currentRecordingSession?.marksMs ?? []);
 			setCurrentRecordingSession({
 				videoPath: normalizedVideoPath,
 				webcamPath: normalizeVideoSourcePath(session.webcamPath ?? null),
 				timeOffsetMs: normalizeRecordingTimeOffsetMs(session.timeOffsetMs),
 				hideOverlayCursorByDefault: normalizeBoolean(session.hideOverlayCursorByDefault),
+				...(preservedMarks.length > 0 ? { marksMs: preservedMarks } : {}),
 			});
 			await rememberApprovedLocalReadPath(currentRecordingSession!.videoPath);
 			await rememberApprovedLocalReadPath(currentRecordingSession!.webcamPath);
@@ -772,6 +797,21 @@ export function registerProjectHandlers() {
 			success: true,
 			session: currentRecordingSession,
 		};
+	});
+
+	// Multi-clip marks have been handled (applied as trims): drop them from
+	// the session and the manifest so the editor panel stays one-time.
+	ipcMain.handle("clear-recording-marks", async () => {
+		if (!currentRecordingSession) {
+			return { success: false };
+		}
+		const clearedSession: RecordingSessionData = {
+			...currentRecordingSession,
+			marksMs: [],
+		};
+		setCurrentRecordingSession(clearedSession);
+		await persistRecordingSessionManifest(clearedSession);
+		return { success: true };
 	});
 
 	ipcMain.handle("get-current-video-path", () => {

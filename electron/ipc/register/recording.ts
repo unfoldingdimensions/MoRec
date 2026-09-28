@@ -22,6 +22,7 @@ import { startWindowBoundsCapture, stopWindowBoundsCapture } from "../cursor/bou
 import { startInteractionCapture, stopInteractionCapture } from "../cursor/interaction";
 import { startNativeCursorMonitor, stopNativeCursorMonitor } from "../cursor/monitor";
 import {
+	getCursorCaptureElapsedMs,
 	normalizeCursorTelemetrySamples,
 	pauseCursorCaptureAtBoundary,
 	persistPendingCursorTelemetry,
@@ -48,6 +49,13 @@ import {
 	rememberApprovedLocalReadPath,
 } from "../project/manager";
 import { writeProjectFileAtomically } from "../project/atomicSave";
+import { persistRecordingMarksManifest } from "../project/session";
+import {
+	addRecordingMark,
+	beginRecordingCapture,
+	getRecordingTargetPath,
+	resetRecordingMarks,
+} from "../recording/marks";
 import { probeCompanionAudioLevels } from "../recording/companionAudioLevel";
 import { analyzeCompanionAudioSilenceFromVideo } from "../recording/companionSilence";
 import {
@@ -114,6 +122,7 @@ import {
 	setNativeCaptureStopRequested,
 	setNativeCaptureSystemAudioPath,
 	setNativeCaptureTargetPath,
+	isCursorCaptureActive,
 	setNativeScreenRecordingActive,
 	setPendingCursorSamples,
 	setWindowsCaptureOutputBuffer,
@@ -559,6 +568,9 @@ export function registerRecordingHandlers(
 					tempVideoPath = path.join(app.getPath("temp"), `morec-native-${timestamp}.mp4`);
 					setWindowsCaptureTargetPath(outputPath);
 					setWindowsCaptureTempPath(tempVideoPath);
+					// Marks captured from here on belong to this recording and can
+					// be persisted per-mark next to the (already known) target.
+					beginRecordingCapture(outputPath);
 
 					let captureOutput = "";
 					let systemAudioPath: string | null = null;
@@ -881,6 +893,9 @@ export function registerRecordingHandlers(
 				const helperPath = await ensureNativeCaptureHelperBinary();
 				const timestamp = Date.now();
 				const outputPath = path.join(recordingsDir, `recording-${timestamp}.mp4`);
+				// Marks captured from here on belong to this recording and can be
+				// persisted per-mark next to the (already known) target.
+				beginRecordingCapture(outputPath);
 				const capturesSystemAudio = Boolean(options?.capturesSystemAudio);
 				const capturesMicrophone = Boolean(options?.capturesMicrophone);
 				const systemAudioOutputPath = capturesSystemAudio
@@ -2051,6 +2066,9 @@ export function registerRecordingHandlers(
 			setPendingCursorSamples([]);
 			setCursorCaptureStartTimeMs(Date.now());
 			resetCursorCaptureClock();
+			// Multi-clip marks: a fresh recording starts with no marks, and any
+			// stale pending marks from a previous unopened recording are dropped.
+			resetRecordingMarks();
 			setLinuxCursorScreenPoint(null);
 			setLastLeftClick(null);
 			sampleCursorPoint();
@@ -2087,6 +2105,29 @@ export function registerRecordingHandlers(
 	ipcMain.handle("pause-cursor-capture", (_, pausedAtMs?: unknown) => {
 		pauseCursorCaptureAtBoundary(normalizeRendererTimestampMs(pausedAtMs));
 		return { success: true };
+	});
+
+	// Multi-clip recording (P1 Feature 6): the HUD's "Mark segment" button.
+	// Elapsed time MUST come from the same pause-aware clock as cursor capture
+	// (never Date.now()) so marks line up with the recorded timeline.
+	ipcMain.handle("mark-recording-segment", async () => {
+		if (!isCursorCaptureActive) {
+			return { success: false, error: "Recording is not active." };
+		}
+		const elapsedMs = Math.round(getCursorCaptureElapsedMs());
+		const marks = addRecordingMark(elapsedMs);
+		const targetPath = getRecordingTargetPath();
+		if (targetPath) {
+			try {
+				// Crash safety: commit the marks to the manifest at mark time,
+				// merged into whatever session state already sits next to the
+				// target video.
+				await persistRecordingMarksManifest(targetPath, marks);
+			} catch (error) {
+				console.warn("[recording-marks] Per-mark manifest write failed:", error);
+			}
+		}
+		return { success: true, marksMs: marks, elapsedMs };
 	});
 
 	ipcMain.handle("resume-cursor-capture", (_, resumedAtMs?: unknown) => {

@@ -190,5 +190,15 @@
 		"dark": "Dark",
 		"light": "Light",
 		"system": "System"
+	},
+	"multiClip": {
+		"multiClipRecording": "多片段录制",
+		"hint": "标记会分割录制内容；切换各区间以选择丢弃。",
+		"takeRange": "{{start}} → {{end}}",
+		"discardRange": "丢弃",
+		"keepRange": "保留",
+		"applyMultiClip": "剪切 {{count}} 个区间（{{seconds}} 秒）",
+		"applied": "已剪切 {{count}} 个失误区间（{{seconds}} 秒）",
+		"dismiss": "暂不处理"
 	}
 }

@@ -190,5 +190,15 @@
 		"dark": "Dark",
 		"light": "Light",
 		"system": "System"
+	},
+	"multiClip": {
+		"multiClipRecording": "Multi-clip opname",
+		"hint": "Markeringen splitsen de opname; schakel de bereiken om te verwerpen.",
+		"takeRange": "{{start}} → {{end}}",
+		"discardRange": "Verwerpen",
+		"keepRange": "Behouden",
+		"applyMultiClip": "{{count}} bereik(en) ({{seconds}}s) knippen",
+		"applied": "{{count}} mislukte bereik(en) ({{seconds}}s) geknipt",
+		"dismiss": "Niet nu"
 	}
 }

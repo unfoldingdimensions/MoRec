@@ -190,5 +190,15 @@
 		"dark": "Dark",
 		"light": "Light",
 		"system": "System"
+	},
+	"multiClip": {
+		"multiClipRecording": "Grabación multipista",
+		"hint": "Las marcas dividen la grabación; alterna los rangos para descartarlos.",
+		"takeRange": "{{start}} → {{end}}",
+		"discardRange": "Descartar",
+		"keepRange": "Conservar",
+		"applyMultiClip": "Cortar {{count}} rango(s) ({{seconds}}s)",
+		"applied": "Se cortaron {{count}} rango(s) con errores ({{seconds}}s)",
+		"dismiss": "Ahora no"
 	}
 }

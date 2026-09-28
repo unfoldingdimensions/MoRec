@@ -190,5 +190,15 @@
 		"dark": "Dark",
 		"light": "Light",
 		"system": "System"
+	},
+	"multiClip": {
+		"multiClipRecording": "Multi-clip recording",
+		"hint": "Marks split the recording; toggle the ranges to discard.",
+		"takeRange": "{{start}} → {{end}}",
+		"discardRange": "Discard",
+		"keepRange": "Keep",
+		"applyMultiClip": "Cut {{count}} range(s) ({{seconds}}s)",
+		"applied": "Cut {{count}} flubbed range(s) ({{seconds}}s)",
+		"dismiss": "Not now"
 	}
 }

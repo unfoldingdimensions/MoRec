@@ -48,15 +48,19 @@ export type RecordingSessionData = {
 	webcamPath?: string | null;
 	timeOffsetMs?: number;
 	hideOverlayCursorByDefault?: boolean;
+	/** v4: HUD "mark segment" timestamps (pause-aware elapsed ms), ascending. */
+	marksMs?: number[];
 };
 
 export type RecordingSessionManifest = {
-	version: 1 | 2 | 3;
+	version: 1 | 2 | 3 | 4;
 	videoFileName: string;
 	webcamFileName?: string | null;
 	timeOffsetMs?: number;
 	/** v3: survives restarts with the session instead of resetting. */
 	hideOverlayCursorByDefault?: boolean;
+	/** v4: multi-clip recording marks, written per-mark during recording. */
+	marksMs?: number[];
 };
 
 export type ProjectLibraryEntry = {

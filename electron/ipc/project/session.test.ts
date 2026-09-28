@@ -159,4 +159,98 @@ describe("recording session manifest persistence", () => {
 		const entries = await fs.readdir(tempRoot);
 		expect(entries.filter((entry) => entry.endsWith(".tmp"))).toEqual([]);
 	});
+
+	it("persists a v4 manifest with marks and resolves them back", async () => {
+		const { persistRecordingSessionManifest, resolveRecordingSessionManifest } =
+			await importSession();
+
+		await persistRecordingSessionManifest({
+			videoPath,
+			webcamPath,
+			timeOffsetMs: 10,
+			marksMs: [5000, 12_000],
+		});
+
+		const raw = await fs.readFile(manifestPath(), "utf-8");
+		expect(JSON.parse(raw).version).toBe(4);
+
+		const session = await resolveRecordingSessionManifest(videoPath);
+		expect(session).toMatchObject({
+			videoPath,
+			webcamPath,
+			timeOffsetMs: 10,
+			marksMs: [5000, 12_000],
+		});
+	});
+
+	it("keeps a webcam-less manifest when it carries marks (v4)", async () => {
+		const { persistRecordingSessionManifest, resolveRecordingSessionManifest } =
+			await importSession();
+
+		// Established v3 behavior: no webcam -> no manifest...
+		await persistRecordingSessionManifest({ videoPath, webcamPath: null, timeOffsetMs: 0 });
+		await expect(fs.access(manifestPath())).rejects.toMatchObject({ code: "ENOENT" });
+
+		// ...but marks alone are worth persisting.
+		await persistRecordingSessionManifest({
+			videoPath,
+			webcamPath: null,
+			timeOffsetMs: 0,
+			marksMs: [3000],
+		});
+
+		const session = await resolveRecordingSessionManifest(videoPath);
+		expect(session).toMatchObject({ videoPath, webcamPath: null, marksMs: [3000] });
+	});
+
+	it("resolves a v3 manifest without marks (backward compatibility)", async () => {
+		const { resolveRecordingSessionManifest } = await importSession();
+
+		await fs.writeFile(
+			manifestPath(),
+			JSON.stringify({
+				version: 3,
+				videoFileName: "recording-100.mp4",
+				webcamFileName: "recording-100-webcam.webm",
+				timeOffsetMs: 10,
+				hideOverlayCursorByDefault: true,
+			}),
+			"utf-8",
+		);
+
+		const session = await resolveRecordingSessionManifest(videoPath);
+		expect(session).toMatchObject({
+			webcamPath,
+			timeOffsetMs: 10,
+			hideOverlayCursorByDefault: true,
+		});
+		expect(session?.marksMs).toBeUndefined();
+	});
+
+	it("sanitizes marks read from the manifest", async () => {
+		const { resolveRecordingSessionManifest } = await importSession();
+
+		await fs.writeFile(
+			manifestPath(),
+			JSON.stringify({
+				version: 4,
+				videoFileName: "recording-100.mp4",
+				marksMs: [0, 100, 5000, 5200, "junk", -3],
+			}),
+			"utf-8",
+		);
+
+		const session = await resolveRecordingSessionManifest(videoPath);
+		expect(session?.marksMs).toEqual([5000]);
+	});
+
+	it("keeps the -webcam sibling auto-discovery for marks-only crash writes", async () => {
+		const { persistRecordingMarksManifest, resolveRecordingSession } = await importSession();
+
+		// Mid-recording mark write with no webcam link registered yet.
+		await persistRecordingMarksManifest(videoPath, [4000, 8000]);
+
+		const session = await resolveRecordingSession(videoPath);
+		expect(session).toMatchObject({ webcamPath, marksMs: [4000, 8000] });
+	});
 });

@@ -714,6 +714,13 @@ interface Window {
 				error?: string;
 			}) => void,
 		) => () => void;
+		markRecordingSegment: () => Promise<{
+			success: boolean;
+			marksMs?: number[];
+			elapsedMs?: number;
+			error?: string;
+		}>;
+		clearRecordingMarks: () => Promise<{ success: boolean }>;
 		generateAutoCaptions: (options: {
 			videoPath: string;
 			whisperExecutablePath?: string;

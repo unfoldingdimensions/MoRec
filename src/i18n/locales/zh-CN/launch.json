@@ -77,7 +77,8 @@
 		"fontSize": "字体大小",
 		"scrollSpeed": "滚动速度",
 		"prompterPause": "点击暂停",
-		"prompterResume": "点击继续"
+		"prompterResume": "点击继续",
+		"markSegment": "标记片段"
 	},
 	"sourceSelector": {
 		"loadingSources": "正在加载源...",
