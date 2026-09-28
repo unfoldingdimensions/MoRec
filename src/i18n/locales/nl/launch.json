@@ -78,7 +78,8 @@
 		"scrollSpeed": "Scrollsnelheid",
 		"prompterPause": "Tik om te pauzeren",
 		"prompterResume": "Tik om verder te gaan",
-		"markSegment": "Segment markeren"
+		"markSegment": "Segment markeren",
+		"prompterMove": "Sleep om te verplaatsen"
 	},
 	"sourceSelector": {
 		"loadingSources": "Bronnen laden...",

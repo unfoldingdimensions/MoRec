@@ -78,7 +78,8 @@
 		"scrollSpeed": "Velocidad de desplazamiento",
 		"prompterPause": "Toca para pausar",
 		"prompterResume": "Toca para reanudar",
-		"markSegment": "Marcar segmento"
+		"markSegment": "Marcar segmento",
+		"prompterMove": "Arrastra para mover"
 	},
 	"sourceSelector": {
 		"loadingSources": "Cargando fuentes...",

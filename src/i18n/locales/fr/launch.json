@@ -78,7 +78,8 @@
 		"scrollSpeed": "Vitesse de défilement",
 		"prompterPause": "Touchez pour mettre en pause",
 		"prompterResume": "Touchez pour reprendre",
-		"markSegment": "Marquer le segment"
+		"markSegment": "Marquer le segment",
+		"prompterMove": "Glisser pour déplacer"
 	},
 	"sourceSelector": {
 		"loadingSources": "Chargement des sources...",

@@ -78,7 +78,8 @@
 		"scrollSpeed": "스크롤 속도",
 		"prompterPause": "일시정지하려면 탭",
 		"prompterResume": "재개하려면 탭",
-		"markSegment": "구간 표시"
+		"markSegment": "구간 표시",
+		"prompterMove": "드래그하여 이동"
 	},
 	"sourceSelector": {
 		"loadingSources": "소스를 불러오는 중...",
