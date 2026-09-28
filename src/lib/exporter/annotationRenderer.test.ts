@@ -127,3 +127,40 @@ describe("renderAnnotations pixelate masks", () => {
 		expect(bufferDraw?.args).toEqual([ctx.canvas, 0, 0, 1920, 1080, 0, 0, 1920, 1080]);
 	});
 });
+
+describe("renderAnnotations scroll-tracking drift", () => {
+	it("renders the mask at the interpolated position for the frame time", async () => {
+		const ctx = createRecordingCtx(1920, 1080);
+		// Pixelate path samples the exact region rect (the blur path pads its
+		// sample for edge blending), so the drift math is directly observable.
+		const drifting = blurAnnotation({
+			maskStyle: "pixelate",
+			position: { x: 0, y: 0 },
+			endPosition: { x: 50, y: 0 },
+			size: { width: 50, height: 100 },
+		});
+
+		const sampledRect = () => {
+			const upscale = vi
+				.mocked(ctx.drawImage)
+				.mock.calls.find((call) => (call[0] as HTMLCanvasElement) !== ctx.canvas);
+			const scratch = upscale?.[0] as HTMLCanvasElement;
+			return canvasDrawCalls.find((call) => call.ctx === scratch)?.args;
+		};
+
+		// Halfway through the span the mask has drifted half its travel
+		// (grid: 960/(40/4) = 96 wide, 1080/10 = 108 tall).
+		await renderAnnotations(ctx, [drifting], 1920, 1080, 2500);
+		expect(sampledRect()).toEqual([ctx.canvas, 480, 0, 960, 1080, 0, 0, 96, 108]);
+
+		// At the span start it sits at position; at the span end it has fully
+		// arrived at endPosition (past the span the region is not rendered).
+		canvasDrawCalls.length = 0;
+		await renderAnnotations(ctx, [drifting], 1920, 1080, 0);
+		expect(sampledRect()).toEqual([ctx.canvas, 0, 0, 960, 1080, 0, 0, 96, 108]);
+
+		canvasDrawCalls.length = 0;
+		await renderAnnotations(ctx, [drifting], 1920, 1080, 5000);
+		expect(sampledRect()).toEqual([ctx.canvas, 960, 0, 960, 1080, 0, 0, 96, 108]);
+	});
+});

@@ -49,7 +49,11 @@
 		"imageUploadFailedDescription": "The file could not be read. It may be corrupted or unsupported.",
 		"maskStyle": "마스크 스타일",
 		"maskStyleBlur": "흐리게",
-		"maskStylePixelate": "픽셀화"
+		"maskStylePixelate": "픽셀화",
+		"scrollTracking": "스크롤 추적",
+		"scrollTrackingHint": "마스크가 적용 구간 동안 현재 위치에서 끝 위치로 이동합니다. 타임라인을 스크럽하여 미리 확인하세요.",
+		"driftEndX": "끝 X",
+		"driftEndY": "끝 Y"
 	},
 	"fontStyles": {
 		"classic": "클래식",

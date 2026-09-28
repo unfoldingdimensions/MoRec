@@ -25,6 +25,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { type CustomFont, getCustomFonts } from "@/lib/customFonts";
@@ -50,6 +51,8 @@ interface AnnotationSettingsPanelProps {
 	onBlurIntensityChange?: (intensity: number) => void;
 	onBlurColorChange?: (color: string) => void;
 	onMaskStyleChange?: (style: AnnotationMaskStyle) => void;
+	/** Set/clear the drift endpoint (scroll-tracking masks); null = static. */
+	onEndPositionChange?: (endPosition: { x: number; y: number } | null) => void;
 }
 
 export const FONT_FAMILY_VALUES = [
@@ -74,6 +77,7 @@ export function AnnotationSettingsPanel({
 	onBlurIntensityChange,
 	onBlurColorChange,
 	onMaskStyleChange,
+	onEndPositionChange,
 }: AnnotationSettingsPanelProps) {
 	const t = useScopedT("editor");
 	const fileInputRef = useRef<HTMLInputElement>(null);
@@ -677,15 +681,90 @@ export function AnnotationSettingsPanel({
 										>
 											{t("annotations.maskStyleBlur", "Blur")}
 										</ToggleGroupItem>
-										<ToggleGroupItem
-											value="pixelate"
-											aria-label={t("annotations.maskStylePixelate", "Pixelate")}
-											className="h-8 text-xs rounded-md data-[state=on]:bg-[#2563EB] data-[state=on]:text-white text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
-										>
-											{t("annotations.maskStylePixelate", "Pixelate")}
-										</ToggleGroupItem>
-									</ToggleGroup>
+									<ToggleGroupItem
+										value="pixelate"
+										aria-label={t("annotations.maskStylePixelate", "Pixelate")}
+										className="h-8 text-xs rounded-md data-[state=on]:bg-[#2563EB] data-[state=on]:text-white text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
+									>
+										{t("annotations.maskStylePixelate", "Pixelate")}
+									</ToggleGroupItem>
+								</ToggleGroup>
+							</div>
+							<div className="w-full space-y-3 mt-4 rounded-lg border border-foreground/10 bg-background/40 p-3">
+								<div className="flex items-center justify-between">
+									<span className="text-xs font-medium text-foreground">
+										{t("annotations.scrollTracking", "Scroll tracking")}
+									</span>
+									<Switch
+										checked={annotation.endPosition !== undefined}
+										onCheckedChange={(enabled) => {
+											if (enabled) {
+												// Sensible default: content scrolls up ~15%
+												// of the frame across the mask's span.
+												onEndPositionChange?.({
+													x: annotation.position.x,
+													y: Math.max(0, annotation.position.y - 15),
+												});
+											} else {
+												onEndPositionChange?.(null);
+											}
+										}}
+										className="data-[state=checked]:bg-[#2563EB] scale-75"
+									/>
 								</div>
+								{annotation.endPosition !== undefined ? (
+									<div className="space-y-2">
+										<p className="text-[10px] leading-relaxed text-muted-foreground">
+											{t(
+												"annotations.scrollTrackingHint",
+												"The mask glides from its current position to the end position across its span. Scrub the timeline to preview.",
+											)}
+										</p>
+										<div>
+											<div className="flex items-center justify-between text-[10px] text-muted-foreground">
+												<span>{t("annotations.driftEndX", "End X")}</span>
+												<span className="tabular-nums">
+													{Math.round(annotation.endPosition.x)}%
+												</span>
+											</div>
+											<Slider
+												value={[annotation.endPosition.x]}
+												onValueChange={([value]) =>
+													onEndPositionChange?.({
+														x: value,
+														y: annotation.endPosition!.y,
+													})
+												}
+												min={0}
+												max={100}
+												step={1}
+												className="w-full"
+											/>
+										</div>
+										<div>
+											<div className="flex items-center justify-between text-[10px] text-muted-foreground">
+												<span>{t("annotations.driftEndY", "End Y")}</span>
+												<span className="tabular-nums">
+													{Math.round(annotation.endPosition.y)}%
+												</span>
+											</div>
+											<Slider
+												value={[annotation.endPosition.y]}
+												onValueChange={([value]) =>
+													onEndPositionChange?.({
+														x: annotation.endPosition!.x,
+														y: value,
+													})
+												}
+												min={0}
+												max={100}
+												step={1}
+												className="w-full"
+											/>
+										</div>
+									</div>
+								) : null}
+							</div>
 								<div className="w-full space-y-3 mt-4">
 									<div className="flex items-center justify-between">
 										<span className="text-xs font-medium text-foreground">

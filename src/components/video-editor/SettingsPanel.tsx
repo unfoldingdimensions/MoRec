@@ -894,6 +894,10 @@ interface SettingsPanelProps {
 	onAnnotationBlurIntensityChange?: (id: string, intensity: number) => void;
 	onAnnotationBlurColorChange?: (id: string, color: string) => void;
 	onAnnotationMaskStyleChange?: (id: string, style: AnnotationMaskStyle) => void;
+	onAnnotationEndPositionChange?: (
+		id: string,
+		endPosition: { x: number; y: number } | null,
+	) => void;
 	onAnnotationDelete?: (id: string) => void;
 	autoCaptions?: CaptionCue[];
 	autoCaptionSettings?: AutoCaptionSettings;
@@ -1357,6 +1361,7 @@ export function SettingsPanel({
 	onAnnotationBlurIntensityChange,
 	onAnnotationBlurColorChange,
 	onAnnotationMaskStyleChange,
+	onAnnotationEndPositionChange,
 	onAnnotationDelete,
 	autoCaptions = [],
 	autoCaptionSettings = DEFAULT_AUTO_CAPTION_SETTINGS,
@@ -2491,6 +2496,12 @@ export function SettingsPanel({
 				onMaskStyleChange={
 					onAnnotationMaskStyleChange
 						? (style) => onAnnotationMaskStyleChange(selectedAnnotation.id, style)
+						: undefined
+				}
+				onEndPositionChange={
+					onAnnotationEndPositionChange
+						? (endPosition) =>
+								onAnnotationEndPositionChange(selectedAnnotation.id, endPosition)
 						: undefined
 				}
 			/>
