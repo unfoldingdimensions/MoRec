@@ -49,7 +49,11 @@
 		"imageUploadFailedDescription": "The file could not be read. It may be corrupted or unsupported.",
 		"maskStyle": "Style de masque",
 		"maskStyleBlur": "Flou",
-		"maskStylePixelate": "Pixéliser"
+		"maskStylePixelate": "Pixéliser",
+		"scrollTracking": "Suivi du défilement",
+		"scrollTrackingHint": "Le masque glisse de sa position actuelle jusqu'à la position finale sur sa durée. Déplacez la lecture pour prévisualiser.",
+		"driftEndX": "Fin X",
+		"driftEndY": "Fin Y"
 	},
 	"fontStyles": {
 		"classic": "Classique",

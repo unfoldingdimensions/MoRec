@@ -96,6 +96,7 @@ import {
 	renderAnnotations,
 	renderAnnotationToCanvas,
 } from "./annotationRenderer";
+import { resolveAnnotationPosition } from "@/lib/annotationDrift";
 import { ForwardFrameSource } from "./forwardFrameSource";
 import { resolveMediaElementSource } from "./localMediaSource";
 import {
@@ -1634,14 +1635,15 @@ export class FrameRenderer {
 		);
 
 		for (const annotation of annotations) {
+			const positionAtTime = resolveAnnotationPosition(annotation, annotation.startMs);
 			const annotationRect = this.layoutCache?.maskRect ?? {
 				x: 0,
 				y: 0,
 				width: this.config.width,
 				height: this.config.height,
 			};
-			const x = annotationRect.x + (annotation.position.x / 100) * annotationRect.width;
-			const y = annotationRect.y + (annotation.position.y / 100) * annotationRect.height;
+			const x = annotationRect.x + (positionAtTime.x / 100) * annotationRect.width;
+			const y = annotationRect.y + (positionAtTime.y / 100) * annotationRect.height;
 			const width = (annotation.size.width / 100) * annotationRect.width;
 			const height = (annotation.size.height / 100) * annotationRect.height;
 
@@ -1670,10 +1672,26 @@ export class FrameRenderer {
 	}
 
 	private updateAnnotationLayer(currentTimeMs: number): void {
+		const annotationRect = this.layoutCache?.maskRect ?? {
+			x: 0,
+			y: 0,
+			width: this.config.width,
+			height: this.config.height,
+		};
 		for (const entry of this.annotationSprites) {
-			entry.sprite.visible =
-				currentTimeMs >= entry.annotation.startMs &&
-				currentTimeMs <= entry.annotation.endMs;
+			const visible =
+				currentTimeMs >= entry.annotation.startMs && currentTimeMs <= entry.annotation.endMs;
+			entry.sprite.visible = visible;
+			if (!visible) {
+				continue;
+			}
+			// Scroll-tracking masks glide between position and endPosition;
+			// re-resolve the sprite origin every frame.
+			const positionAtTime = resolveAnnotationPosition(entry.annotation, currentTimeMs);
+			entry.sprite.position.set(
+				annotationRect.x + (positionAtTime.x / 100) * annotationRect.width,
+				annotationRect.y + (positionAtTime.y / 100) * annotationRect.height,
+			);
 		}
 	}
 

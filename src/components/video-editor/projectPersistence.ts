@@ -661,6 +661,17 @@ export function normalizeProjectEditor(editor: Partial<ProjectEditorState>): Pro
 								100,
 							),
 						},
+						// Optional drift endpoint (scroll-tracking masks); absent
+						// means a static region, so no project-version bump.
+						endPosition:
+							region.endPosition &&
+							isFiniteNumber(region.endPosition.x) &&
+							isFiniteNumber(region.endPosition.y)
+								? {
+										x: clamp(region.endPosition.x, 0, 100),
+										y: clamp(region.endPosition.y, 0, 100),
+									}
+								: undefined,
 						size: {
 							width: clamp(
 								isFiniteNumber(region.size?.width)

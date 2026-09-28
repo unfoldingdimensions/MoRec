@@ -5032,6 +5032,21 @@ export default function VideoEditor() {
 		[],
 	);
 
+	const handleAnnotationEndPositionChange = useCallback(
+		(id: string, endPosition: { x: number; y: number } | null) => {
+			setAnnotationRegions((prev) =>
+				prev.map((region) =>
+					region.id === id
+						? endPosition
+							? { ...region, endPosition }
+							: { ...region, endPosition: undefined }
+						: region,
+				),
+			);
+		},
+		[],
+	);
+
 	const handleAnnotationPositionChange = useCallback(
 		(id: string, position: { x: number; y: number }) => {
 			setAnnotationRegions((prev) =>
@@ -7371,6 +7386,7 @@ export default function VideoEditor() {
 									}
 									onAnnotationBlurColorChange={handleAnnotationBlurColorChange}
 									onAnnotationMaskStyleChange={handleAnnotationMaskStyleChange}
+									onAnnotationEndPositionChange={handleAnnotationEndPositionChange}
 									onAnnotationDelete={handleAnnotationDelete}
 								/>
 							)}

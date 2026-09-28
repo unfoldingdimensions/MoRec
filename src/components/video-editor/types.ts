@@ -461,6 +461,11 @@ export interface AnnotationRegion {
 	textContent?: string; // Separate storage for text
 	imageContent?: string; // Separate storage for image data URL
 	position: AnnotationPosition;
+	/**
+	 * Optional second position: the region glides from `position` to
+	 * `endPosition` across its span (scroll-tracking masks). Absent = static.
+	 */
+	endPosition?: AnnotationPosition;
 	size: AnnotationSize;
 	style: AnnotationTextStyle;
 	zIndex: number;

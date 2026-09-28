@@ -3443,6 +3443,7 @@ const VideoPlayback = forwardRef<VideoPlaybackRef, VideoPlaybackProps>(
 										<AnnotationOverlay
 											key={annotation.id}
 											annotation={annotation}
+											currentTimeMs={Math.round(currentTime * 1000)}
 											isSelected={annotation.id === selectedAnnotationId}
 											containerWidth={
 												annotationRecordingRect.width ||

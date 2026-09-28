@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Rnd } from "react-rnd";
 import { cn } from "@/lib/utils";
+import { resolveAnnotationPosition } from "@/lib/annotationDrift";
 import { drawPixelatedRegion, getPixelateBlockSize } from "@/lib/pixelateMask";
 import { getArrowComponent } from "./ArrowSvgs";
 import {
@@ -111,6 +112,8 @@ interface AnnotationOverlayProps {
 	interactionScale?: number;
 	/** Composited preview frame; required to render pixelate masks (blur is the fallback). */
 	frameSource?: HTMLCanvasElement | null;
+	/** Current playback time — drives scroll-tracking drift (position interpolation). */
+	currentTimeMs?: number;
 	onPositionChange: (id: string, position: { x: number; y: number }) => void;
 	onSizeChange: (id: string, size: { width: number; height: number }) => void;
 	onClick: (id: string) => void;
@@ -135,6 +138,7 @@ export function AnnotationOverlay({
 	sceneTransform,
 	interactionScale = 1,
 	frameSource = null,
+	currentTimeMs,
 	onPositionChange,
 	onSizeChange,
 	onClick,
@@ -145,8 +149,14 @@ export function AnnotationOverlay({
 		recordingRect.width > 0 && recordingRect.height > 0
 			? recordingRect
 			: { x: 0, y: 0, width: containerWidth, height: containerHeight };
-	const sceneX = safeRecordingRect.x + (annotation.position.x / 100) * safeRecordingRect.width;
-	const sceneY = safeRecordingRect.y + (annotation.position.y / 100) * safeRecordingRect.height;
+	// Scroll-tracking drift: preview mirrors the export's per-frame position
+	// (static annotations resolve to their base position).
+	const driftPosition = resolveAnnotationPosition(
+		annotation,
+		currentTimeMs ?? annotation.startMs,
+	);
+	const sceneX = safeRecordingRect.x + (driftPosition.x / 100) * safeRecordingRect.width;
+	const sceneY = safeRecordingRect.y + (driftPosition.y / 100) * safeRecordingRect.height;
 	const sceneWidth = (annotation.size.width / 100) * safeRecordingRect.width;
 	const sceneHeight = (annotation.size.height / 100) * safeRecordingRect.height;
 	const x = sceneX * sceneTransform.scale + sceneTransform.x;

@@ -4,6 +4,7 @@ import {
 	BLUR_ANNOTATION_STRENGTH,
 	normalizeAnnotationMaskStyle,
 } from "@/components/video-editor/types";
+import { resolveAnnotationPosition } from "@/lib/annotationDrift";
 import { drawPixelatedRegion, getPixelateBlockSize } from "@/lib/pixelateMask";
 
 export interface AnnotationRenderAssets {
@@ -381,10 +382,13 @@ export async function renderAnnotations(
 	};
 
 	for (const annotation of sortedAnnotations) {
+		// Scroll-tracking masks glide between position and endPosition across
+		// their span; static annotations resolve to their base position.
+		const positionAtTime = resolveAnnotationPosition(annotation, currentTimeMs);
 		const rect = transformAnnotationRect(
 			{
-				x: annotationRect.x + (annotation.position.x / 100) * annotationRect.width,
-				y: annotationRect.y + (annotation.position.y / 100) * annotationRect.height,
+				x: annotationRect.x + (positionAtTime.x / 100) * annotationRect.width,
+				y: annotationRect.y + (positionAtTime.y / 100) * annotationRect.height,
 				width: (annotation.size.width / 100) * annotationRect.width,
 				height: (annotation.size.height / 100) * annotationRect.height,
 			},

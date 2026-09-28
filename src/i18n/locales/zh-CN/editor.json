@@ -49,7 +49,11 @@
 		"imageUploadFailedDescription": "The file could not be read. It may be corrupted or unsupported.",
 		"maskStyle": "遮罩样式",
 		"maskStyleBlur": "模糊",
-		"maskStylePixelate": "像素化"
+		"maskStylePixelate": "像素化",
+		"scrollTracking": "滚动跟踪",
+		"scrollTrackingHint": "遮罩会在其区间内从当前位置平滑移动到结束位置。拖动时间轴可预览。",
+		"driftEndX": "结束 X",
+		"driftEndY": "结束 Y"
 	},
 	"fontStyles": {
 		"classic": "经典",
