@@ -714,7 +714,7 @@ export function registerProjectHandlers() {
 				resolvedSession.segmentFiles?.length
 					? resolvedSession.segmentFiles
 					: pendingCaptureState?.segmentFiles
-			)?.map((filePath) => filePath.split(/[\/]/).pop() ?? filePath);
+			)?.map((filePath) => filePath.split(/[\\/]/u).pop() ?? filePath);
 
 			const nextSession = {
 				...resolvedSession,
