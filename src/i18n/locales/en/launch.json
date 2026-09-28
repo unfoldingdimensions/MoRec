@@ -77,7 +77,8 @@
 		"fontSize": "Font Size",
 		"scrollSpeed": "Scroll Speed",
 		"prompterPause": "Tap to pause",
-		"prompterResume": "Tap to resume"
+		"prompterResume": "Tap to resume",
+		"markSegment": "Mark segment"
 	},
 	"sourceSelector": {
 		"loadingSources": "Loading sources...",

@@ -77,7 +77,8 @@
 		"fontSize": "Tamanho da fonte",
 		"scrollSpeed": "Velocidade de rolagem",
 		"prompterPause": "Toque para pausar",
-		"prompterResume": "Toque para retomar"
+		"prompterResume": "Toque para retomar",
+		"markSegment": "Marcar segmento"
 	},
 	"sourceSelector": {
 		"loadingSources": "Carregando fontes...",

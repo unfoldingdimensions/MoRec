@@ -190,5 +190,15 @@
 		"dark": "Dark",
 		"light": "Light",
 		"system": "System"
+	},
+	"multiClip": {
+		"multiClipRecording": "멀티클립 녹화",
+		"hint": "마크가 녹화를 나눕니다; 버릴 구간을 선택하세요.",
+		"takeRange": "{{start}} → {{end}}",
+		"discardRange": "버림",
+		"keepRange": "유지",
+		"applyMultiClip": "{{count}}개 구간 잘라내기 ({{seconds}}초)",
+		"applied": "실수한 {{count}}개 구간을 잘랐습니다 ({{seconds}}초)",
+		"dismiss": "나중에"
 	}
 }

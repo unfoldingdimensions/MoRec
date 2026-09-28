@@ -77,7 +77,8 @@
 		"fontSize": "Размер шрифта",
 		"scrollSpeed": "Скорость прокрутки",
 		"prompterPause": "Коснитесь для паузы",
-		"prompterResume": "Коснитесь для продолжения"
+		"prompterResume": "Коснитесь для продолжения",
+		"markSegment": "Отметить сегмент"
 	},
 	"sourceSelector": {
 		"loadingSources": "Загрузка источников...",

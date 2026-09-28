@@ -190,5 +190,15 @@
 		"dark": "Dark",
 		"light": "Light",
 		"system": "System"
+	},
+	"multiClip": {
+		"multiClipRecording": "Multi-Clip-Aufnahme",
+		"hint": "Markierungen teilen die Aufnahme; lege fest, welche Bereiche verworfen werden.",
+		"takeRange": "{{start}} → {{end}}",
+		"discardRange": "Verwerfen",
+		"keepRange": "Behalten",
+		"applyMultiClip": "{{count}} Bereich/Bereiche ({{seconds}}s) schneiden",
+		"applied": "{{count}} verunglückte(n) Bereich(e) ({{seconds}}s) geschnitten",
+		"dismiss": "Nicht jetzt"
 	}
 }

@@ -190,5 +190,15 @@
 		"dark": "Dark",
 		"light": "Light",
 		"system": "System"
+	},
+	"multiClip": {
+		"multiClipRecording": "Мультиклиповая запись",
+		"hint": "Отметки разделяют запись; переключите диапазоны для удаления.",
+		"takeRange": "{{start}} → {{end}}",
+		"discardRange": "Удалить",
+		"keepRange": "Оставить",
+		"applyMultiClip": "Вырезать диапазонов: {{count}} ({{seconds}} с)",
+		"applied": "Вырезано неудачных диапазонов: {{count}} ({{seconds}} с)",
+		"dismiss": "Не сейчас"
 	}
 }

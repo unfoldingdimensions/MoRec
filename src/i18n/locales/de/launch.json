@@ -77,7 +77,8 @@
 		"fontSize": "Schriftgröße",
 		"scrollSpeed": "Scrollgeschwindigkeit",
 		"prompterPause": "Zum Pausieren tippen",
-		"prompterResume": "Zum Fortsetzen tippen"
+		"prompterResume": "Zum Fortsetzen tippen",
+		"markSegment": "Abschnitt markieren"
 	},
 	"sourceSelector": {
 		"loadingSources": "Quellen werden geladen...",

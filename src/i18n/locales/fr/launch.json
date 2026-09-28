@@ -77,7 +77,8 @@
 		"fontSize": "Taille de police",
 		"scrollSpeed": "Vitesse de défilement",
 		"prompterPause": "Touchez pour mettre en pause",
-		"prompterResume": "Touchez pour reprendre"
+		"prompterResume": "Touchez pour reprendre",
+		"markSegment": "Marquer le segment"
 	},
 	"sourceSelector": {
 		"loadingSources": "Chargement des sources...",

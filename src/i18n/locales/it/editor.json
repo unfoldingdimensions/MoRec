@@ -190,5 +190,15 @@
 		"dark": "Dark",
 		"light": "Light",
 		"system": "System"
+	},
+	"multiClip": {
+		"multiClipRecording": "Registrazione multi-clip",
+		"hint": "I contrassegni dividono la registrazione; attiva gli intervalli da scartare.",
+		"takeRange": "{{start}} → {{end}}",
+		"discardRange": "Scarta",
+		"keepRange": "Mantieni",
+		"applyMultiClip": "Taglia {{count}} intervallo/i ({{seconds}}s)",
+		"applied": "Tagliati {{count}} intervallo/i con errori ({{seconds}}s)",
+		"dismiss": "Non ora"
 	}
 }

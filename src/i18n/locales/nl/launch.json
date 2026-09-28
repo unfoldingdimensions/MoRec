@@ -77,7 +77,8 @@
 		"fontSize": "Tekstgrootte",
 		"scrollSpeed": "Scrollsnelheid",
 		"prompterPause": "Tik om te pauzeren",
-		"prompterResume": "Tik om verder te gaan"
+		"prompterResume": "Tik om verder te gaan",
+		"markSegment": "Segment markeren"
 	},
 	"sourceSelector": {
 		"loadingSources": "Bronnen laden...",

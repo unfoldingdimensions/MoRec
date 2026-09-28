@@ -77,7 +77,8 @@
 		"fontSize": "Dimensione carattere",
 		"scrollSpeed": "Velocità di scorrimento",
 		"prompterPause": "Tocca per mettere in pausa",
-		"prompterResume": "Tocca per riprendere"
+		"prompterResume": "Tocca per riprendere",
+		"markSegment": "Contrassegna segmento"
 	},
 	"sourceSelector": {
 		"loadingSources": "Caricamento sorgenti...",

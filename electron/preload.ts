@@ -752,6 +752,19 @@ contextBridge.exposeInMainWorld("electronAPI", {
 		ipcRenderer.on("whisper-small-model-download-progress", listener);
 		return () => ipcRenderer.removeListener("whisper-small-model-download-progress", listener);
 	},
+	markRecordingSegment: () => {
+		// Multi-clip marks (P1 Feature 6): main stamps the pause-aware elapsed
+		// time; the renderer never supplies a timestamp.
+		return ipcRenderer.invoke("mark-recording-segment") as Promise<{
+			success: boolean;
+			marksMs?: number[];
+			elapsedMs?: number;
+			error?: string;
+		}>;
+	},
+	clearRecordingMarks: () => {
+		return ipcRenderer.invoke("clear-recording-marks") as Promise<{ success: boolean }>;
+	},
 	generateAutoCaptions: (options: {
 		videoPath: string;
 		whisperExecutablePath?: string;

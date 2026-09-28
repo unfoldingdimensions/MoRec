@@ -15,6 +15,7 @@ function renderControls(
 		prompterVisible: false,
 		onTogglePrompter: vi.fn(),
 		onToggleMicrophone: vi.fn(),
+		onMarkSegment: vi.fn(),
 		onPauseResume: vi.fn(),
 		onStopRecording: vi.fn(),
 		onHideHud: vi.fn(),
@@ -98,5 +99,13 @@ describe("RecordingControls", () => {
 
 		await user.click(prompterButton);
 		expect(props.onTogglePrompter).toHaveBeenCalledTimes(1);
+	});
+
+	it("marks a segment from the recording HUD", async () => {
+		const user = userEvent.setup();
+		const props = renderControls();
+
+		await user.click(screen.getByRole("button", { name: /mark segment/i }));
+		expect(props.onMarkSegment).toHaveBeenCalledTimes(1);
 	});
 });

@@ -77,7 +77,8 @@
 		"fontSize": "字體大小",
 		"scrollSpeed": "滾動速度",
 		"prompterPause": "點擊暫停",
-		"prompterResume": "點擊繼續"
+		"prompterResume": "點擊繼續",
+		"markSegment": "標記片段"
 	},
 	"sourceSelector": {
 		"loadingSources": "正在載入來源...",

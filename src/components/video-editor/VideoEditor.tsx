@@ -208,6 +208,8 @@ import {
 	planSilenceTrimApplication,
 	type SuggestedSpan,
 } from "./timeline/silenceSuggestions";
+import { deriveMultiClipRanges, type MultiClipRange } from "./timeline/multiClipMarks";
+import { MultiClipPanel } from "./MultiClipPanel";
 import {
 	DEFAULT_TYPING_SPEED,
 	buildTypingSpeedSuggestions,
@@ -616,6 +618,9 @@ export default function VideoEditor() {
 	const [projectMetadata, setProjectMetadata] = useState<ProjectMetadata | undefined>(
 		undefined,
 	);
+	// Multi-clip marks (P1 Feature 6) from the recording session manifest; a
+	// non-empty list opens the one-time multi-clip panel.
+	const [multiClipMarksMs, setMultiClipMarksMs] = useState<number[]>([]);
 	const [whisperExecutablePath, setWhisperExecutablePath] = useState<string | null>(
 		initialEditorPreferences.whisperExecutablePath,
 	);
@@ -645,6 +650,7 @@ export default function VideoEditor() {
 				| {
 						hideOverlayCursorByDefault?: boolean;
 						nativeCaptureUnavailable?: boolean;
+						marksMs?: number[];
 				  }
 				| null
 				| undefined,
@@ -652,6 +658,7 @@ export default function VideoEditor() {
 			setSessionShowCursorOverride(session?.hideOverlayCursorByDefault ? false : null);
 			setSessionNativeCaptureUnavailable(Boolean(session?.nativeCaptureUnavailable));
 			setNativeCaptureUnavailableModalOpen(Boolean(session?.nativeCaptureUnavailable));
+			setMultiClipMarksMs(Array.isArray(session?.marksMs) ? session.marksMs : []);
 		},
 		[],
 	);
@@ -2420,6 +2427,7 @@ export default function VideoEditor() {
 		setAutoCaptions([]);
 		setAutoCaptionSettings((prev) => ({ ...prev, enabled: false }));
 		setProjectMetadata(undefined);
+		setMultiClipMarksMs([]);
 		setSelectedZoomId(null);
 		setSelectedClipId(null);
 		setSelectedAnnotationId(null);
@@ -4048,10 +4056,75 @@ export default function VideoEditor() {
 		[autoCaptions, clipRegions, duration, reservedSpansForSuggestions, t],
 	);
 
+	// Multi-clip marks (P1 Feature 6): cut the discarded takes with the same
+	// clip-pipeline as silence removal — regions overlapping a real cut are
+	// dropped, captions keep straddling semantics via the blanket filter (a
+	// fresh recording normally has none), and undo works through the shared
+	// history snapshot effect.
+	const handleApplyMultiClip = useCallback(
+		(ranges: MultiClipRange[]) => {
+			const discardSpans: SuggestedSpan[] = ranges
+				.filter((range) => range.discard)
+				.map((range) => ({ startMs: range.startMs, endMs: range.endMs }));
+			setMultiClipMarksMs([]);
+			void window.electronAPI.clearRecordingMarks?.();
+			if (discardSpans.length === 0) {
+				return;
+			}
+
+			const plan = planSilenceTrimApplication(clipRegions, discardSpans);
+			if (plan.removedSpans.length === 0) {
+				return;
+			}
+
+			let clipId = nextClipIdRef.current;
+			const nextClips: ClipRegion[] = plan.clipSegments.map((segment) => ({
+				...segment,
+				id: `clip-${clipId++}`,
+			}));
+			nextClipIdRef.current = clipId;
+
+			const removedSpans = plan.removedSpans;
+			const overlapsRemoved = (span: { startMs: number; endMs: number }) =>
+				removedSpans.some((removed) => removed.startMs < span.endMs && removed.endMs > span.startMs);
+
+			setClipRegions(nextClips);
+			setZoomRegions((prev) => prev.filter((region) => !overlapsRemoved(region)));
+			setAnnotationRegions((prev) => prev.filter((region) => !overlapsRemoved(region)));
+			setSpeedRegions((prev) => prev.filter((region) => !overlapsRemoved(region)));
+			setAudioRegions((prev) => prev.filter((region) => !overlapsRemoved(region)));
+			setAutoCaptions((prev) => prev.filter((cue) => !overlapsRemoved(cue)));
+			setSelectedCaptionId((prev) =>
+				prev && !overlapsRemoved({
+					startMs: autoCaptions.find((cue) => cue.id === prev)?.startMs ?? 0,
+					endMs: autoCaptions.find((cue) => cue.id === prev)?.endMs ?? 0,
+				})
+					? prev
+					: null,
+			);
+
+			const removedSeconds =
+				Math.round(
+					removedSpans.reduce((sum, span) => sum + (span.endMs - span.startMs), 0) / 100,
+				) / 10;
+			toast.success(
+				t("editor.multiClip.applied", "Cut {{count}} flubbed range(s) ({{seconds}}s)", {
+					count: removedSpans.length,
+					seconds: removedSeconds,
+				}),
+			);
+		},
+		[autoCaptions, clipRegions, t],
+	);
+
+	const multiClipRanges = useMemo(
+		() => deriveMultiClipRanges(multiClipMarksMs, Math.max(0, Math.round(duration * 1000))),
+		[duration, multiClipMarksMs],
+	);
+
 	const audio = useVideoEditorAudio({
 		currentSourcePath,
-		selectedClipId,
-		clipRegions,
+		selectedClipId,		clipRegions,
 		audioRegions,
 		effectiveSpeedRegions,
 		sourceAudioTrackSettingsByClip,
@@ -7757,6 +7830,12 @@ export default function VideoEditor() {
 			{projectSaveDialog}
 			{unsavedChangesDialog}
 			{nativeCaptureUnavailableDialog}
+			<MultiClipPanel
+				open={multiClipRanges.length > 0}
+				ranges={multiClipRanges}
+				onApply={handleApplyMultiClip}
+				onDismiss={() => setMultiClipMarksMs([])}
+			/>
 
 			<Toaster className="pointer-events-auto" />
 		</div>

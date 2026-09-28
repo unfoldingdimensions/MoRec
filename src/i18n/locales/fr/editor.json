@@ -190,5 +190,15 @@
 		"dark": "Dark",
 		"light": "Light",
 		"system": "System"
+	},
+	"multiClip": {
+		"multiClipRecording": "Enregistrement multi-clips",
+		"hint": "Les marques scindent l'enregistrement ; basculez les plages à exclure.",
+		"takeRange": "{{start}} → {{end}}",
+		"discardRange": "Exclure",
+		"keepRange": "Conserver",
+		"applyMultiClip": "Couper {{count}} plage(s) ({{seconds}}s)",
+		"applied": "{{count}} plage(s) ratée(s) coupée(s) ({{seconds}}s)",
+		"dismiss": "Plus tard"
 	}
 }
