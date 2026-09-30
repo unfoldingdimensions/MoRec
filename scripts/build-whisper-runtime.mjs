@@ -4,6 +4,8 @@ import { chmod, cp, mkdir, readdir, readFile, rm, stat, writeFile } from "node:f
 import { get as httpsGet } from "node:https";
 import path from "node:path";
 
+import { formatSoftFailNotice, resolveSoftFailPolicy } from "./build-soft-fail.mjs";
+import { resolveTarCommand } from "./tar-command.mjs";
 import {
 	configureWithWindowsCmakeGenerator,
 	WINDOWS_VISUAL_STUDIO_INSTALL_DIRS,
@@ -171,10 +173,13 @@ function findCmake() {
 }
 
 function ensureTarAvailable() {
+	const tarCommand = resolveTarCommand();
 	try {
-		execSync("tar --version", { stdio: "pipe" });
+		execFileSync(tarCommand, ["--version"], { stdio: "pipe" });
 	} catch {
-		throw new Error("[build-whisper-runtime] tar is required to unpack whisper.cpp sources.");
+		throw new Error(
+			`[build-whisper-runtime] ${tarCommand} is required to unpack whisper.cpp sources.`,
+		);
 	}
 }
 
@@ -244,7 +249,9 @@ async function ensureSourceTree() {
 
 	ensureTarAvailable();
 	try {
-		execFileSync("tar", ["-xzf", archivePath, "-C", extractRoot], { stdio: "inherit" });
+		execFileSync(resolveTarCommand(), ["-xzf", archivePath, "-C", extractRoot], {
+			stdio: "inherit",
+		});
 	} catch (error) {
 		// A truncated/corrupt cached archive would fail every retry; drop it so
 		// the next run re-downloads a fresh copy.
@@ -373,6 +380,9 @@ async function stageRuntimeArtifacts(target, candidateDir, runtimeEntries) {
 
 async function main() {
 	const targets = getTargetConfigs();
+	// Resolved once: the same policy governs the CMake lookup, the whisper.cpp
+	// source download/extract, and the per-target configure/build below.
+	const { softFailAllowed, reasons } = resolveSoftFailPolicy(process.env);
 	const cmake = findCmake();
 
 	if (!cmake) {
@@ -381,11 +391,6 @@ async function main() {
 		// (e.g. via `npm run build`, `build:win`, `build:mac`, `build:linux`)
 		// must still fail loudly so we never ship a release build that is
 		// missing the whisper runtime and silently ships broken auto-captions.
-		const isPostinstall = process.env.npm_lifecycle_event === "postinstall";
-		const isCI = process.env.CI === "true";
-		const allowMissing = process.env.WHISPER_RUNTIME_ALLOW_MISSING === "1";
-		const softFailAllowed = isPostinstall || isCI || allowMissing;
-
 		const skipChecks = await Promise.all(targets.map((target) => shouldSkipBuild(target)));
 		const allTargetsStaged = skipChecks.every(Boolean);
 
@@ -403,9 +408,12 @@ async function main() {
 
 		if (softFailAllowed) {
 			console.warn(
-				`[build-whisper-runtime] CMake not found and no bundled runtime is staged for: ${missing}. ` +
-					"Auto-caption features that rely on whisper.cpp will be unavailable until you install CMake " +
-					"and rerun `npm run build:whisper-runtime`.",
+				formatSoftFailNotice(
+					"build-whisper-runtime",
+					"CMake not found and no bundled runtime is staged",
+					missing,
+					reasons,
+				),
 			);
 			return;
 		}
@@ -416,7 +424,21 @@ async function main() {
 		);
 	}
 
-	const sourceDir = await ensureSourceTree();
+	let sourceDir;
+	try {
+		sourceDir = await ensureSourceTree();
+	} catch (error) {
+		// A missing tar, a blocked download, or a corrupt cached archive must not
+		// break a dev postinstall/CI any more than a failed compile would.
+		if (!softFailAllowed) {
+			throw error;
+		}
+		console.warn(
+			`[build-whisper-runtime] Could not prepare whisper.cpp sources (${error.message}). ` +
+				`Continuing with bundled/available binaries because ${reasons.join(", ")}.`,
+		);
+		return;
+	}
 
 	console.log(
 		`[build-whisper-runtime] Target architectures for ${process.platform}: ${targets.map((target) => target.archTag).join(", ")}`,
@@ -471,14 +493,12 @@ async function main() {
 			// Same policy as the no-CMake branch above: dev postinstalls/CI may
 			// continue without the runtime, but direct release builds must fail
 			// loudly so we never ship a build with broken auto-captions.
-			const isPostinstall = process.env.npm_lifecycle_event === "postinstall";
-			const isCI = process.env.CI === "true";
-			const allowMissing = process.env.WHISPER_RUNTIME_ALLOW_MISSING === "1";
-			if (!isPostinstall && !isCI && !allowMissing) {
+			if (!softFailAllowed) {
 				throw error;
 			}
 			console.warn(
-				`[build-whisper-runtime] Failed to build whisper runtime for ${target.archTag} (${error.message}). Continuing with bundled/available binaries.`,
+				`[build-whisper-runtime] Failed to build whisper runtime for ${target.archTag} (${error.message}). ` +
+					`Continuing with bundled/available binaries because ${reasons.join(", ")}.`,
 			);
 			continue;
 		}
