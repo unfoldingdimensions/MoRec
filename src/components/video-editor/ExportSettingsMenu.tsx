@@ -1,4 +1,9 @@
-import { DownloadSimple as Download, FilmSlate as Film, Image } from "@phosphor-icons/react";
+import {
+	DownloadSimple as Download,
+	FilmSlate as Film,
+	Image,
+	MouseLeftClick as MouseClick,
+} from "@phosphor-icons/react";
 import { LayoutGroup, motion } from "motion/react";
 import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
@@ -60,6 +65,11 @@ interface ExportSettingsMenuProps {
 	gifSizePreset: GifSizePreset;
 	onGifSizePresetChange?: (preset: GifSizePreset) => void;
 	gifOutputDimensions: { width: number; height: number };
+	/** Interactive click-through demo export (optional surface). */
+	demoMaxSteps?: number;
+	onDemoMaxStepsChange?: (maxSteps: number) => void;
+	onExportInteractiveDemo?: () => void;
+	interactiveDemoExportInProgress?: boolean;
 	onExport?: () => void;
 	className?: string;
 }
@@ -97,6 +107,10 @@ export function ExportSettingsMenu({
 	gifSizePreset,
 	onGifSizePresetChange,
 	gifOutputDimensions,
+	demoMaxSteps = 50,
+	onDemoMaxStepsChange,
+	onExportInteractiveDemo,
+	interactiveDemoExportInProgress = false,
 	onExport,
 	className,
 }: ExportSettingsMenuProps) {
@@ -737,6 +751,40 @@ export function ExportSettingsMenu({
 					format: exportFormat === "gif" ? "GIF" : "Video",
 				})}
 			</Button>
+
+			{onExportInteractiveDemo ? (
+				<div className="mt-3 border-t border-foreground/10 pt-3">
+					<div className="mb-2 flex items-center justify-between px-1">
+						<span className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/70">
+							{tSettings("export.demoSectionTitle", "Interactive demo")}
+						</span>
+						<label className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+							{tSettings("export.demoMaxSteps", "Max steps")}
+							<select
+								value={demoMaxSteps}
+								onChange={(event) => onDemoMaxStepsChange?.(Number(event.target.value))}
+								className="rounded-md border border-foreground/10 bg-foreground/5 px-1.5 py-0.5 text-[10px] text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB]"
+							>
+								{[10, 25, 50, 100, 200].map((option) => (
+									<option key={option} value={option}>
+										{option}
+									</option>
+								))}
+							</select>
+						</label>
+					</div>
+					<Button
+						type="button"
+						variant="outline"
+						onClick={onExportInteractiveDemo}
+						disabled={interactiveDemoExportInProgress}
+						className="h-9 w-full gap-2 rounded-lg border-foreground/15 bg-foreground/5 text-xs font-semibold text-foreground transition-colors duration-200 hover:bg-foreground/10 disabled:opacity-50"
+					>
+						<MouseClick className="h-4 w-4" />
+						{tSettings("export.demoAction", "Export interactive demo")}
+					</Button>
+				</div>
+			) : null}
 		</div>
 	);
 }

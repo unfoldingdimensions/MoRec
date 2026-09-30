@@ -315,6 +315,9 @@
 		"loadProject": "Загрузить проект",
 		"saveProject": "Сохранить проект",
 		"exportVideo": "Экспортировать {{format}}",
+		"demoSectionTitle": "Интерактивная демонстрация",
+		"demoAction": "Экспортировать интерактивную демонстрацию",
+		"demoMaxSteps": "Макс. шагов",
 		"reportBug": "Сообщить об ошибке",
 		"starOnGithub": "Оценить на GitHub",
 		"captionSidecar": {

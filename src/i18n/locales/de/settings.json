@@ -315,6 +315,9 @@
 		"loadProject": "Projekt laden",
 		"saveProject": "Projekt speichern",
 		"exportVideo": "{{format}} exportieren",
+		"demoSectionTitle": "Interaktive Demo",
+		"demoAction": "Interaktive Demo exportieren",
+		"demoMaxSteps": "Max. Schritte",
 		"reportBug": "Fehler melden",
 		"starOnGithub": "Auf GitHub markieren",
 		"captionSidecar": {

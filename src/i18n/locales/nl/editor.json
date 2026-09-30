@@ -154,6 +154,13 @@
 	"export": {
 		"processingAudioEdits": "Audio verwerken met snelheids-/overlay-bewerkingen"
 	},
+	"demoExport": {
+		"success": "Interactieve demo geëxporteerd ({{count}} stappen)",
+		"truncated": "Beperkt tot {{count}} stappen — verhoog \"Max. stappen\" in het exportmenu om er meer op te nemen",
+		"noClicks": "Er zijn geen klikken vastgelegd in deze opname, dus er is niets om een demo van te maken",
+		"canceled": "Demo-export geannuleerd",
+		"failed": "Kan de interactieve demo niet exporteren"
+	},
 	"toolbar": {
 		"addLayer": "Laag toevoegen",
 		"splitClip": "Clip splitsen (C)",

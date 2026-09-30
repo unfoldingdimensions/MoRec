@@ -154,6 +154,13 @@
 	"export": {
 		"processingAudioEdits": "속도/오버레이 편집으로 오디오 처리 중"
 	},
+	"demoExport": {
+		"success": "인터랙티브 데모를 내보냈습니다 ({{count}}단계)",
+		"truncated": "{{count}}단계로 제한되었습니다 — 더 포함하려면 내보내기 메뉴에서 최대 단계 수를 올리세요",
+		"noClicks": "이 녹화에서 클릭이 캡처되지 않아 데모를 만들 내용이 없습니다",
+		"canceled": "데모 내보내기가 취소되었습니다",
+		"failed": "인터랙티브 데모를 내보낼 수 없습니다"
+	},
 	"toolbar": {
 		"addLayer": "레이어 추가",
 		"splitClip": "클립 분할 (C)",

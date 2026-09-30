@@ -315,6 +315,9 @@
 		"loadProject": "載入專案",
 		"saveProject": "儲存專案",
 		"exportVideo": "匯出 {{format}}",
+		"demoSectionTitle": "互動式示範",
+		"demoAction": "匯出互動式示範",
+		"demoMaxSteps": "最大步數",
 		"reportBug": "回報錯誤",
 		"starOnGithub": "在 GitHub 按讚",
 		"captionSidecar": {

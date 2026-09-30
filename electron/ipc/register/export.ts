@@ -970,13 +970,21 @@ export function registerExportHandlers() {
 				}
 
 				// Determine file type from extension
-				const isGif = fileName.toLowerCase().endsWith(".gif");
+				const lowerFileName = fileName.toLowerCase();
+				const isGif = lowerFileName.endsWith(".gif");
+				const isHtml = lowerFileName.endsWith(".html") || lowerFileName.endsWith(".htm");
 				const filters = isGif
 					? [{ name: "GIF Image", extensions: ["gif"] }]
-					: [{ name: "MP4 Video", extensions: ["mp4"] }];
+					: isHtml
+						? [{ name: "Interactive Demo", extensions: ["html", "htm"] }]
+						: [{ name: "MP4 Video", extensions: ["mp4"] }];
 				const parentWindow = BrowserWindow.fromWebContents(event.sender);
 				const saveDialogOptions: SaveDialogOptions = {
-					title: isGif ? "Save Exported GIF" : "Save Exported Video",
+					title: isGif
+						? "Save Exported GIF"
+						: isHtml
+							? "Save Interactive Demo"
+							: "Save Exported Video",
 					defaultPath: path.join(app.getPath("downloads"), fileName),
 					filters,
 					properties: ["createDirectory", "showOverwriteConfirmation"],

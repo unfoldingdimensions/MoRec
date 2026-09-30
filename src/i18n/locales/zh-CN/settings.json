@@ -315,6 +315,9 @@
 		"loadProject": "加载项目",
 		"saveProject": "保存项目",
 		"exportVideo": "导出{{format}}",
+		"demoSectionTitle": "交互式演示",
+		"demoAction": "导出交互式演示",
+		"demoMaxSteps": "最大步数",
 		"reportBug": "报告问题",
 		"starOnGithub": "在 GitHub 上点赞",
 		"captionSidecar": {

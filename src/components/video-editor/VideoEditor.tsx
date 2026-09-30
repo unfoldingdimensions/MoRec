@@ -203,6 +203,15 @@ import {
 	openExternalLink,
 } from "./TutorialHelp";
 import TimelineEditor, { type TimelineEditorHandle } from "./timeline/TimelineEditor";
+import {
+	buildDemoTitleFromVideoUrl,
+	renderDemoBundleHtml,
+} from "@/lib/demo/demoBundle";
+import {
+	DEFAULT_DEMO_STEP_CAP,
+	deriveDemoStepGraph,
+} from "@/lib/demo/demoSteps";
+import { captureStepScreenshots, DemoCaptureCanceledError } from "@/lib/demo/captureStepScreenshots";
 import { buildFillerCutSuggestions } from "./timeline/fillerSuggestions";
 import {
 	buildDeadAirSpeedSuggestions,
@@ -716,6 +725,8 @@ export default function VideoEditor() {
 	const [gifSizePreset, setGifSizePreset] = useState<GifSizePreset>(
 		initialEditorPreferences.gifSizePreset,
 	);
+	const [demoMaxSteps, setDemoMaxSteps] = useState(DEFAULT_DEMO_STEP_CAP);
+	const [isExportingInteractiveDemo, setIsExportingInteractiveDemo] = useState(false);
 	const hasCaptionsForSidecar = autoCaptionSettings.enabled && autoCaptions.length > 0;
 	const captionSidecarCues = useMemo(
 		() =>
@@ -6246,6 +6257,94 @@ export default function VideoEditor() {
 		toast.error(errorMessage);
 	}, [showExportSuccessToast]);
 
+	// Interactive click-through demo export: explicit clicks become steps,
+	// each step gets a screenshot seeked straight from the recording, and the
+	// whole bundle is one self-contained HTML file. Synchronous over in-memory
+	// telemetry — no live capture, no server.
+	const handleExportInteractiveDemo = useCallback(async () => {
+		if (!videoPath) {
+			toast.error("No video loaded");
+			return;
+		}
+
+		const totalMs = Math.max(0, Math.round(duration * 1000));
+		const graph = deriveDemoStepGraph({
+			cursorTelemetry: normalizedCursorTelemetry,
+			totalMs,
+			maxSteps: demoMaxSteps,
+		});
+		if (graph.status !== "ok" || graph.steps.length === 0) {
+			toast.info(
+				t(
+					"editor.demoExport.noClicks",
+					"No clicks were captured in this recording, so there is nothing to build a demo from",
+				),
+			);
+			return;
+		}
+		if (graph.truncated) {
+			toast.info(
+				t("editor.demoExport.truncated", "Capped at {{count}} steps", {
+					count: graph.steps.length,
+				}),
+			);
+		}
+
+		setIsExportingInteractiveDemo(true);
+		try {
+			const screenshots = await captureStepScreenshots({
+				videoUrl: videoPath,
+				timesMs: graph.steps.map((step) => step.timeMs),
+			});
+			const html = renderDemoBundleHtml({
+				title: buildDemoTitleFromVideoUrl(videoPath),
+				steps: graph.steps.map((step, index) => ({
+					timeMs: step.timeMs,
+					screenshotDataUrl: screenshots[index],
+					advance: step.advance,
+				})),
+			});
+			const bytes = new TextEncoder().encode(html);
+			const saveResult = await window.electronAPI.saveExportedVideo(
+				bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
+				`${buildDemoTitleFromVideoUrl(videoPath)}-demo.html`,
+			);
+
+			if (saveResult.canceled) {
+				toast.info(t("editor.demoExport.canceled", "Demo export canceled"));
+				return;
+			}
+			if (!saveResult.success) {
+				toast.error(saveResult.message || t("editor.demoExport.failed", "Couldn't export the interactive demo"));
+				return;
+			}
+			toast.success(
+				t("editor.demoExport.success", "Interactive demo exported ({{count}} steps)", {
+					count: graph.steps.length,
+				}),
+			);
+			if (saveResult.path) {
+				showExportSuccessToast(saveResult.path);
+			}
+		} catch (error) {
+			if (error instanceof DemoCaptureCanceledError) {
+				toast.info(t("editor.demoExport.canceled", "Demo export canceled"));
+				return;
+			}
+			console.error("[VideoEditor] Interactive demo export failed:", error);
+			toast.error(t("editor.demoExport.failed", "Couldn't export the interactive demo"));
+		} finally {
+			setIsExportingInteractiveDemo(false);
+		}
+	}, [
+		demoMaxSteps,
+		duration,
+		normalizedCursorTelemetry,
+		showExportSuccessToast,
+		t,
+		videoPath,
+	]);
+
 	const handleOpenCropEditor = useCallback(() => {
 		cropSnapshotRef.current = { ...cropRegion };
 		setShowCropModal(true);
@@ -7176,6 +7275,10 @@ export default function VideoEditor() {
 									gifOutputDimensions={
 										gifCanvasOutputDimensions[exportCanvas] ?? gifOutputDimensions
 									}
+									demoMaxSteps={demoMaxSteps}
+									onDemoMaxStepsChange={setDemoMaxSteps}
+									onExportInteractiveDemo={handleExportInteractiveDemo}
+									interactiveDemoExportInProgress={isExportingInteractiveDemo}
 									onExport={handleStartExportFromDropdown}
 									className="shadow-2xl"
 								/>

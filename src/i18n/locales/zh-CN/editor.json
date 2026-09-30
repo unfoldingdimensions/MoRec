@@ -154,6 +154,13 @@
 	"export": {
 		"processingAudioEdits": "正在处理带有速度/叠加编辑的音频"
 	},
+	"demoExport": {
+		"success": "交互式演示已导出（{{count}} 个步骤）",
+		"truncated": "已限制为 {{count}} 个步骤——如需包含更多，请在导出菜单中调高“最大步数”",
+		"noClicks": "此录制中未捕获到任何点击，因此没有可用于生成演示的内容",
+		"canceled": "演示导出已取消",
+		"failed": "无法导出交互式演示"
+	},
 	"toolbar": {
 		"addLayer": "添加图层",
 		"splitClip": "拆分片段 (C)",
