@@ -1,15 +1,13 @@
-import { execFileSync, execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { createWriteStream, existsSync, rmSync } from "node:fs";
 import { chmod, cp, mkdir, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { get as httpsGet } from "node:https";
 import path from "node:path";
 
 import { formatSoftFailNotice, resolveSoftFailPolicy } from "./build-soft-fail.mjs";
+import { findCmake } from "./find-cmake.mjs";
 import { resolveTarCommand } from "./tar-command.mjs";
-import {
-	configureWithWindowsCmakeGenerator,
-	WINDOWS_VISUAL_STUDIO_INSTALL_DIRS,
-} from "./windows-cmake-generators.mjs";
+import { configureWithWindowsCmakeGenerator } from "./windows-cmake-generators.mjs";
 
 const projectRoot = process.cwd();
 const whisperVersion = "v1.8.4";
@@ -133,43 +131,6 @@ function getTargetConfigs() {
 
 function getSourceArchiveUrl() {
 	return `https://github.com/ggml-org/whisper.cpp/archive/refs/tags/${whisperVersion}.tar.gz`;
-}
-
-function findCmake() {
-	try {
-		execSync("cmake --version", { stdio: "pipe" });
-		return "cmake";
-	} catch {
-		// not on PATH
-	}
-
-	if (process.platform === "win32") {
-		const vsEditions = ["Community", "Professional", "Enterprise", "BuildTools"];
-		for (const version of WINDOWS_VISUAL_STUDIO_INSTALL_DIRS) {
-			for (const edition of vsEditions) {
-				const cmakePath = path.join(
-					"C:",
-					"Program Files",
-					"Microsoft Visual Studio",
-					version,
-					edition,
-					"Common7",
-					"IDE",
-					"CommonExtensions",
-					"Microsoft",
-					"CMake",
-					"CMake",
-					"bin",
-					"cmake.exe",
-				);
-				if (existsSync(cmakePath)) {
-					return cmakePath;
-				}
-			}
-		}
-	}
-
-	return null;
 }
 
 function ensureTarAvailable() {
