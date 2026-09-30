@@ -85,7 +85,7 @@ Shipped on `main` — included in the next release build:
 - **Node.js 22** (the version used in CI)
 - **npm** (ships with Node.js)
 - **Git**
-- **Windows only:** [VS 2022 Build Tools](https://visualstudio.microsoft.com/downloads/) with the **"Desktop development with C++"** workload — required to compile the whisper runtime and native capture helpers from source
+- **Windows only, optional:** [VS 2022 Build Tools](https://visualstudio.microsoft.com/downloads/) with the **"Desktop development with C++"** workload, plus [CMake](https://cmake.org/download/). Only needed to *rebuild* the native helpers or build the whisper runtime from source — the committed prebuilt helpers mean a fresh clone runs without a compiler.
 
 ### Setup
 ```bash
@@ -112,6 +112,38 @@ after the first build). The installed app itself is local-first: no account,
 no telemetry, recordings stay on your disk.
 
 Linux installers build with `npm run build:linux`.
+
+### Native helper binaries (Windows)
+
+The Windows helpers (`wgc-capture.exe`, `cursor-monitor.exe`, `morec-gpu-export.exe`,
+`morec-nvidia-cuda-compositor.exe`) are **committed prebuilt** in
+`electron/native/bin/win32-x64/`, so a fresh clone needs no compiler to run the app.
+`npm ci` rebuilds them when a toolchain is available and otherwise keeps the committed
+copies, reporting why.
+
+Two things to know before touching `electron/native/**`:
+
+1. **The prebundled binary wins.** `electron/ipc/paths/binaries.ts` prefers
+   `electron/native/bin/<arch>/<helper>` over a local `build/Release/` output — in a
+   source checkout as well as in a packaged app. Rebuilding locally does *not* change
+   what the app runs; the committed file has to be replaced.
+2. **The whisper runtime is the exception.** It is not prebuilt for Windows, so
+   auto-captions stay unavailable until it is built from source with CMake + MSVC
+   (`npm run build:whisper-runtime`). `npm run smoke:packaged-binaries` requires
+   `whisper-cli.exe`, so a Windows release cannot pass packaging without it.
+
+Check that the committed binaries still match the committed sources at any time:
+
+```bash
+npm run verify:native-helpers
+```
+
+This hashes each helper and its source tree against
+`electron/native/bin/win32-x64/helpers-manifest.json`, and runs in CI as part of
+**Code Quality**. `wgc-capture` is currently listed in `KNOWN_STALE_HELPERS`
+(`scripts/verify-native-helper-manifest.mjs`) and reported as `STALE` on every run —
+its sources advanced after its binary was committed, and it needs MSVC to rebuild.
+The allowlist entry comes out in the same change as the rebuilt binary.
 
 Packaging and publishing releases are covered in [RELEASING.md](RELEASING.md).
 
