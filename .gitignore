@@ -52,3 +52,6 @@ gpu-export-probe.mp4
 
 # Local agent CLI session state
 .zcode/
+
+# Local Hermes planning scratch (plans live here, not in git)
+.hermes/
