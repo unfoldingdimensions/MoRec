@@ -6299,12 +6299,20 @@ export default function VideoEditor() {
 		renderSpeedFps,
 		runtimeLabel: exportRuntimeLabel,
 		nativeSkipLabel: exportNativeSkipLabel,
+		recordingSyncWarning: exportRecordingSyncWarning,
 	} = resolveExportStatusModel({
 		isExporting,
 		exportProgress,
 		exportFormat,
 		exportPipelineModel,
 	});
+	const exportSyncDriftLabel = exportRecordingSyncWarning
+		? t(
+				"editor.exportStatus.syncDriftWarning",
+				"Source audio drift detected ({{seconds}}s) — a timing correction is applied at export",
+				{ seconds: exportRecordingSyncWarning.maxAbsDriftSeconds.toFixed(1) },
+			)
+		: null;
 	const exportRenderSpeedLabel = renderSpeedFps
 		? t("editor.exportStatus.renderSpeed", "Render speed {{fps}} FPS", {
 				fps: renderSpeedFps,
@@ -6962,6 +6970,11 @@ export default function VideoEditor() {
 									{exportNativeSkipLabel ? (
 										<p className="mt-1 text-[11px] text-amber-500/80">
 											{exportNativeSkipLabel}
+										</p>
+									) : null}
+									{exportSyncDriftLabel ? (
+										<p className="mt-1 text-[11px] text-amber-500/80">
+											{exportSyncDriftLabel}
 										</p>
 									) : null}
 								</div>

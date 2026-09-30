@@ -148,7 +148,8 @@
 		"muxingAndSavingPercent": "Muxing and saving {{percent}}%",
 		"renderSpeed": "Render speed {{fps}} FPS",
 		"renderingAudio": "Rendering audio {{percent}}%",
-		"saving": "Opening save dialog..."
+		"saving": "Opening save dialog...",
+		"syncDriftWarning": "Dérive audio de la source détectée ({{seconds}}s) — une correction temporelle sera appliquée à l'export"
 	},
 	"export": {
 		"processingAudioEdits": "Traitement de l’audio avec modifications de vitesse/superposition"

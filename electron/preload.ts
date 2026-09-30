@@ -93,6 +93,14 @@ type NativeVideoMetadataProbe = {
 	audioCodec?: string;
 	audioSampleRate?: number;
 };
+type RecordingSyncAnalysis = {
+	status: "aligned" | "drifted" | "unknown";
+	driftSeconds: number | null;
+	maxAbsDriftSeconds: number | null;
+	toleranceSeconds: number;
+	videoDurationSec: number | null;
+	audioDurationSec: number | null;
+};
 type NativeExportCapabilities = {
 	platform: NodeJS.Platform;
 	nvidiaCuda: {
@@ -224,6 +232,17 @@ contextBridge.exposeInMainWorld("electronAPI", {
 		return ipcRenderer.invoke("probe-native-video-metadata", filePath) as Promise<{
 			success: boolean;
 			metadata?: NativeVideoMetadataProbe;
+			error?: string;
+		}>;
+	},
+	analyzeRecordingSync: (filePath: string, companionAudioPath?: string | null) => {
+		return ipcRenderer.invoke(
+			"analyze-recording-sync",
+			filePath,
+			companionAudioPath ?? null,
+		) as Promise<{
+			success: boolean;
+			analysis?: RecordingSyncAnalysis;
 			error?: string;
 		}>;
 	},

@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { parseRecordingStreamDurations } from "./syncProbe";
+import {
+	parseRecordingStreamDurations,
+	resolveRecordingSyncAnalysis,
+} from "./syncProbe";
 
 const BOTH_STREAMS_JSON = JSON.stringify({
 	streams: [
@@ -63,5 +66,58 @@ describe("parseRecordingStreamDurations", () => {
 				}),
 			),
 		).toEqual({ videoDurationSec: null, audioDurationSec: 7.25 });
+	});
+});
+
+describe("resolveRecordingSyncAnalysis", () => {
+	it("reports a deliberately drifted long recording", () => {
+		const analysis = resolveRecordingSyncAnalysis({
+			videoDurations: { videoDurationSec: 2_400, audioDurationSec: 2_400 },
+			companionAudioDurations: {
+				videoDurationSec: null,
+				audioDurationSec: 2_352,
+			},
+		});
+		expect(analysis.status).toBe("drifted");
+		expect(analysis.driftSeconds).toBeCloseTo(-48, 5);
+		expect(analysis.maxAbsDriftSeconds).toBeCloseTo(48, 5);
+		expect(analysis.audioDurationSec).toBe(2_352);
+	});
+
+	it("keeps an aligned recording aligned", () => {
+		const analysis = resolveRecordingSyncAnalysis({
+			videoDurations: { videoDurationSec: 600, audioDurationSec: 600 },
+		});
+		expect(analysis.status).toBe("aligned");
+	});
+
+	it("degrades to unknown when nothing is measurable", () => {
+		const analysis = resolveRecordingSyncAnalysis({
+			videoDurations: { videoDurationSec: null, audioDurationSec: null },
+		});
+		expect(analysis.status).toBe("unknown");
+		expect(analysis.driftSeconds).toBeNull();
+		expect(analysis.maxAbsDriftSeconds).toBeNull();
+	});
+
+	it("prefers companion audio over the embedded stream", () => {
+		const analysis = resolveRecordingSyncAnalysis({
+			videoDurations: { videoDurationSec: 600, audioDurationSec: 600 },
+			companionAudioDurations: {
+				videoDurationSec: null,
+				audioDurationSec: 590,
+			},
+		});
+		expect(analysis.status).toBe("drifted");
+		expect(analysis.audioDurationSec).toBe(590);
+	});
+
+	it("falls back to the embedded audio stream without a companion probe", () => {
+		const analysis = resolveRecordingSyncAnalysis({
+			videoDurations: { videoDurationSec: 600, audioDurationSec: 480 },
+			companionAudioDurations: null,
+		});
+		expect(analysis.status).toBe("drifted");
+		expect(analysis.driftSeconds).toBeCloseTo(-120, 5);
 	});
 });

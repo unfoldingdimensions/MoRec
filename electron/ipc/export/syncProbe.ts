@@ -1,8 +1,12 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
-import type { MuxDriftCorrection } from "../../../src/lib/audioDrift";
-import { resolveMuxDriftCorrection } from "../../../src/lib/audioDrift";
+import type { MuxDriftCorrection, TimelineDriftAnalysis } from "../../../src/lib/audioDrift";
+import {
+	AUDIO_DRIFT_TOLERANCE_SECONDS,
+	analyzeTimelineDrift,
+	resolveMuxDriftCorrection,
+} from "../../../src/lib/audioDrift";
 import { getFfprobeBinaryPath } from "../ffmpeg/binary";
 
 const execFileAsync = promisify(execFile);
@@ -17,6 +21,15 @@ export interface RecordingStreamDurationsJson {
 		codec_type?: string;
 		duration?: string | number;
 	}>;
+}
+
+export interface RecordingSyncAnalysis {
+	status: "aligned" | "drifted" | "unknown";
+	driftSeconds: number | null;
+	maxAbsDriftSeconds: number | null;
+	toleranceSeconds: number;
+	videoDurationSec: number | null;
+	audioDurationSec: number | null;
 }
 
 function sanitizeStreamDurationSeconds(value: string | number | undefined): number | null {
@@ -85,6 +98,40 @@ export async function probeRecordingStreamDurations(
 	} catch {
 		return { videoDurationSec: null, audioDurationSec: null };
 	}
+}
+
+/**
+ * Maps measured stream durations to the integrity-check verdict. A companion
+ * audio probe takes precedence over the embedded audio stream. Unmeasurable
+ * inputs resolve to status "unknown" — never a fake "aligned".
+ */
+export function resolveRecordingSyncAnalysis({
+	videoDurations,
+	companionAudioDurations,
+	toleranceSeconds = AUDIO_DRIFT_TOLERANCE_SECONDS,
+}: {
+	videoDurations: RecordingStreamDurations;
+	companionAudioDurations?: RecordingStreamDurations | null;
+	toleranceSeconds?: number;
+}): RecordingSyncAnalysis {
+	const videoDurationSec = videoDurations.videoDurationSec;
+	const audioDurationSec =
+		companionAudioDurations?.audioDurationSec ?? videoDurations.audioDurationSec;
+
+	const analysis: TimelineDriftAnalysis | null = analyzeTimelineDrift({
+		videoDurationSec,
+		audioDurationSec,
+		toleranceSeconds,
+	});
+
+	return {
+		status: analysis ? (analysis.exceedsTolerance ? "drifted" : "aligned") : "unknown",
+		driftSeconds: analysis?.driftSeconds ?? null,
+		maxAbsDriftSeconds: analysis?.maxAbsDriftSeconds ?? null,
+		toleranceSeconds,
+		videoDurationSec,
+		audioDurationSec,
+	};
 }
 
 export interface ResolveNativeMuxDriftTempoFactorParams {

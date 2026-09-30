@@ -1,5 +1,7 @@
 import type { ExportFormat, ExportPipelineModel, ExportProgress } from "@/lib/exporter";
 
+export type ExportRecordingSyncWarning = NonNullable<ExportProgress["recordingSyncWarning"]>;
+
 export type ExportStatusModel = {
 	isExportSaving: boolean;
 	isExportPreparing: boolean;
@@ -17,6 +19,7 @@ export type ExportStatusModel = {
 	runtimeLabel: string | null;
 	nativeSkipReasons: string[];
 	nativeSkipLabel: string | null;
+	recordingSyncWarning: ExportRecordingSyncWarning | null;
 };
 
 export function resolveExportStatusModel({
@@ -108,6 +111,7 @@ export function resolveExportStatusModel({
 		runtimeLabel,
 		nativeSkipReasons,
 		nativeSkipLabel,
+		recordingSyncWarning: exportProgress?.recordingSyncWarning ?? null,
 	};
 }
 

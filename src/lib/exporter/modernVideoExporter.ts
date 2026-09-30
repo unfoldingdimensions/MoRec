@@ -353,6 +353,7 @@ export class ModernVideoExporter {
 	private lastNativeExportError: string | null = null;
 	private nativeStaticLayoutSkipReason: string | null = null;
 	private nativeStaticLayoutSkipReasons: string[] = [];
+	private recordingSyncWarning: ExportProgress["recordingSyncWarning"];
 	private nativeStaticLayoutBackgroundSkipReason: string | null = null;
 	private nativeH264Encoder: VideoEncoder | null = null;
 	private nativeEncoderError: Error | null = null;
@@ -545,6 +546,9 @@ export class ModernVideoExporter {
 				});
 				this.metadataLoadTimeMs = this.getNowMs() - stageStartedAt;
 				const nativeAudioPlan = this.buildNativeAudioPlan(videoInfo);
+				await this.runRecordingSyncIntegrityCheck(
+					this.getPrimaryRecordingSyncAudioPath(nativeAudioPlan),
+				);
 				const shouldUsePitchPreservingFfmpegAudio =
 					nativeAudioPlan.audioMode === "edited-track" &&
 					nativeAudioPlan.strategy === "filtergraph-fast-path";
@@ -1112,6 +1116,64 @@ export class ModernVideoExporter {
 
 	private getNativeVideoSourcePath(): string | null {
 		return this.config.videoUrl ? getLocalFilePath(this.config.videoUrl) : null;
+	}
+
+	/** The audio file whose drift the integrity check should measure: the mux's primary input. */
+	private getPrimaryRecordingSyncAudioPath(plan: NativeAudioPlan): string | null {
+		if (plan.audioMode === "none") {
+			return null;
+		}
+		if (plan.audioMode === "edited-track" && plan.strategy === "offline-render-fallback") {
+			return plan.sourceAudioFallbackPaths?.[0] ?? null;
+		}
+		return plan.audioSourcePath;
+	}
+
+	/**
+	 * Pre-export integrity self-check: measure the source recording's video and
+	 * audio streams and, when they drift beyond tolerance, surface a warning on
+	 * every progress report — never a silent pass. Probe failures degrade to
+	 * "no measurement" and never block the export.
+	 */
+	private async runRecordingSyncIntegrityCheck(
+		primaryAudioSourcePath: string | null,
+	): Promise<void> {
+		if (typeof window === "undefined" || !window.electronAPI?.analyzeRecordingSync) {
+			return;
+		}
+		const videoPath = this.getNativeVideoSourcePath();
+		if (!videoPath) {
+			return;
+		}
+
+		try {
+			const result = await window.electronAPI.analyzeRecordingSync(
+				videoPath,
+				primaryAudioSourcePath,
+			);
+			if (!result.success || !result.analysis) {
+				console.info("[VideoExporter] Recording sync integrity check unavailable", {
+					error: result.error,
+				});
+				return;
+			}
+
+			const analysis = result.analysis;
+			if (analysis.status === "drifted") {
+				this.recordingSyncWarning = {
+					driftSeconds: analysis.driftSeconds ?? 0,
+					maxAbsDriftSeconds: analysis.maxAbsDriftSeconds ?? 0,
+					toleranceSeconds: analysis.toleranceSeconds,
+				};
+				console.warn(
+					`[VideoExporter] Recording sync integrity: audio drifts ${analysis.driftSeconds?.toFixed(3)}s off the video timeline (tolerance ${analysis.toleranceSeconds}s); the mux applies a timing correction.`,
+				);
+				return;
+			}
+			console.log(`[VideoExporter] Recording sync integrity: ${analysis.status}`);
+		} catch (error) {
+			console.warn("[VideoExporter] Recording sync integrity check failed:", error);
+		}
 	}
 
 	private getNativeWebcamSourcePath(): string | null {
@@ -3306,6 +3368,7 @@ export class ModernVideoExporter {
 					this.nativeStaticLayoutSkipReasons.length > 0
 						? this.nativeStaticLayoutSkipReasons
 						: undefined,
+				recordingSyncWarning: this.recordingSyncWarning,
 				phase,
 				renderProgress: safeRenderProgress,
 				audioProgress,

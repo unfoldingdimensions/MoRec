@@ -191,6 +191,15 @@ interface RendererNativeVideoMetadataProbe {
 	audioSampleRate?: number;
 }
 
+interface RendererRecordingSyncAnalysis {
+	status: "aligned" | "drifted" | "unknown";
+	driftSeconds: number | null;
+	maxAbsDriftSeconds: number | null;
+	toleranceSeconds: number;
+	videoDurationSec: number | null;
+	audioDurationSec: number | null;
+}
+
 interface RendererNativeExportCapabilities {
 	platform: NodeJS.Platform;
 	nvidiaCuda: {
@@ -335,6 +344,14 @@ interface Window {
 		probeNativeVideoMetadata: (filePath: string) => Promise<{
 			success: boolean;
 			metadata?: RendererNativeVideoMetadataProbe;
+			error?: string;
+		}>;
+		analyzeRecordingSync: (
+			filePath: string,
+			companionAudioPath?: string | null,
+		) => Promise<{
+			success: boolean;
+			analysis?: RendererRecordingSyncAnalysis;
 			error?: string;
 		}>;
 		getNativeExportCapabilities: () => Promise<{

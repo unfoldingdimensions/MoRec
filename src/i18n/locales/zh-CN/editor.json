@@ -148,7 +148,8 @@
 		"muxingAndSavingPercent": "Muxing and saving {{percent}}%",
 		"renderSpeed": "Render speed {{fps}} FPS",
 		"renderingAudio": "Rendering audio {{percent}}%",
-		"saving": "Opening save dialog..."
+		"saving": "Opening save dialog...",
+		"syncDriftWarning": "检测到源音频漂移（{{seconds}}秒）——导出时将应用时间校正"
 	},
 	"export": {
 		"processingAudioEdits": "正在处理带有速度/叠加编辑的音频"
