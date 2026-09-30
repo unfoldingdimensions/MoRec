@@ -27,6 +27,29 @@ describe("resolveExportStatusModel", () => {
 		expect(status.renderSpeedFps).toBeNull();
 	});
 
+	it("carries the recording sync warning through to the status surface", () => {
+		const warning = {
+			driftSeconds: -47.9,
+			maxAbsDriftSeconds: 47.9,
+			toleranceSeconds: 0.08,
+		};
+		const drifted = resolveExportStatusModel({
+			isExporting: true,
+			exportProgress: progress({ recordingSyncWarning: warning }),
+			exportFormat: "mp4",
+			exportPipelineModel: "modern",
+		});
+		expect(drifted.recordingSyncWarning).toEqual(warning);
+
+		const clean = resolveExportStatusModel({
+			isExporting: true,
+			exportProgress: progress(),
+			exportFormat: "mp4",
+			exportPipelineModel: "modern",
+		});
+		expect(clean.recordingSyncWarning).toBeNull();
+	});
+
 	it("marks legacy MP4 progress separately from the modern path", () => {
 		const status = resolveExportStatusModel({
 			isExporting: true,

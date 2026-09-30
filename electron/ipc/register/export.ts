@@ -47,6 +47,10 @@ import {
 } from "../export/exportSession";
 import { getFfmpegBinaryPath } from "../ffmpeg/binary";
 import {
+	probeRecordingStreamDurations,
+	resolveRecordingSyncAnalysis,
+} from "../export/syncProbe";
+import {
 	buildNativeH264StreamExportArgs,
 	buildNativeVideoExportArgs,
 	getNativeVideoInputByteSize,
@@ -436,8 +440,47 @@ export function registerExportHandlers() {
 		}
 	});
 
-	ipcMain.handle("get-native-export-capabilities", async () => {
-		try {
+	ipcMain.handle(
+		"analyze-recording-sync",
+		async (_, filePath: string, companionAudioPath?: string | null) => {
+			try {
+				const resolvedFilePath = await resolveAllowedReadableFilePath(
+					filePath,
+					"Recording sync analysis",
+				);
+				let resolvedCompanionPath: string | null = null;
+				if (
+					typeof companionAudioPath === "string" &&
+					companionAudioPath.trim().length > 0
+				) {
+					resolvedCompanionPath = await resolveAllowedReadableFilePath(
+						companionAudioPath,
+						"Recording sync companion audio",
+					);
+				}
+
+				const videoDurations = await probeRecordingStreamDurations(resolvedFilePath);
+				const companionAudioDurations = resolvedCompanionPath
+					? await probeRecordingStreamDurations(resolvedCompanionPath)
+					: null;
+				return {
+					success: true,
+					analysis: resolveRecordingSyncAnalysis({
+						videoDurations,
+						companionAudioDurations,
+					}),
+				};
+			} catch (error) {
+				console.warn("[analyze-recording-sync] Failed:", error);
+				return {
+					success: false,
+					error: error instanceof Error ? error.message : String(error),
+				};
+			}
+		},
+	);
+
+	ipcMain.handle("get-native-export-capabilities", async () => {		try {
 			return {
 				success: true,
 				capabilities: await getNativeExportCapabilities(),

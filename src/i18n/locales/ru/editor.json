@@ -148,7 +148,8 @@
 		"muxingAndSavingPercent": "Muxing and saving {{percent}}%",
 		"renderSpeed": "Render speed {{fps}} FPS",
 		"renderingAudio": "Rendering audio {{percent}}%",
-		"saving": "Opening save dialog..."
+		"saving": "Opening save dialog...",
+		"syncDriftWarning": "Обнаружено рассинхронирование исходного звука ({{seconds}}с) — при экспорте будет применена временная коррекция"
 	},
 	"export": {
 		"processingAudioEdits": "Обработка звука (скорость, наложения)"

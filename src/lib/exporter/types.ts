@@ -57,6 +57,16 @@ export interface ExportProgress {
 	segmentCount?: number;
 	/** True while the export runs with a resumable session dir on disk. */
 	resumable?: boolean;
+	/**
+	 * Set by the pre-export integrity check when the source recording's audio
+	 * drifts off the video timeline beyond tolerance. The mux applies a timing
+	 * correction; this surfaces the measurement to the user.
+	 */
+	recordingSyncWarning?: {
+		driftSeconds: number;
+		maxAbsDriftSeconds: number;
+		toleranceSeconds: number;
+	};
 }
 
 export interface ExportFinalizationStageMetrics {

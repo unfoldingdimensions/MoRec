@@ -34,6 +34,13 @@ export function clamp(value: number, min: number, max: number) {
 	return Math.min(max, Math.max(min, value));
 }
 
+/**
+ * Samples dropped per overflow trim, ~2.3 minutes of capture at the default
+ * 33 ms interval — the amortization chunk that keeps trimming off the
+ * per-sample hot path.
+ */
+const CURSOR_SAMPLE_TRIM_CHUNK = 4_096;
+
 export function normalizeCursorTelemetrySamples(rawSamples: unknown): CursorTelemetryPoint[] {
 	const samples = Array.isArray(rawSamples)
 		? rawSamples
@@ -348,8 +355,15 @@ export function pushCursorSample(
 		cursorType: cursorType ?? currentCursorVisualType,
 	} as CursorTelemetryPoint);
 
-	if (activeCursorSamples.length > MAX_CURSOR_SAMPLES) {
-		activeCursorSamples.shift();
+	// Amortized overflow handling: shift()-ing one sample per push costs
+	// O(buffer) each time — ~434 µs/sample at the 1 h/30 Hz cap, ≈13 ms/s of
+	// main-process time for the rest of a long recording. Dropping a chunk in
+	// one splice averages ~one element-move per push while keeping the buffer
+	// a plain array for every existing consumer; capacity fluctuates at most
+	// one chunk (~2.3 min of samples) below the cap.
+	const overflow = activeCursorSamples.length - MAX_CURSOR_SAMPLES;
+	if (overflow > 0) {
+		activeCursorSamples.splice(0, CURSOR_SAMPLE_TRIM_CHUNK);
 	}
 }
 

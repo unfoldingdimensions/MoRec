@@ -148,7 +148,8 @@
 		"muxingAndSavingPercent": "Muxing and saving {{percent}}%",
 		"renderSpeed": "Render speed {{fps}} FPS",
 		"renderingAudio": "Rendering audio {{percent}}%",
-		"saving": "Opening save dialog..."
+		"saving": "Opening save dialog...",
+		"syncDriftWarning": "원본 오디오 드리프트 감지 ({{seconds}}초) — 내보낼 때 타이밍 보정이 적용됩니다"
 	},
 	"export": {
 		"processingAudioEdits": "속도/오버레이 편집으로 오디오 처리 중"

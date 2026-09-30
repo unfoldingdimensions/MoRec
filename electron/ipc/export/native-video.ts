@@ -33,6 +33,7 @@ import type {
 	NativeVideoExportFinishOptions,
 } from "../nativeVideoExport";
 import {
+	buildDriftCorrectedCopySourceAudioFilter,
 	buildEditedTrackSourceAudioFilter,
 	buildNativeConcatArgs,
 	buildNativeCpuOverlayStaticLayoutArgs,
@@ -52,6 +53,7 @@ import {
 	isNativeStaticLayoutCudaCapable,
 	parseAvailableFfmpegEncoders,
 } from "../nativeVideoExport";
+import { resolveNativeMuxDriftTempoFactor } from "./syncProbe";
 import { cachedNativeVideoEncoder, setCachedNativeVideoEncoder } from "../state";
 
 const execFileAsync = promisify(execFile);
@@ -4429,6 +4431,13 @@ export function buildNativeVideoAudioMuxArgs(
 	const audioMode = options.audioMode ?? "none";
 	const useEditedTrackFiltergraph =
 		audioMode === "edited-track" && options.editedTrackStrategy === "filtergraph-fast-path";
+	const driftTempoFactor =
+		typeof options.audioDriftTempoFactor === "number" &&
+		Number.isFinite(options.audioDriftTempoFactor) &&
+		options.audioDriftTempoFactor > 0 &&
+		options.audioDriftTempoFactor !== 1
+			? options.audioDriftTempoFactor
+			: undefined;
 	const args = ["-y", "-hide_banner", "-loglevel", "error"];
 	if (argsOptions.progressPipe) {
 		args.push(
@@ -4442,7 +4451,7 @@ export function buildNativeVideoAudioMuxArgs(
 	args.push("-i", videoPath, "-i", audioInputPath);
 
 	if (audioMode === "trim-source") {
-		const filter = buildTrimmedSourceAudioFilter(options.trimSegments ?? []);
+		const filter = buildTrimmedSourceAudioFilter(options.trimSegments ?? [], driftTempoFactor);
 		if (filter) {
 			args.push("-filter_complex", filter, "-map", "0:v:0", "-map", "[aout]");
 		} else {
@@ -4452,6 +4461,7 @@ export function buildNativeVideoAudioMuxArgs(
 		const filter = buildEditedTrackSourceAudioFilter(
 			options.editedTrackSegments ?? [],
 			options.audioSourceSampleRate ?? 0,
+			driftTempoFactor,
 		);
 		if (!filter) {
 			throw new Error("Edited-track filtergraph inputs are incomplete for native export");
@@ -4474,11 +4484,20 @@ export function buildNativeVideoAudioMuxArgs(
 			args.push("-filter_complex", filter, "-map", "0:v:0", "-map", "[aout]");
 		}
 	} else {
-		args.push("-map", "0:v:0", "-map", "1:a:0");
+		const driftFilter = buildDriftCorrectedCopySourceAudioFilter(driftTempoFactor);
+		if (driftFilter) {
+			args.push("-filter_complex", driftFilter, "-map", "0:v:0", "-map", "[aout]");
+		} else {
+			args.push("-map", "0:v:0", "-map", "1:a:0");
+		}
 	}
 
 	args.push("-c:v", "copy");
-	if (audioMode === "copy-source" && canCopyAudioCodecIntoMp4(options.audioSourceCodec)) {
+	if (
+		audioMode === "copy-source" &&
+		!driftTempoFactor &&
+		canCopyAudioCodecIntoMp4(options.audioSourceCodec)
+	) {
 		args.push("-c:a", "copy");
 	} else {
 		args.push("-c:a", "aac", "-b:a", "192k");
@@ -4568,11 +4587,33 @@ export async function muxNativeVideoExportAudio(
 		`${path.basename(videoPath, path.extname(videoPath))}-final.mp4`,
 	);
 
+	// Measure the mux inputs once and, when the audio stream has drifted off
+	// the video timeline beyond tolerance, time-correct it inside this same
+	// filtergraph pass — a bit-exact copy cannot be corrected, so a correcting
+	// copy-source mux falls back to AAC below.
+	const driftCorrection = await resolveNativeMuxDriftTempoFactor({
+		videoPath,
+		audioInputPath,
+		outputDurationSec: options.outputDurationSec,
+	});
+	const muxOptions: NativeVideoExportFinishOptions = driftCorrection
+		? { ...options, audioDriftTempoFactor: driftCorrection.tempoFactor }
+		: options;
+	if (driftCorrection) {
+		metrics.audioDriftTempoFactor = driftCorrection.tempoFactor;
+		metrics.audioDriftSeconds = driftCorrection.analysis.driftSeconds;
+		console.info("[native-video-export] Applying audio drift correction", {
+			tempoFactor: driftCorrection.tempoFactor,
+			driftSeconds: driftCorrection.analysis.driftSeconds,
+			maxAbsDriftSeconds: driftCorrection.analysis.maxAbsDriftSeconds,
+		});
+	}
+
 	const args = buildNativeVideoAudioMuxArgs(
 		videoPath,
 		audioInputPath,
 		outputPath,
-		options,
+		muxOptions,
 		onProgress ? { progressPipe: 2 } : {},
 	);
 
@@ -4584,7 +4625,7 @@ export async function muxNativeVideoExportAudio(
 			// Copy/encode mux scales with output duration; flat 15 minutes could
 			// kill a legitimate huge-file mux on slow I/O.
 			Math.max(15 * 60 * 1000, (options.outputDurationSec ?? 0) * 1000),
-			options,
+			muxOptions,
 			onProgress,
 			session,
 		);
@@ -4594,6 +4635,7 @@ export async function muxNativeVideoExportAudio(
 			audioMode: options.audioMode,
 			tempVideoBytes: metrics.tempVideoBytes,
 			muxedVideoBytes: metrics.muxedVideoBytes,
+			audioDriftTempoFactor: metrics.audioDriftTempoFactor,
 		});
 		await removeTemporaryExportFile(videoPath);
 		return {

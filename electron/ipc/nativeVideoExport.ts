@@ -48,6 +48,12 @@ export interface NativeVideoExportFinishOptions {
 	editedAudioData?: ArrayBuffer;
 	editedAudioPath?: string | null;
 	editedAudioMimeType?: string | null;
+	/**
+	 * `atempo` factor that realigns drifted companion audio with the video
+	 * timeline, computed from measured stream durations at mux time. Absent
+	 * when the streams are aligned within tolerance or unknowable.
+	 */
+	audioDriftTempoFactor?: number;
 }
 
 export interface NativeVideoAudioMuxMetrics {
@@ -58,6 +64,10 @@ export interface NativeVideoAudioMuxMetrics {
 	tempVideoBytes?: number;
 	tempEditedAudioBytes?: number;
 	muxedVideoBytes?: number;
+	/** Present when the mux applied a drift correction; see audioDriftTempoFactor. */
+	audioDriftTempoFactor?: number;
+	/** Signed drift (audio − video, seconds) the correction was derived from. */
+	audioDriftSeconds?: number;
 }
 
 export type NativeStaticLayoutBackend =
@@ -714,20 +724,51 @@ function formatFfmpegSeconds(milliseconds: number): string {
 	return (milliseconds / 1000).toFixed(3);
 }
 
+/**
+ * `atempo` chain for a mux-time drift correction. Same chaining convention as
+ * buildAtempoFilters, but without the epsilon suppression: a capture-drift
+ * factor (e.g. 1.0000333 for 80 ms over 40 minutes) sits three orders of
+ * magnitude below the speed-editor epsilon and still has to be applied.
+ * Eight decimals keep the positional error on a 4-hour recording in the
+ * sub-millisecond range.
+ */
+export function buildDriftCorrectionAtempoFilters(tempoFactor: number | undefined): string[] {
+	if (!Number.isFinite(tempoFactor) || (tempoFactor ?? 0) <= 0) {
+		return [];
+	}
+
+	const filters: string[] = [];
+	let remaining = tempoFactor as number;
+	while (remaining < 0.5) {
+		filters.push("atempo=0.5");
+		remaining /= 0.5;
+	}
+	while (remaining > 2) {
+		filters.push("atempo=2.0");
+		remaining /= 2.0;
+	}
+	if (remaining !== 1) {
+		filters.push(`atempo=${remaining.toFixed(8)}`);
+	}
+	return filters;
+}
+
 export function buildTrimmedSourceAudioFilter(
 	segments: NativeVideoExportAudioSegment[],
+	driftTempoFactor?: number,
 ): string | null {
 	if (segments.length === 0) {
 		return null;
 	}
 
+	const driftFilters = buildDriftCorrectionAtempoFilters(driftTempoFactor);
 	const filterParts: string[] = [];
 	const segmentLabels: string[] = [];
 
 	segments.forEach((segment, index) => {
 		const label = `trimmed_audio_${index}`;
 		filterParts.push(
-			`[1:a]atrim=start=${formatFfmpegSeconds(segment.startMs)}:end=${formatFfmpegSeconds(segment.endMs)},asetpts=PTS-STARTPTS[${label}]`,
+			`[1:a]atrim=start=${formatFfmpegSeconds(segment.startMs)}:end=${formatFfmpegSeconds(segment.endMs)},asetpts=PTS-STARTPTS${driftFilters.map((filter) => `,${filter}`).join("")}[${label}]`,
 		);
 		segmentLabels.push(`[${label}]`);
 	});
@@ -741,9 +782,24 @@ export function buildTrimmedSourceAudioFilter(
 	return filterParts.join(";");
 }
 
+/**
+ * Copy-source audio cannot take a bit-exact `-c:a copy` once it is being time
+ * corrected, so the correction runs as its own single-input filtergraph.
+ */
+export function buildDriftCorrectedCopySourceAudioFilter(
+	driftTempoFactor: number | undefined,
+): string | null {
+	const driftFilters = buildDriftCorrectionAtempoFilters(driftTempoFactor);
+	if (driftFilters.length === 0) {
+		return null;
+	}
+	return `[1:a]${driftFilters.join(",")},asetpts=PTS-STARTPTS[aout]`;
+}
+
 export function buildEditedTrackSourceAudioFilter(
 	segments: NativeVideoExportEditedTrackSegment[],
 	sourceSampleRate: number,
+	driftTempoFactor?: number,
 ): string | null {
 	if (segments.length === 0 || !Number.isFinite(sourceSampleRate) || sourceSampleRate <= 0) {
 		return null;
@@ -754,6 +810,7 @@ export function buildEditedTrackSourceAudioFilter(
 		return null;
 	}
 
+	const driftFilters = buildDriftCorrectionAtempoFilters(driftTempoFactor);
 	const filterParts: string[] = [];
 	const segmentLabels: string[] = [];
 	let hasInvalidSegment = false;
@@ -797,6 +854,8 @@ export function buildEditedTrackSourceAudioFilter(
 			hasInvalidSegment = true;
 			return;
 		}
+
+		segmentFilter.push(...driftFilters);
 
 		filterParts.push(`${segmentFilter.join(",")}[${label}]`);
 		segmentLabels.push(`[${label}]`);

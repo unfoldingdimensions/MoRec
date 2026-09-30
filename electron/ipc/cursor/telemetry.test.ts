@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { CURSOR_TELEMETRY_VERSION } from "../constants";
+import { CURSOR_TELEMETRY_VERSION, MAX_CURSOR_SAMPLES } from "../constants";
 
 const { writeFile, rm } = vi.hoisted(() => ({
 	writeFile: vi.fn(),
@@ -144,6 +144,37 @@ describe("cursor telemetry pause clock", () => {
 
 		expect(rm).toHaveBeenCalledWith("/tmp/recording.cursor.json", { force: true });
 		expect(writeFile).not.toHaveBeenCalled();
+	});
+});
+
+describe("cursor sample buffer overflow", () => {
+	beforeEach(() => {
+		setActiveCursorSamples([]);
+		resetCursorCaptureClock();
+	});
+
+	it("trims in bulk at the cap while preserving sample order", () => {
+		const totalSamples = MAX_CURSOR_SAMPLES + 5_000;
+		for (let index = 0; index < totalSamples; index += 1) {
+			pushCursorSample(0.25, 0.75, index * 33, "move");
+		}
+
+		// Capacity stays within one trim chunk below the cap.
+		expect(activeCursorSamples.length).toBeLessThanOrEqual(MAX_CURSOR_SAMPLES);
+		expect(activeCursorSamples.length).toBeGreaterThanOrEqual(MAX_CURSOR_SAMPLES - 4_096);
+
+		// Strictly increasing timestamps: nothing reordered, nothing duplicated.
+		for (let index = 1; index < activeCursorSamples.length; index += 1) {
+			expect(activeCursorSamples[index].timeMs).toBeGreaterThan(
+				activeCursorSamples[index - 1].timeMs,
+			);
+		}
+
+		// Oldest samples dropped first, newest retained.
+		expect(activeCursorSamples[0].timeMs).toBeGreaterThan(0);
+		expect(activeCursorSamples[activeCursorSamples.length - 1].timeMs).toBe(
+			(totalSamples - 1) * 33,
+		);
 	});
 });
 

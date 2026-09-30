@@ -1,6 +1,6 @@
 import { Plus } from "@phosphor-icons/react";
 import type { Span } from "dnd-timeline";
-import { forwardRef, useEffect, useMemo, useRef, useState } from "react";
+import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
 	SourceAudioTrackMeta,
 	SourceAudioTrackSettings,
@@ -209,6 +209,24 @@ const TimelineEditor = forwardRef<TimelineEditorHandle, TimelineEditorProps>(
 
 		const [liveSpanPreviewById, setLiveSpanPreviewById] = useState<Record<string, Span>>({});
 		const [isDragging, setIsDragging] = useState(false);
+		// Stable callback identity: this flows into the dnd-timeline context
+		// handlers, and a fresh identity here would rebuild the timeline context
+		// bag on every playhead tick, re-rendering every region item.
+		const handleLiveSpanPreviewChange = useCallback((id: string, span: Span | null) => {
+			setLiveSpanPreviewById((prev) => {
+				if (!span) {
+					if (!(id in prev)) return prev;
+					const next = { ...prev };
+					delete next[id];
+					return next;
+				}
+				const current = prev[id];
+				if (current && current.start === span.start && current.end === span.end) {
+					return prev;
+				}
+				return { ...prev, [id]: span };
+			});
+		}, []);
 
 		useEffect(() => {
 			onInteractionChange?.(isDragging);
@@ -260,6 +278,13 @@ const TimelineEditor = forwardRef<TimelineEditorHandle, TimelineEditorProps>(
 
 			return { previewSpans, hiddenZoomIds };
 		}, [clipRegions, liveSpanPreviewById, zoomRegions]);
+		// Stable identity across playhead ticks: a fresh array here would defeat
+		// the TimelineCanvasRows memo and re-render every region item on each
+		// animation frame of playback.
+		const liveHiddenItemIds = useMemo(
+			() => Array.from(liveZoomPreview.hiddenZoomIds),
+			[liveZoomPreview.hiddenZoomIds],
+		);
 		const { shortcuts: keyShortcuts } = useShortcuts();
 		const { peaks: sourceAudioPeaks, loading: sourceAudioLoading } = useTimelineAudioPeaks(
 			videoPath,
@@ -466,25 +491,7 @@ const TimelineEditor = forwardRef<TimelineEditorHandle, TimelineEditorProps>(
 						resolveTargetRowId={getResolvedDropRowId}
 						allRegionSpans={allRegionSpans}
 						onDraggingChange={setIsDragging}
-						onLiveSpanPreviewChange={(id, span) => {
-							setLiveSpanPreviewById((prev) => {
-								if (!span) {
-									if (!(id in prev)) return prev;
-									const next = { ...prev };
-									delete next[id];
-									return next;
-								}
-								const current = prev[id];
-								if (
-									current &&
-									current.start === span.start &&
-									current.end === span.end
-								) {
-									return prev;
-								}
-								return { ...prev, [id]: span };
-							});
-						}}
+						onLiveSpanPreviewChange={handleLiveSpanPreviewChange}
 					>
 						<KeyframeMarkers
 							keyframes={keyframes}
@@ -523,7 +530,7 @@ const TimelineEditor = forwardRef<TimelineEditorHandle, TimelineEditorProps>(
 							getSourceAudioTrackSettingsForClip={getSourceAudioTrackSettingsForClip}
 							showSourceAudioTrack={showSourceAudioTrack}
 							liveSpanPreviewById={liveZoomPreview.previewSpans}
-							liveHiddenItemIds={Array.from(liveZoomPreview.hiddenZoomIds)}
+							liveHiddenItemIds={liveHiddenItemIds}
 							isDragging={isDragging}
 							isLoading={isLoading}
 						/>
