@@ -156,7 +156,8 @@
 	},
 	"toolbar": {
 		"addLayer": "Добавить слой",
-		"splitClip": "Разрезать клип (C)"
+		"splitClip": "Разрезать клип (C)",
+		"removeFillerWords": "Удалить слова-паразиты"
 	},
 	"timeline": {
 		"expand": "Развернуть таймлайн",

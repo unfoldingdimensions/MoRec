@@ -34,6 +34,13 @@
 		"notEnoughSilence": "Niet genoeg stilte om te knippen",
 		"analysisFailed": "Kan de audio van deze opname niet analyseren."
 	},
+	"filler": {
+		"removed": "{{count}} stopwoord(en) verwijderd ({{seconds}}s)",
+		"noFillers": "Geen stopwoorden gevonden in het transcript",
+		"tooShort": "De gevonden stopwoorden zijn te kort om schoon te knippen",
+		"tooMuch": "Dat zou meer dan 40% van de opname knippen",
+		"overlapsEdits": "Stopwoorden overlappen je zoom- of snelheidsbewerkingen — pas aan en probeer opnieuw"
+	},
 	"autospeed": {
 		"speedUpTyping": "Typen versnellen",
 		"speedUpDeadAir": "Stille stukken versnellen",

@@ -34,6 +34,13 @@
 		"notEnoughSilence": "Non c'è abbastanza silenzio da tagliare",
 		"analysisFailed": "Impossibile analizzare l'audio di questa registrazione."
 	},
+	"filler": {
+		"removed": "Rimosse {{count}} parole di riempimento ({{seconds}}s)",
+		"noFillers": "Nessuna parola di riempimento trovata nella trascrizione",
+		"tooShort": "Le parole di riempimento trovate sono troppo corte per un taglio pulito",
+		"tooMuch": "Taglierebbe più del 40% della registrazione",
+		"overlapsEdits": "Le parole di riempimento si sovrappongono alle modifiche di zoom o velocità — regola e riprova"
+	},
 	"autospeed": {
 		"speedUpTyping": "Accelera la digitazione",
 		"speedUpDeadAir": "Accelera i silenzi",

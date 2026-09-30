@@ -156,7 +156,8 @@
 	},
 	"toolbar": {
 		"addLayer": "Agregar capa",
-		"splitClip": "Dividir clip (C)"
+		"splitClip": "Dividir clip (C)",
+		"removeFillerWords": "Eliminar muletillas"
 	},
 	"timeline": {
 		"expand": "Expandir línea de tiempo",

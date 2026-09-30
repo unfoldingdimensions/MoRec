@@ -156,7 +156,8 @@
 	},
 	"toolbar": {
 		"addLayer": "Add Layer",
-		"splitClip": "Split Clip (C)"
+		"splitClip": "Split Clip (C)",
+		"removeFillerWords": "Remove filler words"
 	},
 	"timeline": {
 		"expand": "Expand Timeline",

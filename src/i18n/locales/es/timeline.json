@@ -34,6 +34,13 @@
 		"notEnoughSilence": "No hay suficiente silencio para recortar",
 		"analysisFailed": "No se pudo analizar el audio de esta grabación."
 	},
+	"filler": {
+		"removed": "Se eliminaron {{count}} muletilla(s) ({{seconds}}s)",
+		"noFillers": "No se encontraron muletillas en la transcripción",
+		"tooShort": "Las muletillas encontradas son demasiado cortas para cortarlas limpiamente",
+		"tooMuch": "Eso cortaría más del 40 % de la grabación",
+		"overlapsEdits": "Las muletillas se superponen a tus ediciones de zoom o velocidad: ajusta y reintenta"
+	},
 	"autospeed": {
 		"speedUpTyping": "Acelerar la escritura",
 		"speedUpDeadAir": "Acelerar los silencios",

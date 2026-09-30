@@ -34,6 +34,13 @@
 		"notEnoughSilence": "没有足够的静音可删除",
 		"analysisFailed": "无法分析此录制的音频。"
 	},
+	"filler": {
+		"removed": "已移除 {{count}} 个填充词（{{seconds}} 秒）",
+		"noFillers": "转录中未发现填充词",
+		"tooShort": "发现的填充词太短，无法干净地剪除",
+		"tooMuch": "这将剪除超过 40% 的录制内容",
+		"overlapsEdits": "填充词与你的缩放或速度编辑重叠——请调整后重试"
+	},
 	"autospeed": {
 		"speedUpTyping": "加速打字",
 		"speedUpDeadAir": "加速静音",

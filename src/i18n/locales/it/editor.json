@@ -156,7 +156,8 @@
 	},
 	"toolbar": {
 		"addLayer": "Aggiungi livello",
-		"splitClip": "Dividi clip (C)"
+		"splitClip": "Dividi clip (C)",
+		"removeFillerWords": "Rimuovi le parole di riempimento"
 	},
 	"timeline": {
 		"expand": "Espandi timeline",

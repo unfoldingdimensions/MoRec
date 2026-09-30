@@ -6,6 +6,7 @@ import {
 	Crop,
 	Cursor,
 	DownloadSimple as Download,
+	Eraser,
 	FastForward,
 	FolderOpen,
 	Gear,
@@ -202,6 +203,7 @@ import {
 	openExternalLink,
 } from "./TutorialHelp";
 import TimelineEditor, { type TimelineEditorHandle } from "./timeline/TimelineEditor";
+import { buildFillerCutSuggestions } from "./timeline/fillerSuggestions";
 import {
 	buildDeadAirSpeedSuggestions,
 	buildSilenceTrimSuggestions,
@@ -4063,6 +4065,81 @@ export default function VideoEditor() {
 		[autoCaptions, clipRegions, duration, reservedSpansForSuggestions, t],
 	);
 
+	// One-click filler-word removal: detects "um"/"uh"-style words in the
+	// caption cues and runs them through the same transcript-cut pipeline as
+	// manual word cutting (guards, clip splitting, caption side-effects, undo).
+	const handleRemoveFillerWords = useCallback(() => {
+		const totalMs = Math.max(0, Math.round(duration * 1000));
+		const outcome = buildFillerCutSuggestions({
+			cues: autoCaptions,
+			clips: clipRegions,
+			totalMs,
+			reservedSpans: reservedSpansForSuggestions,
+		});
+
+		if (outcome.status !== "ok" || !outcome.plan) {
+			if (outcome.status === "no-fillers") {
+				toast.info(t("timeline.filler.noFillers", "No filler words found in the transcript"));
+			} else if (outcome.status === "too-short") {
+				toast.info(
+					t(
+						"timeline.filler.tooShort",
+						"The fillers found are too short to cut cleanly",
+					),
+				);
+			} else if (outcome.status === "too-much") {
+				toast.info(
+					t("timeline.filler.tooMuch", "That would cut more than 40% of the recording"),
+				);
+			} else if (outcome.status === "overlaps-edits") {
+				toast.info(
+					t(
+						"timeline.filler.overlapsEdits",
+						"Fillers overlap your zoom or speed edits — adjust and retry",
+					),
+				);
+			}
+			return;
+		}
+
+		const plan = outcome.plan;
+		let clipId = nextClipIdRef.current;
+		const nextClips: ClipRegion[] = plan.clipSegments.map((segment) => ({
+			...segment,
+			id: `clip-${clipId++}`,
+		}));
+		nextClipIdRef.current = clipId;
+
+		// Same region semantics as manual word cutting: regions overlapping an
+		// actual cut are dropped; captions come from the derived cue list.
+		const removedSpans = plan.removedSpans;
+		const overlapsRemoved = (span: { startMs: number; endMs: number }) =>
+			removedSpans.some(
+				(removed) => removed.startMs < span.endMs && removed.endMs > span.startMs,
+			);
+
+		setClipRegions(nextClips);
+		setZoomRegions((prev) => prev.filter((region) => !overlapsRemoved(region)));
+		setAnnotationRegions((prev) => prev.filter((region) => !overlapsRemoved(region)));
+		setSpeedRegions((prev) => prev.filter((region) => !overlapsRemoved(region)));
+		setAudioRegions((prev) => prev.filter((region) => !overlapsRemoved(region)));
+		setAutoCaptions(plan.cues);
+		setSelectedCaptionId((prev) =>
+			prev && plan.cues.some((cue) => cue.id === prev) ? prev : null,
+		);
+
+		const removedSeconds =
+			Math.round(
+				removedSpans.reduce((sum, span) => sum + (span.endMs - span.startMs), 0) / 100,
+			) / 10;
+		toast.success(
+			t("timeline.filler.removed", "Removed {{count}} filler word(s) ({{seconds}}s)", {
+				count: plan.removedWordCount,
+				seconds: removedSeconds,
+			}),
+		);
+	}, [autoCaptions, clipRegions, duration, reservedSpansForSuggestions, t]);
+
 	// Multi-clip segments (native rollover): merge kept takes into the
 	// primary recording (ffmpeg concat, stream copy) and drop every source
 	// segment, then reload the (overwritten) video with a cache-busting URL.
@@ -7661,6 +7738,15 @@ export default function VideoEditor() {
 										}
 									>
 										<Waveform className="w-4 h-4" />
+									</Button>
+									<Button
+										onClick={handleRemoveFillerWords}
+										variant="ghost"
+										size="icon"
+										className="h-7 w-7 rounded-full text-muted-foreground transition-all hover:bg-[#2563EB]/10 hover:text-[#2563EB]"
+										title={t("editor.toolbar.removeFillerWords")}
+									>
+										<Eraser className="w-4 h-4" />
 									</Button>
 									<Button
 										onClick={handleSpeedUpTyping}

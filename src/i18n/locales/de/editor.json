@@ -156,7 +156,8 @@
 	},
 	"toolbar": {
 		"addLayer": "Ebene hinzufügen",
-		"splitClip": "Clip teilen (C)"
+		"splitClip": "Clip teilen (C)",
+		"removeFillerWords": "Füllwörter entfernen"
 	},
 	"timeline": {
 		"expand": "Zeitleiste erweitern",
