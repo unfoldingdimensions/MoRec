@@ -34,6 +34,13 @@
 		"notEnoughSilence": "Silêncio insuficiente para cortar",
 		"analysisFailed": "Não foi possível analisar o áudio desta gravação."
 	},
+	"filler": {
+		"removed": "{{count}} palavra(s) de preenchimento removida(s) ({{seconds}}s)",
+		"noFillers": "Nenhuma palavra de preenchimento encontrada na transcrição",
+		"tooShort": "As palavras de preenchimento encontradas são curtas demais para um corte limpo",
+		"tooMuch": "Isso cortaria mais de 40% da gravação",
+		"overlapsEdits": "As palavras de preenchimento se sobrepõem às suas edições de zoom ou velocidade — ajuste e tente novamente"
+	},
 	"autospeed": {
 		"speedUpTyping": "Acelerar a digitação",
 		"speedUpDeadAir": "Acelerar os silêncios",

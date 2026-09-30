@@ -156,7 +156,8 @@
 	},
 	"toolbar": {
 		"addLayer": "레이어 추가",
-		"splitClip": "클립 분할 (C)"
+		"splitClip": "클립 분할 (C)",
+		"removeFillerWords": "군더더기 단어 제거"
 	},
 	"timeline": {
 		"expand": "타임라인 펼치기",

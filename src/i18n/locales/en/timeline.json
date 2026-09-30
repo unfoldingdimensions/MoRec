@@ -34,6 +34,13 @@
 		"notEnoughSilence": "Not enough silence to trim",
 		"analysisFailed": "Couldn't analyze this recording's audio."
 	},
+	"filler": {
+		"removed": "Removed {{count}} filler word(s) ({{seconds}}s)",
+		"noFillers": "No filler words found in the transcript",
+		"tooShort": "The fillers found are too short to cut cleanly",
+		"tooMuch": "That would cut more than 40% of the recording",
+		"overlapsEdits": "Fillers overlap your zoom or speed edits — adjust and retry"
+	},
 	"autospeed": {
 		"speedUpTyping": "Speed up typing",
 		"speedUpDeadAir": "Speed up dead air",

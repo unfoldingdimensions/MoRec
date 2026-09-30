@@ -156,7 +156,8 @@
 	},
 	"toolbar": {
 		"addLayer": "新增圖層",
-		"splitClip": "拆分片段 (C)"
+		"splitClip": "拆分片段 (C)",
+		"removeFillerWords": "移除填充詞"
 	},
 	"timeline": {
 		"expand": "展開時間軸",

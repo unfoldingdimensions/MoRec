@@ -34,6 +34,13 @@
 		"notEnoughSilence": "Nicht genug Stille zum Entfernen",
 		"analysisFailed": "Audio dieser Aufnahme konnte nicht analysiert werden."
 	},
+	"filler": {
+		"removed": "{{count}} Füllwörter entfernt ({{seconds}}s)",
+		"noFillers": "Keine Füllwörter im Transkript gefunden",
+		"tooShort": "Die gefundenen Füllwörter sind zu kurz für einen sauberen Schnitt",
+		"tooMuch": "Das würde mehr als 40 % der Aufnahme entfernen",
+		"overlapsEdits": "Füllwörter überschneiden sich mit deinen Zoom- oder Geschwindigkeitsbearbeitungen — passe sie an und versuche es erneut"
+	},
 	"autospeed": {
 		"speedUpTyping": "Tippen beschleunigen",
 		"speedUpDeadAir": "Stille Abschnitte beschleunigen",

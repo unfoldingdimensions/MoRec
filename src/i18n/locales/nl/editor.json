@@ -156,7 +156,8 @@
 	},
 	"toolbar": {
 		"addLayer": "Laag toevoegen",
-		"splitClip": "Clip splitsen (C)"
+		"splitClip": "Clip splitsen (C)",
+		"removeFillerWords": "Stopwoorden verwijderen"
 	},
 	"timeline": {
 		"expand": "Tijdlijn uitvouwen",
