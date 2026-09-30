@@ -295,8 +295,11 @@ export function detectInteractionCandidates(
  * `{ firstMs, lastMs, focus }` objects, one per cluster.  The focus is taken
  * from the click with the highest interaction strength, falling back to the
  * centroid of all clicks in the cluster.
+ *
+ * Exported for the interactive-demo step derivation, which clusters the same
+ * explicit clicks into one step per rapid click pair.
  */
-function buildClickClusters(
+export function buildClickClusters(
 	clicks: CursorInteractionCandidate[],
 	mergeGapMs: number,
 ): Array<{ firstMs: number; lastMs: number; focus: ZoomFocus }> {
