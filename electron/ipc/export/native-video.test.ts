@@ -19,6 +19,16 @@ vi.mock("../state", () => ({
 	setCachedNativeVideoEncoder: vi.fn(),
 }));
 
+const syncProbeMocks = vi.hoisted(() => ({
+	// Default: no drift correction — matches an aligned recording and keeps
+	// every pre-existing mux expectation byte-identical.
+	resolveNativeMuxDriftTempoFactor: vi.fn(async () => null),
+}));
+
+vi.mock("./syncProbe", () => ({
+	resolveNativeMuxDriftTempoFactor: syncProbeMocks.resolveNativeMuxDriftTempoFactor,
+}));
+
 const fsMocks = vi.hoisted(() => ({
 	access: vi.fn(async () => {
 		throw new Error("missing");
@@ -953,6 +963,69 @@ describe("buildNativeVideoAudioMuxArgs", () => {
 			expect.arrayContaining(["-stats_period", "0.5", "-progress", "pipe:2", "-nostats"]),
 		);
 	});
+
+	it("re-encodes copy-source audio through a drift correction instead of bit-exact copy", () => {
+		const args = buildNativeVideoAudioMuxArgs("video.mp4", "source.wav", "out.mp4", {
+			audioMode: "copy-source",
+			audioSourceCodec: "aac",
+			audioDriftTempoFactor: 1.0025,
+			outputDurationSec: 60,
+		});
+
+		expect(args).toEqual(expect.arrayContaining(["-filter_complex"]));
+		expect(args.join(" ")).toContain(
+			"[1:a]atempo=1.00250000,asetpts=PTS-STARTPTS[aout]",
+		);
+		expect(args).toEqual(expect.arrayContaining(["-c:a", "aac", "-b:a", "192k"]));
+		// "copy" remains only as the video codec value; audio no longer copies.
+		expect(args.filter((arg) => arg === "copy")).toEqual(["copy"]);
+	});
+
+	it("threads the drift correction into trim-source segment filtergraphs", () => {
+		const args = buildNativeVideoAudioMuxArgs("video.mp4", "source.wav", "out.mp4", {
+			audioMode: "trim-source",
+			trimSegments: [{ startMs: 0, endMs: 1_000 }],
+			audioDriftTempoFactor: 0.9975,
+			outputDurationSec: 1,
+		});
+
+		expect(args.join(" ")).toContain(
+			"atrim=start=0.000:end=1.000,asetpts=PTS-STARTPTS,atempo=0.99750000[trimmed_audio_0]",
+		);
+	});
+
+	it("threads the drift correction into edited-track filtergraphs before the duration pad", () => {
+		const args = buildNativeVideoAudioMuxArgs("video.mp4", "source.wav", "out.mp4", {
+			audioMode: "edited-track",
+			editedTrackStrategy: "filtergraph-fast-path",
+			audioSourceSampleRate: 48_000,
+			editedTrackSegments: [{ startMs: 0, endMs: 4_000, speed: 1 }],
+			audioDriftTempoFactor: 1.0025,
+			outputDurationSec: 4,
+		});
+
+		expect(args.join(" ")).toContain("atempo=1.00250000[edited_audio_0]");
+		expect(args.join(";")).toContain(
+			"[aout]apad,atrim=duration=4.000,asetpts=PTS-STARTPTS[aout_sync]",
+		);
+	});
+
+	it("leaves args unchanged when no drift correction is requested", () => {
+		const baseline = buildNativeVideoAudioMuxArgs("video.mp4", "source.wav", "out.mp4", {
+			audioMode: "copy-source",
+			audioSourceCodec: "aac",
+			outputDurationSec: 60,
+		});
+		const withUnityFactor = buildNativeVideoAudioMuxArgs("video.mp4", "source.wav", "out.mp4", {
+			audioMode: "copy-source",
+			audioSourceCodec: "aac",
+			audioDriftTempoFactor: 1,
+			outputDurationSec: 60,
+		});
+
+		expect(withUnityFactor).toEqual(baseline);
+		expect(baseline).toEqual(expect.arrayContaining(["-c:a", "copy"]));
+	});
 });
 
 describe("canCopyAudioCodecIntoMp4", () => {
@@ -1454,8 +1527,7 @@ describe("parseFfmpegFrameRate", () => {
 	});
 });
 
-describe("muxNativeVideoExportAudio edited-audio path gate", () => {
-	it("rejects edited audio paths that are not app-managed export temps", async () => {
+describe("muxNativeVideoExportAudio edited-audio path gate", () => {	it("rejects edited audio paths that are not app-managed export temps", async () => {
 		await expect(
 			muxNativeVideoExportAudio("C:\\temp\\video.mp4", {
 				audioMode: "edited-track",
@@ -1500,5 +1572,68 @@ describe("muxNativeVideoExportAudio edited-audio path gate", () => {
 		} finally {
 			spawnMock.mockRestore();
 		}
+	});
+});
+
+describe("muxNativeVideoExportAudio drift correction wiring", () => {
+	it("measures the inputs and threads a computed correction into the mux args", async () => {
+		const tempRoot = process.env.TEMP ?? process.cwd();
+		const videoPath = `${tempRoot}\\morec-mux-drift-test.mp4`;
+
+		syncProbeMocks.resolveNativeMuxDriftTempoFactor.mockResolvedValueOnce({
+			tempoFactor: 1.0025,
+			analysis: {
+				driftSeconds: 6,
+				maxAbsDriftSeconds: 6,
+				exceedsTolerance: true,
+			},
+		});
+
+		try {
+			const result = await muxNativeVideoExportAudio(videoPath, {
+				audioMode: "copy-source",
+				audioSourcePath: `${tempRoot}\\morec-mux-drift-source.wav`,
+				audioSourceCodec: "pcm_s16le",
+				outputDurationSec: 2_400,
+			});
+
+			expect(result.metrics.audioDriftTempoFactor).toBe(1.0025);
+			expect(result.metrics.audioDriftSeconds).toBe(6);
+
+			// execFileMock accumulates across tests in this file; the mux under
+			// test made the most recent filtergraph-carrying call.
+			const muxCall = execFileMock.mock.calls
+				.filter((call) => (call[1] as string[]).includes("-filter_complex"))
+				.at(-1);
+			expect(muxCall).toBeDefined();
+			const muxArgs = muxCall![1] as string[];
+			const filterIndex = muxArgs.indexOf("-filter_complex");
+			expect(muxArgs[filterIndex + 1]).toContain(
+				"[1:a]atempo=1.00250000,asetpts=PTS-STARTPTS[aout]",
+			);
+			expect(muxArgs).toEqual(expect.arrayContaining(["-c:a", "aac", "-b:a", "192k"]));
+			expect(muxArgs.filter((arg) => arg === "copy")).toEqual(["copy"]);
+		} finally {
+			syncProbeMocks.resolveNativeMuxDriftTempoFactor.mockClear();
+		}
+	});
+
+	it("leaves the mux untouched when the probe reports aligned streams", async () => {
+		const tempRoot = process.env.TEMP ?? process.cwd();
+		const videoPath = `${tempRoot}\\morec-mux-aligned-test.mp4`;
+
+		const result = await muxNativeVideoExportAudio(videoPath, {
+			audioMode: "copy-source",
+			audioSourcePath: `${tempRoot}\\morec-mux-aligned-source.wav`,
+			audioSourceCodec: "aac",
+			outputDurationSec: 60,
+		});
+
+		expect(result.metrics.audioDriftTempoFactor).toBeUndefined();
+		const muxCall = execFileMock.mock.calls.at(-1);
+		expect(muxCall).toBeDefined();
+		const muxArgs = muxCall![1] as string[];
+		expect(muxArgs).not.toContain("-filter_complex");
+		expect(muxArgs).toEqual(expect.arrayContaining(["-map", "1:a:0", "-c:a", "copy"]));
 	});
 });

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { ATEMPO_FILTER_EPSILON } from "./ffmpeg/filters";
 import {
+	buildDriftCorrectionAtempoFilters,
+	buildDriftCorrectedCopySourceAudioFilter,
 	buildEditedTrackSourceAudioFilter,
 	buildNativeConcatArgs,
 	buildNativeCpuOverlayStaticLayoutArgs,
@@ -29,6 +31,53 @@ describe("buildTrimmedSourceAudioFilter", () => {
 				"[trimmed_audio_0][trimmed_audio_1]concat=n=2:v=0:a=1[aout]",
 		);
 	});
+
+	it("applies a drift correction to every trimmed segment", () => {
+		expect(
+			buildTrimmedSourceAudioFilter(
+				[
+					{ startMs: 0, endMs: 2_000 },
+					{ startMs: 4_000, endMs: 6_000 },
+				],
+				1.0025,
+			),
+		).toBe(
+			"[1:a]atrim=start=0.000:end=2.000,asetpts=PTS-STARTPTS,atempo=1.00250000[trimmed_audio_0];" +
+				"[1:a]atrim=start=4.000:end=6.000,asetpts=PTS-STARTPTS,atempo=1.00250000[trimmed_audio_1];" +
+				"[trimmed_audio_0][trimmed_audio_1]concat=n=2:v=0:a=1[aout]",
+		);
+	});
+});
+
+describe("buildDriftCorrectionAtempoFilters", () => {
+	it("emits a single precise step for capture-drift factors below the speed epsilon", () => {
+		// 80 ms of drift across 40 minutes ⇒ factor 1.0000333…, three orders of
+		// magnitude below ATEMPO_FILTER_EPSILON — the correction must survive.
+		expect(buildDriftCorrectionAtempoFilters(1 + 0.08 / (40 * 60))).toEqual([
+			`atempo=${(1 + 0.08 / (40 * 60)).toFixed(8)}`,
+		]);
+	});
+
+	it("chains steps for out-of-range factors", () => {
+		expect(buildDriftCorrectionAtempoFilters(3)).toEqual(["atempo=2.0", "atempo=1.50000000"]);
+		expect(buildDriftCorrectionAtempoFilters(0.25)).toEqual(["atempo=0.5", "atempo=0.50000000"]);
+	});
+
+	it("ignores unusable factors", () => {
+		expect(buildDriftCorrectionAtempoFilters(undefined)).toEqual([]);
+		expect(buildDriftCorrectionAtempoFilters(Number.NaN)).toEqual([]);
+		expect(buildDriftCorrectionAtempoFilters(0)).toEqual([]);
+		expect(buildDriftCorrectionAtempoFilters(1)).toEqual([]);
+	});
+});
+
+describe("buildDriftCorrectedCopySourceAudioFilter", () => {
+	it("wraps the audio input with the correction and a timestamp reset", () => {
+		expect(buildDriftCorrectedCopySourceAudioFilter(0.9875)).toBe(
+			"[1:a]atempo=0.98750000,asetpts=PTS-STARTPTS[aout]",
+		);
+		expect(buildDriftCorrectedCopySourceAudioFilter(undefined)).toBeNull();
+	});
 });
 
 describe("buildEditedTrackSourceAudioFilter", () => {
@@ -45,6 +94,19 @@ describe("buildEditedTrackSourceAudioFilter", () => {
 			"[1:a]atrim=start=0.000:end=2.000,asetpts=PTS-STARTPTS[edited_audio_0];" +
 				"[1:a]atrim=start=2.000:end=6.000,asetpts=PTS-STARTPTS,atempo=1.500000[edited_audio_1];" +
 				"[edited_audio_0][edited_audio_1]concat=n=2:v=0:a=1[aout]",
+		);
+	});
+
+	it("composes the drift correction after the per-segment speed tempo", () => {
+		const filter = buildEditedTrackSourceAudioFilter(
+			[{ startMs: 0, endMs: 2_000, speed: 1.5 }],
+			44_100,
+			1.0025,
+		);
+
+		expect(filter).toBe(
+			"[1:a]atrim=start=0.000:end=2.000,asetpts=PTS-STARTPTS,atempo=1.500000,atempo=1.00250000[edited_audio_0];" +
+				"[edited_audio_0]anull[aout]",
 		);
 	});
 
