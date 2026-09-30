@@ -280,23 +280,6 @@ describe("buildFillerCutSuggestions — caption side-effects", () => {
 });
 
 describe("buildFillerCutSuggestions — fast-check invariants", () => {
-	const wordArb = (startMs: number, index: number) =>
-		fc
-			.record({
-				isFiller: fc.boolean(),
-				durationMs: fc.integer({ min: 120, max: 350 }),
-			})
-			.map(({ isFiller, durationMs }) => {
-				// Every 4th word is a filler, so the removal ratio stays far below
-				// the cap and the ok-branch carries the invariant assertions.
-				const filler = isFiller && index % 4 === 0;
-				return {
-					text: filler ? "um" : "measurement",
-					startMs,
-					endMs: startMs + durationMs,
-				};
-			});
-
 	it("produces monotonic, non-overlapping, in-bounds cut spans", () => {
 		fc.assert(
 			fc.property(
