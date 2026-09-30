@@ -2,67 +2,13 @@ import { execSync } from "node:child_process";
 import { copyFileSync, existsSync, mkdirSync, rmSync } from "node:fs";
 import path from "node:path";
 
+import { findCmake, quoteForShell } from "./find-cmake.mjs";
 import {
 	formatNativeHelperManifestWarning,
 	updateNativeHelperManifest,
 	verifyNativeHelperManifest,
 } from "./native-helper-manifest.mjs";
-import {
-	configureWithWindowsCmakeGenerator,
-	WINDOWS_VISUAL_STUDIO_INSTALL_DIRS,
-} from "./windows-cmake-generators.mjs";
-
-export function findCmake() {
-	// Check PATH first
-	try {
-		execSync("cmake --version", { stdio: "pipe" });
-		return "cmake";
-	} catch {
-		// not on PATH
-	}
-
-	const standaloneCmakePaths = [
-		path.join("C:", "Program Files", "CMake", "bin", "cmake.exe"),
-		path.join("C:", "Program Files (x86)", "CMake", "bin", "cmake.exe"),
-	];
-	for (const cmakePath of standaloneCmakePaths) {
-		if (existsSync(cmakePath)) {
-			return `"${cmakePath}"`;
-		}
-	}
-
-	// VS bundled CMake
-	const vsRoots = [
-		path.join("C:", "Program Files", "Microsoft Visual Studio"),
-		path.join("C:", "Program Files (x86)", "Microsoft Visual Studio"),
-	];
-	const vsEditions = ["Community", "Professional", "Enterprise", "BuildTools"];
-	const vsVersions = WINDOWS_VISUAL_STUDIO_INSTALL_DIRS;
-	for (const root of vsRoots) {
-		for (const version of vsVersions) {
-			for (const edition of vsEditions) {
-				const cmakePath = path.join(
-					root,
-					version,
-					edition,
-					"Common7",
-					"IDE",
-					"CommonExtensions",
-					"Microsoft",
-					"CMake",
-					"CMake",
-					"bin",
-					"cmake.exe",
-				);
-				if (existsSync(cmakePath)) {
-					return `"${cmakePath}"`;
-				}
-			}
-		}
-	}
-
-	return null;
-}
+import { configureWithWindowsCmakeGenerator } from "./windows-cmake-generators.mjs";
 
 /**
  * Shared configure/build/stage pipeline for the Windows CMake-based native
@@ -140,7 +86,7 @@ export function buildWindowsCmakeHelper({
 			clearCache: clearCmakeCache,
 			configure: (generator, toolset) =>
 				execSync(
-					`${cmake} .. -G "${generator}" -A ${generatorArch}${toolset ? ` -T ${toolset}` : ""}`,
+					`${quoteForShell(cmake)} .. -G "${generator}" -A ${generatorArch}${toolset ? ` -T ${toolset}` : ""}`,
 					{
 						cwd: buildDir,
 						stdio: "inherit",
@@ -159,7 +105,7 @@ export function buildWindowsCmakeHelper({
 
 	log(`[${prefix}] Building native helper...`);
 	try {
-		execSync(`${cmake} --build . --config Release`, {
+		execSync(`${quoteForShell(cmake)} --build . --config Release`, {
 			cwd: buildDir,
 			stdio: "inherit",
 			timeout: 300000,
