@@ -32,6 +32,7 @@
 		"smoke:electron-main-cjs": "node scripts/smoke-electron-main-cjs.mjs",
 		"smoke:packaged-binaries": "node scripts/smoke-packaged-binaries.mjs",
 		"verify:macos-distribution": "node scripts/verify-macos-distribution.mjs",
+		"verify:native-helpers": "node scripts/verify-native-helper-manifest.mjs",
 		"checksums:release": "node scripts/write-release-checksums.mjs",
 		"release:create": "node scripts/create-release.mjs",
 		"test": "vitest --run",

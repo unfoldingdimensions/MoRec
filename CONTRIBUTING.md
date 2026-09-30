@@ -67,6 +67,33 @@ Shared harnesses:
 
 When fixing a bug, add a test that reproduces it first. New IPC handlers and user-facing features should ship with handler-level or component-level tests.
 
+`scripts/**` is part of the vitest project, so build-script modules get the same treatment — pure helpers should be extracted and unit tested rather than inlined.
+
+## Native helper binaries
+
+`electron/native/bin/win32-x64/` holds committed prebuilt helpers, and
+`electron/ipc/paths/binaries.ts` prefers them over a local `build/Release/` output — so a
+local rebuild does not change what runs until the committed binary is replaced.
+
+If you touch anything under `electron/native/**/`, its committed binary no longer matches
+its sources. Run `npm run verify:native-helpers` (also part of **Code Quality**), rebuild
+with the matching `build:windows-capture` / `build:cursor-monitor` /
+`build:windows-gpu-export` / `build:nvidia-cuda-compositor` script, then commit the
+refreshed binary and `helpers-manifest.json` together.
+
+`wgc-capture` is a deliberate exception listed in `KNOWN_STALE_HELPERS` and stays
+reported as `STALE` until it can be rebuilt with MSVC. Never refresh its fingerprint
+without rebuilding it — that would hide a real defect.
+
+Optional native runtimes (currently only the whisper runtime) **soft-fail during
+`npm ci`** with an explanatory warning, because a dev install should not break over an
+optional feature. The same failure **hard-fails the release scripts** (`build`,
+`build:win`, `build:mac`, `build:linux`) so a release can never ship silently missing a
+runtime. That split lives in `scripts/build-soft-fail.mjs`; the postinstall wrapper is
+the only thing that sets `MOREC_POSTINSTALL=1`, and it must stay that way —
+`build:win` runs `build:platform-native-helpers` as a child too, so matching on the
+script name would disable the release gate.
+
 ## License
 
 By contributing to this project, you agree that your contributions will be licensed under the [GNU AGPL 3.0](./LICENSE.md).
