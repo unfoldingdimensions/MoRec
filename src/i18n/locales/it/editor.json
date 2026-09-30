@@ -154,6 +154,13 @@
 	"export": {
 		"processingAudioEdits": "Elaborazione audio con modifiche di velocità/overlay"
 	},
+	"demoExport": {
+		"success": "Demo interattiva esportata ({{count}} passaggi)",
+		"truncated": "Limitato a {{count}} passaggi — aumenta \"Passaggi max\" nel menu di esportazione per includerne altri",
+		"noClicks": "In questa registrazione non è stato acquisito nessun clic, quindi non c'è nulla da cui creare una demo",
+		"canceled": "Esportazione della demo annullata",
+		"failed": "Impossibile esportare la demo interattiva"
+	},
 	"toolbar": {
 		"addLayer": "Aggiungi livello",
 		"splitClip": "Dividi clip (C)",

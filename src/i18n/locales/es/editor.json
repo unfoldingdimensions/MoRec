@@ -154,6 +154,13 @@
 	"export": {
 		"processingAudioEdits": "Procesando audio con ediciones de velocidad/superposición"
 	},
+	"demoExport": {
+		"success": "Demo interactiva exportada ({{count}} pasos)",
+		"truncated": "Limitado a {{count}} pasos: aumenta «Pasos máx.» en el menú de exportación para incluir más",
+		"noClicks": "No se capturaron clics en esta grabación, así que no hay nada para crear una demo",
+		"canceled": "Exportación de la demo cancelada",
+		"failed": "No se pudo exportar la demo interactiva"
+	},
 	"toolbar": {
 		"addLayer": "Agregar capa",
 		"splitClip": "Dividir clip (C)",

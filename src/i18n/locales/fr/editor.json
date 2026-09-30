@@ -154,6 +154,13 @@
 	"export": {
 		"processingAudioEdits": "Traitement de l’audio avec modifications de vitesse/superposition"
 	},
+	"demoExport": {
+		"success": "Démo interactive exportée ({{count}} étapes)",
+		"truncated": "Limité à {{count}} étapes — augmentez « Étapes max » dans le menu d'export pour en inclure plus",
+		"noClicks": "Aucun clic n'a été capturé dans cet enregistrement : il n'y a rien dont créer une démo",
+		"canceled": "Export de la démo annulé",
+		"failed": "Impossible d'exporter la démo interactive"
+	},
 	"toolbar": {
 		"addLayer": "Ajouter une couche",
 		"splitClip": "Diviser le clip (C)",

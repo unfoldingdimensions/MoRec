@@ -224,3 +224,26 @@ export function buildDemoFileName(videoFileName: string): string {
 	const baseName = videoFileName.replace(/\.[^.]+$/, "").trim() || "recording";
 	return `${baseName}-demo.html`;
 }
+
+/**
+ * Demo title derived from the recording's URL: the base name of the local
+ * file or media-server `?path=` target, extension stripped. Never a
+ * filesystem path — the bundle must not carry one.
+ */
+export function buildDemoTitleFromVideoUrl(videoUrl: string): string {
+	let candidate: string | null = null;
+	try {
+		const parsed = new URL(videoUrl, "file:///session/index.html");
+		const pathParam = parsed.searchParams.get("path");
+		if (pathParam) {
+			candidate = pathParam;
+		} else {
+			candidate = decodeURIComponent(parsed.pathname);
+		}
+	} catch {
+		candidate = videoUrl;
+	}
+
+	const baseName = candidate.replace(/[\\/]+$/, "").split(/[\\/]/).pop() ?? "";
+	return buildDemoFileName(baseName).replace(/-demo\.html$/i, "") || "recording";
+}

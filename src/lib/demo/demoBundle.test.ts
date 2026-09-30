@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
 	buildDemoFileName,
+	buildDemoTitleFromVideoUrl,
 	escapeHtml,
 	renderDemoBundleHtml,
 	serializeDemoPayload,
@@ -135,5 +136,19 @@ describe("buildDemoFileName", () => {
 		expect(buildDemoFileName("my.demo.recording.mov")).toBe("my.demo.recording-demo.html");
 		expect(buildDemoFileName("no-extension")).toBe("no-extension-demo.html");
 		expect(buildDemoFileName("")).toBe("recording-demo.html");
+	});
+});
+
+describe("buildDemoTitleFromVideoUrl", () => {
+	it("derives a title from file URLs, media-server paths, and plain paths", () => {
+		expect(buildDemoTitleFromVideoUrl("file:///C:/Users/dev/onboarding.mp4")).toBe("onboarding");
+		expect(
+			buildDemoTitleFromVideoUrl(
+				`http://127.0.0.1:8923/video?path=${encodeURIComponent("C:\\Users\\dev\\onboarding.mp4")}`,
+			),
+		).toBe("onboarding");
+		expect(buildDemoTitleFromVideoUrl("file:///home/dev/my%20tour.webm")).toBe("my tour");
+		expect(buildDemoTitleFromVideoUrl("not a url at all")).toBe("not a url at all");
+		expect(buildDemoTitleFromVideoUrl("http://127.0.0.1:8923/video")).toBe("video");
 	});
 });

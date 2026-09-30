@@ -1,4 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import { IpcRegistry } from "../../test/ipcRegistry";
 
 const probeMocks = vi.hoisted(() => ({
@@ -165,5 +168,77 @@ describe("analyze-recording-sync handler", () => {
 		// The installed project/manager mock approves nothing here.
 		expect(result.success).toBe(false);
 		expect(result.error).toContain("not an approved readable media file");
+	});
+});
+
+describe("save-exported-video interactive demo branch", () => {
+	let registry: IpcRegistry;
+	let tempRoot: string;
+	let showSaveDialog: ReturnType<typeof vi.fn>;
+
+	beforeEach(async () => {
+		vi.resetModules();
+		tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "morec-demo-save-"));
+		showSaveDialog = vi.fn(async () => ({
+			canceled: false,
+			filePath: path.join(tempRoot, "onboarding-demo.html"),
+		}));
+		registry = new IpcRegistry({
+			dialog: { showSaveDialog },
+		});
+		registry.reset();
+		registry.installElectronMock();
+
+		vi.doMock("../../appPaths", () => ({
+			USER_DATA_PATH: path.join(tempRoot, "userData"),
+			RECORDINGS_DIR: path.join(tempRoot, "recordings"),
+		}));
+		vi.doMock("../state", () => ({
+			approvedLocalReadPaths: new Set<string>(),
+			currentProjectPath: null,
+			currentVideoPath: null,
+			setCurrentProjectPath: vi.fn(),
+			setCurrentVideoPath: vi.fn(),
+		}));
+
+		const { registerExportHandlers } = await import("./export");
+		registerExportHandlers();
+	});
+
+	afterEach(async () => {
+		vi.resetModules();
+		vi.doUnmock("electron");
+		vi.doUnmock("../../appPaths");
+		vi.doUnmock("../state");
+		await fs.rm(tempRoot, { recursive: true, force: true }).catch(() => undefined);
+	});
+
+	it("writes an .html demo bundle through the interactive-demo dialog branch", async () => {
+		const html = "<!DOCTYPE html><html><body>interactive demo</body></html>";
+		const encoded = new TextEncoder().encode(html);
+		const arrayBuffer = encoded.buffer.slice(
+			encoded.byteOffset,
+			encoded.byteOffset + encoded.byteLength,
+		);
+
+		const result = (await registry.invoke(
+			"save-exported-video",
+			arrayBuffer,
+			"onboarding-demo.html",
+		)) as { success: boolean; path?: string };
+
+		expect(result.success).toBe(true);
+		expect(result.path).toBe(path.join(tempRoot, "onboarding-demo.html"));
+		await expect(fs.readFile(result.path!, "utf8")).resolves.toBe(html);
+
+		// The save dialog used the interactive-demo branch, not the MP4/GIF one.
+		const dialogOptions = showSaveDialog.mock.calls[0][0] as {
+			title: string;
+			filters: Array<{ name: string; extensions: string[] }>;
+		};
+		expect(dialogOptions.title).toBe("Save Interactive Demo");
+		expect(dialogOptions.filters).toEqual([
+			{ name: "Interactive Demo", extensions: ["html", "htm"] },
+		]);
 	});
 });

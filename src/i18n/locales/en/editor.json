@@ -154,6 +154,13 @@
 	"export": {
 		"processingAudioEdits": "Processing audio with speed/overlay edits"
 	},
+	"demoExport": {
+		"success": "Interactive demo exported ({{count}} steps)",
+		"truncated": "Capped at {{count}} steps — raise Max steps in the export menu to include more",
+		"noClicks": "No clicks were captured in this recording, so there is nothing to build a demo from",
+		"canceled": "Demo export canceled",
+		"failed": "Couldn't export the interactive demo"
+	},
 	"toolbar": {
 		"addLayer": "Add Layer",
 		"splitClip": "Split Clip (C)",

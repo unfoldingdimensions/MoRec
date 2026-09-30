@@ -315,6 +315,9 @@
 		"loadProject": "프로젝트 불러오기",
 		"saveProject": "프로젝트 저장",
 		"exportVideo": "{{format}} 내보내기",
+		"demoSectionTitle": "인터랙티브 데모",
+		"demoAction": "인터랙티브 데모 내보내기",
+		"demoMaxSteps": "최대 단계 수",
 		"reportBug": "버그 신고",
 		"starOnGithub": "GitHub에서 별표 주기",
 		"captionSidecar": {
