@@ -1,5 +1,7 @@
 import { spawnSync } from "node:child_process";
 
+import { resolveChildEnv } from "./build-soft-fail.mjs";
+
 const npmExecPath = process.env.npm_execpath;
 const hasNpmExecPath = typeof npmExecPath === "string" && npmExecPath.length > 0;
 const npmInvoker = hasNpmExecPath
@@ -18,7 +20,10 @@ function runScript(scriptName) {
 	console.log(`[postinstall] Running npm script: ${scriptName}`);
 	const result = spawnSync(npmInvoker.command, [...npmInvoker.argsPrefix, "run", scriptName], {
 		stdio: "inherit",
-		env: process.env,
+		// resolveChildEnv() tags the child as postinstall-driven so optional
+		// native runtimes may soft-fail here; release scripts never set this and
+		// still fail loudly on a missing runtime.
+		env: resolveChildEnv(),
 		shell: npmInvoker.shell,
 	});
 
