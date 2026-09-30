@@ -5,6 +5,7 @@ import { get as httpsGet } from "node:https";
 import path from "node:path";
 
 import { formatSoftFailNotice, resolveSoftFailPolicy } from "./build-soft-fail.mjs";
+import { resolveTarCommand } from "./tar-command.mjs";
 import {
 	configureWithWindowsCmakeGenerator,
 	WINDOWS_VISUAL_STUDIO_INSTALL_DIRS,
@@ -172,10 +173,13 @@ function findCmake() {
 }
 
 function ensureTarAvailable() {
+	const tarCommand = resolveTarCommand();
 	try {
-		execSync("tar --version", { stdio: "pipe" });
+		execFileSync(tarCommand, ["--version"], { stdio: "pipe" });
 	} catch {
-		throw new Error("[build-whisper-runtime] tar is required to unpack whisper.cpp sources.");
+		throw new Error(
+			`[build-whisper-runtime] ${tarCommand} is required to unpack whisper.cpp sources.`,
+		);
 	}
 }
 
@@ -245,7 +249,9 @@ async function ensureSourceTree() {
 
 	ensureTarAvailable();
 	try {
-		execFileSync("tar", ["-xzf", archivePath, "-C", extractRoot], { stdio: "inherit" });
+		execFileSync(resolveTarCommand(), ["-xzf", archivePath, "-C", extractRoot], {
+			stdio: "inherit",
+		});
 	} catch (error) {
 		// A truncated/corrupt cached archive would fail every retry; drop it so
 		// the next run re-downloads a fresh copy.
